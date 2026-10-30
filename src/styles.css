@@ -139,3 +139,12 @@ aside nav .nav-files .file label,
 aside nav .nav-files .compact-file-picker,
 aside nav .nav-files .compact-file-picker span{font-size:12px}
 aside nav .nav-files .file .file-status{font-size:12px}
+
+/* Narrow desktop sidebar while retaining usable filename and action controls. */
+@media screen and (min-width:761px){
+  .app>aside{width:300px;padding-left:12px;padding-right:12px}
+  aside nav .nav-files{margin-left:2px;padding-left:6px}
+  aside nav .nav-files .file-compact{padding:7px 6px}
+  aside nav .nav-files .file-upload-one-line{gap:4px}
+  aside nav .nav-files .file-status{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
