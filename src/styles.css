@@ -130,3 +130,12 @@ aside nav .nav-item{background:transparent;color:#c4d4e3;border:0;border-radius:
 aside nav .nav-item:hover{background:#1b3852;color:#fff}
 aside nav .nav-item.nav-current{background:#19354b;color:#fff;box-shadow:inset 3px 0 0 #d9c19d;border:0}
 aside nav .side-label{color:#8ba4bd}
+
+/* Larger, more readable sidebar navigation and file submenu typography. */
+aside nav .nav-item{font-size:15px;line-height:1.45;font-weight:600}
+aside nav .side-label{font-size:12px;line-height:1.4}
+aside nav .nav-files .file .file-heading,
+aside nav .nav-files .file label,
+aside nav .nav-files .compact-file-picker,
+aside nav .nav-files .compact-file-picker span{font-size:12px}
+aside nav .nav-files .file .file-status{font-size:12px}
