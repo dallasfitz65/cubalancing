@@ -1,0 +1,8 @@
+import React,{useEffect,useState} from 'react';
+import {api} from './server-api.mjs';
+export default function OwnerActivity({profile,unions}){
+ const [cu,setCU]=useState(''),[rows,setRows]=useState([]),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ async function load(append=false){setBusy(true);setError('');try{const data=await api('log',{cu,before:append?rows.at(-1)?.id:undefined});setRows(old=>append?[...old,...data]:data);}catch(e){setError(e.message);}finally{setBusy(false);}}
+ useEffect(()=>{setRows([]);load();},[cu]);
+ return <section className="folder-settings"><h2>Activity log</h2><p>{profile.role==='owner'?'Owner view — all credit unions':'Your credit union'} · Latest 100 events per page. Run outcomes are reported by the browser; settings changes are recorded by the server.</p>{profile.role==='owner'&&<label>Credit union <select value={cu} onChange={e=>setCU(e.target.value)}><option value="">All credit unions</option>{unions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>} <button disabled={busy} onClick={()=>load()}>Refresh</button>{error&&<p role="alert">{error}</p>}<div className="table-scroll"><table><thead><tr><th>TIME</th><th>CREDIT UNION</th><th>USER</th><th>ACTION</th><th>OUTCOME</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td>{new Date(r.created_at).toLocaleString()}</td><td>{r.credit_union||'Platform'}</td><td>{r.email}</td><td>{r.action}</td><td>{r.outcome}</td></tr>)}</tbody></table></div>{!rows.length&&!busy&&<p>No activity recorded.</p>}{rows.length>=100&&<button disabled={busy} onClick={()=>load(true)}>Load older events</button>}</section>;
+}

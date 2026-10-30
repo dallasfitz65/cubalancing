@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {parseDraftReport,checkDraftReports} from '../src/draft-reports.mjs';
+const ps={batch:'123',date:'03-14-22',institution:'TEST CU',posted:10000,notPosted:300,returned:100,honored:200};const re={...ps,processing:10300,transmission:10300};const rt={...ps,date:'03-15-22',items:300};
+test('source checks use exact cents and permit next-day return report for review',()=>{assert.ok(checkDraftReports(ps,re,rt).every(r=>r.ok));assert.ok(checkDraftReports(ps,{...re,processing:10301},rt).some(r=>!r.ok));});
+test('different batches, institutions and posting dates cannot be combined',()=>{assert.throws(()=>checkDraftReports(ps,re,{...rt,batch:'999'}));assert.throws(()=>checkDraftReports(ps,re,{...rt,institution:'OTHER CU'}));assert.throws(()=>checkDraftReports(ps,{...re,date:'03-13-22'},rt));});
+test('unrecognized and incomplete reports fail explicitly',()=>{assert.throws(()=>parseDraftReport('invalid','sdps'));assert.throws(()=>parseDraftReport('\n TEST CU   03-14-22\n SHARE DRAFT BCTL 123\n SHARE DRAFT POSTING TOTALS','sdps'));});
+
+test('A–G summary uses returned, honored and manual totals and detects one cent',async()=>{const {buildDraftSummary}=await import('../src/draft-reports.mjs');const returns={...rt,returned:100,manual:0};assert.deepEqual(buildDraftSummary(ps,re,returns),{A:10300,B:10000,C:300,D:100,E:200,F:0,G:0});assert.equal(buildDraftSummary(ps,re,{...returns,manual:1}).G,-1);assert.throws(()=>buildDraftSummary(ps,re,rt));});

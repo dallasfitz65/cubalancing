@@ -1,0 +1,3 @@
+import {defineConfig} from 'vite';
+import {resolve} from 'node:path';
+export default defineConfig({base:'./',build:{target:'es2022',rollupOptions:{input:{entry:resolve(import.meta.dirname,'index.html'),application:resolve(import.meta.dirname,'app.html')}}}});

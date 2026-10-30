@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {moneyToCents,parseGLRows,parseGLText} from '../src/gl-parser-core.mjs';
+import {buildSections,DEMO_SECTIONS,parseSVST,parseLNST,parseCOBD} from '../src/engine.mjs';
+test('monetary signs and cents are preserved',()=>{for(const [s,v] of [['(1,913.80)',-191380],['-25.01',-2501],['25.01-',-2501],['25.01 CR',-2501],['25.01 DR',2501],['0.00',0]])assert.equal(moneyToCents(s),v);});
+test('rightmost ending balance, same-line and wrapped accounts',()=>{const r=parseGLText('901-0010  Shares  (10.00)  5.00  (15.00)\n701-0000\nLoans\n100.00 0.00 99.99');assert.deepEqual(r.records.map(r=>r.cents),[-1500,9999]);});
+test('duplicate accounts and unreadable account rows fail',()=>{assert.throws(()=>parseGLText('901-0010 1.00\n901-0010 2.00'),/Duplicate/);assert.throws(()=>parseGLText('901-0010\nno value'),/no readable/);});
+test('PDF profile needs ending-balance header',()=>{assert.throws(()=>parseGLRows([{number:1,rows:[{text:'901-0010 10.00'}]}]),/End Balance/);});
+test('empty exports do not produce recognized records',()=>{assert.equal(Object.keys(parseSVST('invalid')).length,0);assert.equal(Object.keys(parseLNST('invalid')).length,0);assert.equal(parseCOBD('invalid').branches.length,0);});
+test('missing data is not balanced and synthetic demo balances',()=>{assert.ok(buildSections({}, {}, {}, {branches:[],total:0}).every(s=>s.rows.every(r=>!r.ok)));assert.ok(DEMO_SECTIONS.every(s=>s.rows.every(r=>r.ok)));});
+test('one-cent discrepancy is an exception',()=>{const data=buildSections({'739-0000':100},{},{},{branches:[{num:'1',total:100.01}],total:100.01});assert.equal(data[3].rows.at(-1).ok,false);assert.equal(data[3].rows.at(-1).varRaw,.01);});
