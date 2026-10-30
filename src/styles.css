@@ -98,3 +98,9 @@ aside{width:365px;padding-left:15px;padding-right:15px}
 
 /* Dashboard-only navigation for detail views */
 .dashboard-quicklinks{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px}.dashboard-quicklinks button{cursor:pointer;border:1px solid #385776;background:#183956;color:#fff;border-radius:8px;padding:12px 18px;font-weight:600}.dashboard-quicklinks button:hover{background:#235176}.dashboard-back{margin-bottom:12px}.dashboard-back button{cursor:pointer;border:0;background:transparent;color:#6fc7f5;padding:8px 0;font-weight:600}
+
+/* Light tan submenu entries; retain the navy sidebar and section headings. */
+aside nav .nav-item{background:#F3E7D3;color:#333333;border:1px solid transparent;border-radius:7px}
+aside nav .nav-item:hover{background:#E8D6B8;color:#333333}
+aside nav .nav-item.nav-current{background:#DCC49F;color:#333333;border-color:#C6AA80}
+aside nav .nav-item:focus-visible{outline:3px solid #69b4ed;outline-offset:2px}
