@@ -114,3 +114,13 @@ aside nav .nav-files input[type=file]::file-selector-button{background:#F3E7D3;c
 aside nav .nav-files .compact-file-picker:hover,
 aside nav .nav-files input[type=file]::file-selector-button:hover{background:#E8D6B8;color:#333333}
 aside nav .nav-files .compact-file-picker span{color:#333333}
+
+/* Dark action-icon glyphs on light-tan file submenu rows. */
+aside nav .nav-files .compact-icon-button,
+aside nav .nav-files .trash-button{color:#1F1F1F;border-color:#C6AA80}
+aside nav .nav-files .compact-icon-button svg,
+aside nav .nav-files .trash-button svg{stroke:#1F1F1F;color:#1F1F1F}
+aside nav .nav-files .compact-icon-button:hover:not(:disabled),
+aside nav .nav-files .trash-button:hover:not(:disabled){background:#E8D6B8;color:#1F1F1F;border-color:#B99866}
+aside nav .nav-files .compact-icon-button:hover:not(:disabled) svg,
+aside nav .nav-files .trash-button:hover:not(:disabled) svg{stroke:#1F1F1F;color:#1F1F1F}
