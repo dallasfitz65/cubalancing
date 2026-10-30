@@ -21,7 +21,7 @@ const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 function normalizeGL(review,sign){return Object.fromEntries(review.records.map(r=>[r.account,r.cents/100*(sign==='credit-negative'&&/^(90[124689])/.test(r.account)?-1:1)]));}
-const navigation=[['','Overview','overview'],['BALANCING','Shares, Loans and Cash','shares-loans'],['','Share Drafts','drafts'],['','EFT','eft'],['','ACH','ach'],['CONTROL & HISTORY','Activity Log','activity-log'],['','Exceptions','exceptions'],['','Balancing History','history'],['','Audit & Evidence','audit'],['SETUP','Settings','settings']];
+const navigation=[['','Overview','overview'],['BALANCING','Shares, Loans and Cash','shares-loans'],['','Share Drafts','drafts'],['','EFT','eft'],['','ACH','ach'],['CONTROL & HISTORY','Activity Log','activity-log'],['SETUP','Settings','settings']];
 // Keep dashboard destinations registered while hiding their sidebar entries.
 const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit'].includes(id));
 function App({email,onSignOut,profile}){
