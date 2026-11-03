@@ -1,0 +1,2 @@
+business_date,terminal_id,beginning_cash,cash_loaded,cash_removed,physical_cash_count
+2026-11-02,ATM-001,40000.00,20000.00,0.00,58250.00
