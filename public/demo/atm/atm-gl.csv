@@ -1,0 +1,3 @@
+business_date,terminal_id,account,ending_balance
+2026-11-02,ATM-001,ATM_CASH,58250.00
+2026-11-02,ATM-001,ATM_CLEARING,1750.00
