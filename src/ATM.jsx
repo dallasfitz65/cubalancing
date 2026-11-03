@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useState,useEffect,useRef} from 'react';
 
 const SOURCES=[
   {key:'transactions',name:'ATM transaction journal',file:'atm-transactions.csv'},
@@ -42,38 +42,65 @@ function evaluate(source){
   ].map(x=>({...x,variance:x.actual-x.source,ok:x.actual===x.source}));
   return {date:[...dates][0],terminal:[...terminals][0],tx,approvedCount:approved.length,dispensed,beginning,loaded,removed,expected,counted,settled,glCash,glClearing,checks};
 }
-async function loadFixture(filename){const response=await fetch('/demo/atm/'+filename,{cache:'no-store'});if(!response.ok)throw Error('Could not open sample file '+filename);return parseCSV(await response.text());}
-export default function ATM({onReview}){
-  const [sources,setSources]=useState({}),[names,setNames]=useState({}),[report,setReport]=useState(null);
-  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
+const BASE='/demo/atm/';
+async function demoFiles(exception=false){
+  const entries=await Promise.all(SOURCES.map(async source=>{
+    const filename=exception&&source.key==='gl'?'atm-gl-exception.csv':source.file;
+    const response=await fetch(BASE+filename,{cache:'no-store'});
+    if(!response.ok)throw Error('Could not load demo file '+filename);
+    const csv=await response.text();
+    return [source.key,new File([csv],filename,{type:'text/csv'})];
+  }));
+  return Object.fromEntries(entries);
+}
+export default function ATM({files={},setFiles,onReview}){
+  const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
+  const initialized=useRef(false);
+  useEffect(()=>{
+    if(initialized.current)return;
+    initialized.current=true;
+    let cancelled=false;
+    async function prefill(){
+      try{const defaults=await demoFiles();
+        if(!cancelled)setFiles(current=>{
+          const next={...current};
+          for(const source of SOURCES)if(!next['atm_'+source.key])next['atm_'+source.key]=defaults[source.key];
+          return next;
+        });
+      }catch(e){if(!cancelled)setError('Demo prefill unavailable: '+e.message);}
+    }
+    prefill();
+    return ()=>{cancelled=true;};
+  },[setFiles]);
   async function demo(exception=false){
-    setBusy(true);setError('');
-    try{const rows=await Promise.all(SOURCES.map(s=>loadFixture(exception&&s.key==='gl'?'atm-gl-exception.csv':s.file)));
-      const data=Object.fromEntries(SOURCES.map((s,i)=>[s.key,rows[i]]));
-      const files=Object.fromEntries(SOURCES.map(s=>[s.key,exception&&s.key==='gl'?'atm-gl-exception.csv':s.file]));
-      const result=evaluate(data);setSources(data);setNames(files);setReport(result);onReview?.(result);
-    }catch(e){setReport(null);setError(e.message);}finally{setBusy(false);}
+    setBusy(true);setError('');setReport(null);
+    try{
+      const chosen=await demoFiles(exception);
+      const data=Object.fromEntries(await Promise.all(SOURCES.map(async source=>[source.key,parseCSV(await chosen[source.key].text())])));
+      const result=evaluate(data);
+      setFiles(current=>({...current,...Object.fromEntries(SOURCES.map(source=>['atm_'+source.key,chosen[source.key]]))}));
+      setReport(result);onReview?.(result);
+    }catch(e){setError(e.message);}finally{setBusy(false);}
   }
-  async function upload(key,file){
-    if(!file)return;
-    setError('');setReport(null);
-    try{if(file.size>5*1024*1024)throw Error('CSV exceeds the 5 MB demo limit.');
-      const rows=parseCSV(await file.text());setSources(previous=>({...previous,[key]:rows}));setNames(previous=>({...previous,[key]:file.name}));
-    }catch(e){setError(e.message);}
-  }
-  function run(){
-    setError('');
-    try{const missing=SOURCES.filter(s=>!sources[s.key]).map(s=>s.name);
+  async function run(){
+    setError('');setBusy(true);
+    try{
+      const missing=SOURCES.filter(source=>!files['atm_'+source.key]).map(source=>source.name);
       if(missing.length)throw Error('Missing sources: '+missing.join(', '));
-      const result=evaluate(sources);setReport(result);onReview?.(result);
-    }catch(e){setReport(null);setError(e.message);}
+      const data=Object.fromEntries(await Promise.all(SOURCES.map(async source=>{
+        const file=files['atm_'+source.key];
+        if(file.size>10*1024*1024)throw Error(source.name+' exceeds the 10 MB file limit.');
+        return [source.key,parseCSV(await file.text())];
+      })));
+      const result=evaluate(data);setReport(result);onReview?.(result);
+    }catch(e){setReport(null);setError(e.message);}finally{setBusy(false);}
   }
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   return <section className="folder-settings atm-workspace">
     <div className="draft-report-title"><h2>ATM Balancing</h2></div>
     <p><strong>Demonstration only.</strong> All records are fictional. Cash and settlement reconciliation run separately; this prototype is not a validated processor integration or production accounting control.</p>
     <div className="atm-actions"><button className="primary" disabled={busy} onClick={()=>demo(false)}>Load balanced demo</button><button disabled={busy} onClick={()=>demo(true)}>Load exception demo ($50)</button><button disabled={busy} onClick={run}>Run ATM Balancing</button><button disabled={!report} onClick={()=>window.print()}>Print / PDF</button></div>
-    <div className="atm-source-grid">{SOURCES.map(s=><div className="atm-source" key={s.key}><strong>{s.name}</strong><small>{names[s.key]||'No file selected'}</small><label className="atm-file-choose">Choose CSV<input type="file" accept=".csv,text/csv" aria-label={'Choose '+s.name} onChange={e=>{upload(s.key,e.target.files[0]);e.target.value='';}}/></label><a href={'/demo/atm/'+s.file} download={s.file}>Download sample</a></div>)}</div>
+    <p>Four demo files are preselected under <strong>ATM Balancing</strong> in the left menu. Use the eye icon to view a file, or the trash icon to replace it with your own CSV.</p>
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
       <div className="draft-report-title"><h2>ATM Reconciliation — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
