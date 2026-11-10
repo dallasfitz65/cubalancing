@@ -1,0 +1,437 @@
+{
+  "name": "DataSafe Starter Mapping (copied from XP2; pending validation)",
+  "entries": [
+    {
+      "gl": "901-0010",
+      "description": "Regular Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "1",
+      "source": "SVST"
+    },
+    {
+      "gl": "901-0010",
+      "description": "Regular Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "3",
+      "source": "SVST"
+    },
+    {
+      "gl": "901-0010",
+      "description": "Regular Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "5",
+      "source": "SVST"
+    },
+    {
+      "gl": "901-0020",
+      "description": "Personal Choice",
+      "category": "Shares",
+      "section": "shares",
+      "code": "2",
+      "source": "SVST"
+    },
+    {
+      "gl": "901-0040",
+      "description": "Club Grand",
+      "category": "Shares",
+      "section": "shares",
+      "code": "4",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0060",
+      "description": "Member Funds",
+      "category": "Shares",
+      "section": "shares",
+      "code": "8",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0060",
+      "description": "Member Funds",
+      "category": "Shares",
+      "section": "shares",
+      "code": "28",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "9",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "27",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "29",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "30",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "35",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "36",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "37",
+      "source": "SVST"
+    },
+    {
+      "gl": "902-0070",
+      "description": "Share Drafts",
+      "category": "Shares",
+      "section": "shares",
+      "code": "38",
+      "source": "SVST"
+    },
+    {
+      "gl": "908-0090",
+      "description": "Vacation Club",
+      "category": "Shares",
+      "section": "shares",
+      "code": "7",
+      "source": "SVST"
+    },
+    {
+      "gl": "909-0000",
+      "description": "IRA Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "11",
+      "source": "SVST"
+    },
+    {
+      "gl": "909-0000",
+      "description": "IRA Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "12",
+      "source": "SVST"
+    },
+    {
+      "gl": "909-0000",
+      "description": "IRA Shares",
+      "category": "Shares",
+      "section": "shares",
+      "code": "13",
+      "source": "SVST"
+    },
+    {
+      "gl": "904-0000",
+      "description": "Share Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "14",
+      "source": "SVST"
+    },
+    {
+      "gl": "904-0000",
+      "description": "Share Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "15",
+      "source": "SVST"
+    },
+    {
+      "gl": "904-0000",
+      "description": "Share Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "16",
+      "source": "SVST"
+    },
+    {
+      "gl": "904-0000",
+      "description": "Share Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "17",
+      "source": "SVST"
+    },
+    {
+      "gl": "904-0000",
+      "description": "Share Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "49",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "18",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "19",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "20",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "22",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "23",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "24",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "25",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "45",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "46",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "51",
+      "source": "SVST"
+    },
+    {
+      "gl": "906-0000",
+      "description": "IRA Certificates",
+      "category": "Certificates",
+      "section": "certs",
+      "code": "52",
+      "source": "SVST"
+    },
+    {
+      "gl": "701-0000",
+      "description": "Unsecured Loans",
+      "category": "Loans",
+      "section": "loans",
+      "code": "4",
+      "source": "LNST"
+    },
+    {
+      "gl": "701-0000",
+      "description": "Unsecured Loans",
+      "category": "Loans",
+      "section": "loans",
+      "code": "22",
+      "source": "LNST"
+    },
+    {
+      "gl": "701-0000",
+      "description": "Unsecured Loans",
+      "category": "Loans",
+      "section": "loans",
+      "code": "41",
+      "source": "LNST"
+    },
+    {
+      "gl": "701-0010",
+      "description": "Personal LOC",
+      "category": "Loans",
+      "section": "loans",
+      "code": "36",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0000",
+      "description": "1st Mortgage",
+      "category": "Loans",
+      "section": "loans",
+      "code": "13",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0010",
+      "description": "2nd Mortgage",
+      "category": "Loans",
+      "section": "loans",
+      "code": "29",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "8",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "10",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "12",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "31",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "32",
+      "source": "LNST"
+    },
+    {
+      "gl": "703-0030",
+      "description": "Home Equity",
+      "category": "Loans",
+      "section": "loans",
+      "code": "35",
+      "source": "LNST"
+    },
+    {
+      "gl": "704-0000",
+      "description": "Certificate Secured",
+      "category": "Loans",
+      "section": "loans",
+      "code": "21",
+      "source": "LNST"
+    },
+    {
+      "gl": "704-0010",
+      "description": "Share Secured",
+      "category": "Loans",
+      "section": "loans",
+      "code": "23",
+      "source": "LNST"
+    },
+    {
+      "gl": "705-0000",
+      "description": "New Vehicle",
+      "category": "Loans",
+      "section": "loans",
+      "code": "18",
+      "source": "LNST"
+    },
+    {
+      "gl": "705-0020",
+      "description": "Used Vehicle",
+      "category": "Loans",
+      "section": "loans",
+      "code": "26",
+      "source": "LNST"
+    },
+    {
+      "gl": "705-0040",
+      "description": "Indirect New",
+      "category": "Loans",
+      "section": "loans",
+      "code": "14",
+      "source": "LNST"
+    },
+    {
+      "gl": "705-0050",
+      "description": "Indirect Used",
+      "category": "Loans",
+      "section": "loans",
+      "code": "15",
+      "source": "LNST"
+    },
+    {
+      "gl": "739-0000",
+      "description": "Cash on Hand",
+      "category": "Cash",
+      "section": "cash",
+      "code": "TOTALS FOR BRANCH NBR 1",
+      "source": "COBD"
+    }
+  ]
+}
