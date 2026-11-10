@@ -50,7 +50,7 @@ function App(){
   if(selected===coreSystem||busy||lock.current)return;
   if(Object.values(files).some(Boolean)||result||draftResult||eftResult||atmResult){if(!confirm('Switching core systems clears all loaded files and reconciliation results for this session. Continue?'))return;}
   setCoreSystem(selected);
-  try{localStorage.setItem('abacus-core-system',selected);}catch{}
+  saveSetting(folderScope,'core-system',selected).catch(e=>setSettingsStatus('Settings save failed: '+e.message));
   setMaster(getCoreMapping(selected));setFiles({});setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setReview(null);setApproved(false);setMappingOK(false);setNotes({});setUnmapped([]);setError('');setActivity([]);setCandidates([]);setDatesConfirmed(false);setReportView('summary');
  }
  function recordAction(action,outcome){setActivity(prev=>[{id:crypto.randomUUID(),timestamp:new Date().toISOString(),mode:'local',issues:outcome==='exception'?1:0,checks:0,action},...prev]);}
