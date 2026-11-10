@@ -1,4 +1,0 @@
-export async function api(op,{cu,body,before}={}){const query=new URLSearchParams({op});if(cu)query.set('cu',cu);if(before)query.set('before',before);const response=await fetch('/api/workspace?'+query,{method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify({...body,cu}):undefined});const data=await response.json();if(!response.ok)throw Error(data.error||'Server unavailable');return data;}
-
-export async function signOut(){await fetch('/api/auth?op=logout',{method:'POST',credentials:'same-origin'});}
-export async function signIn(email,password){const r=await fetch('/api/auth',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});if(!r.ok)throw Error((await r.json()).error);}
