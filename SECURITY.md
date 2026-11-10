@@ -1,21 +1,13 @@
-# Security status — evaluation build
+# ABACUS security — login-free browser application
 
-The React app keeps selected File objects, email entry, extracted balances, notes, run history in React memory, with folder handles optionally remembered as described below. No financial/session content is written to localStorage, sessionStorage, IndexedDB, Cache Storage or OPFS. The optional Remember folder feature stores only a directory handle in a dedicated IndexedDB record; this may reveal the selected folder name/location and survives sign-out. Use Forget folder to delete that preference. No file bytes, balances, email, notes, mapping replacements or history are persisted there. Recognized legacy ABACUS file/note keys are removed at session start. No service worker is registered.
+The current frontend has no application login, account, password, user-role or server identity implementation. It opens directly to the reconciliation workspace. Existing local folder selection is a browser permission mechanism, not login.
 
-Sign-out unmounts the workspace. A new sign-in creates a separate workspace instance. Sessions expire after 15 minutes without pointer, keyboard, wheel or touch activity; expiry is checked on resume and on a 10-second timer. Page navigation away clears the session. Background timer throttling can delay cleanup until the page resumes. No secure memory erasure is claimed.
+Financial source files, results, and variance notes are held in browser memory for the session and are not uploaded to a backend service by the application. A folder handle can be remembered in IndexedDB for the same browser/device; the selected XP2/DataSafe core system is remembered in localStorage. Local history is not an independently verified audit trail.
 
-The email entry screen is NOT authentication or authorization. Production needs verified identities, an access policy and server-enforced authorization where protected services are introduced. Browser-only UI checks cannot secure public application assets.
+A password dialog may still appear when a *source PDF itself* is encrypted. That is a document password needed to read the user's file; it is not a login credential and is not retained.
 
-CSP restricts scripts/workers and connections to the same origin, disables objects/forms, and the deployment headers deny framing and HTTP caching. Inline script permission was removed. These headers must be verified on the deployed host. Same-origin connections remain needed for local PDF worker/assets; this is not an OS firewall or an egress guarantee.
+Anyone with access to the hosted URL can open and operate the application. No per-user access control or tenant authorization exists in this build. Avoid importing real sensitive data on shared/untrusted devices. Host-level protections and device security are separate operational decisions.
 
-No financial upload API, external AI call, analytics or third-party font load exists in the React application source. Marketing pages and the older standalone HTML demo are separate and not covered by this assessment.
+No previous database, Netlify site identity configuration, external identity service, or historic account record is deleted merely by removing source files. Review and decommission those resources separately if they exist. Do not delete an existing database without checking whether it contains business configuration or audit records.
 
-Source financial files remain on the user's device. User-requested JSON exports, printing/PDF, screenshots, OS swap/crash dumps, browser extensions and downloaded copies are outside session cleanup. The supplied Account.csv master mapping reference rows are intentionally packaged in application assets; do not treat these assets as secret. Real production mappings should be institution-scoped configuration, not publicly bundled for multiple customers.
-
-Verification: source/storage guard and CSP tests; application build and parser tests. No deployed-header capture, live network capture, browser storage inspection, penetration test or independent security certification is included in this pass.
-
-
-Settings persistence update: validated master GL/core account mapping and its review confirmation are stored in IndexedDB on this browser/device, in addition to the optional folder handle. They survive sign-out and refresh. Imported financial reports, GL approval, run results, email and member data remain session-only. Settings are not shared between browsers or devices. Browser storage clearing removes saved settings. Earlier statements that mapping replacements are memory-only are superseded by this update.
-
-## Server-backed accounts release (supersedes previous login/settings statements)
-Email-only entry has been replaced by Netlify Identity verified login. Shared CU mapping and personal default workspace live in Postgres; DB role and CU checks protect each API operation. Both approved owner records are seeded by migration, but are not activated until deployment, Identity setup and verified sign-in. See SERVER_SETUP.md for exact setup, validation scope and remaining limitations. Browser-stored legacy master mapping is removed on sign-in. Optional folder handles remain local. Authentication cookies are an additional necessary persistence category; financial reports remain memory-only. Activity log stores verified actor, CU, action, outcome and server timestamp. Browser-reported run outcomes are not attested financial audit evidence.
+The application uses restrictive deployment headers and bundles PDF processing assets locally. Exports, prints, screenshots, browser extensions and host compromises are outside application-level session protection.
