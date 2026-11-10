@@ -166,3 +166,12 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .atm-workspace .draft-report{margin-top:18px}
 .atm-workspace table th,.atm-workspace table td{padding:10px}
 @media(max-width:640px){.atm-actions button{width:100%}}
+
+/* Sidebar scroll: vertical only; never show a horizontal scrollbar. */
+.app>aside>nav{overflow-x:hidden;overflow-y:auto;min-width:0}
+.app>aside>nav .nav-files{min-width:0;max-width:100%;margin-right:0}
+.app>aside>nav .nav-files .file,
+.app>aside>nav .nav-files .file-compact{max-width:100%;width:100%;min-width:0;display:block}
+.app>aside>nav .nav-files .file-upload-one-line{min-width:0;max-width:100%}
+.app>aside>nav .nav-files .file-status{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app>aside>nav .nav-item{max-width:100%;overflow-wrap:anywhere}
