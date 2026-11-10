@@ -2,6 +2,12 @@
 
 React application with local PDF.js extraction and a separate marketing page. No FileMaker dependency. No uploaded source data or financial fixtures are included.
 
+## Login-free local workspace (November 2026)
+
+The React workspace now opens directly without a sign-in screen. Financial source files and reconciliation results are processed in the browser session, not uploaded to the workspace API. Local folder handles may be remembered by the browser for convenience. The previous remote settings and owner activity-log UI are not used in login-free mode; the bundled account mapping is read-only and local activity is session-only.
+
+**Important:** Authentication is not the same as data locality. Anyone with the app URL can open the UI, including its local file-selection functions. Existing server API routes remain authenticated and have not been opened to anonymous access. This configuration does not provide per-user access control, durable auditable history or shared settings; use host-level access controls if access to the application itself must be restricted.
+
 ## Run and deploy
 
 Requires Node.js 22.12+ (validated with Node 24).
