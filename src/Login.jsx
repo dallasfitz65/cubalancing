@@ -1,9 +1,0 @@
-import React,{useState,useEffect} from 'react';
-import {handleAuthCallback,acceptInvite,updateUser} from '@netlify/identity';
-import {api,signIn,signOut} from './server-api.mjs';
-export default function Login({onContinue}){
- const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[callback,setCallback]=useState(null);
- useEffect(()=>{handleAuthCallback().then(result=>{if(result)setCallback(result);}).catch(()=>setError('Unable to complete sign-in link. Check Identity setup.'));},[]);
- async function submit(e){e.preventDefault();setBusy(true);setError('');try{if(callback?.type==='invite')await acceptInvite(callback.token,password);else if(callback?.type==='recovery')await updateUser({password});else await signIn(email.trim(),password);const {user}=await api('me');setPassword('');onContinue(user);}catch(e){await signOut().catch(()=>{});setError(e.message||'Sign-in failed');}finally{setBusy(false);}}
- return <div className="login-screen"><form className="login-card" onSubmit={submit}><div className="eyebrow">ABACUS BALANCING</div><h1>Welcome to ABACUS</h1><p>{callback?.type==='invite'?'Set your password to accept your invitation.':'Sign in with your approved account.'}</p>{!['invite','recovery'].includes(callback?.type)&&<><label htmlFor="login-email">Email address</label><input id="login-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></>}<label htmlFor="login-password">Password</label><input id="login-password" type="password" autoComplete={callback?'new-password':'current-password'} required minLength={callback?12:1} value={password} onChange={e=>setPassword(e.target.value)}/>{error&&<p role="alert">{error}</p>}<button disabled={busy} className="primary">{busy?'Signing in…':'Sign in'}</button><small>Approved accounts only. Financial files clear when you sign out.</small></form></div>;
-}
