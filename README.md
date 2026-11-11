@@ -1,30 +1,37 @@
-# ABACUS Reconciliation — React 0.3.0
+# ABACUS Reconciliation — React
 
-## Login-free ABACUS
+## Access and user accounts
 
-ABACUS opens directly to the reconciliation application. No username, password, invitation, sign-in, logout, recovery, session timer, role selection, authentication API or identity provider is required or included in the active application.
+ABACUS now uses a server-side PostgreSQL user table (`abacus_users`) and an expiring session table (`abacus_sessions`). Users sign in before accessing the reconciliation application. The first account is provisioned using the **one-time setup key** configured as the Netlify `ABACUS_SETUP_TOKEN` secret. The first account receives administrator access. The setup endpoint rejects any further initialization after that account exists.
 
-This is a browser-based reconciliation application. Financial input files and computed reconciliation results remain in the current browser session; they are not uploaded to a remote workspace endpoint. A selected folder handle may be remembered locally on the same browser/device. Account mappings are bundled locally; activity is session-only. The core system (XP2 or DataSafe) selection is stored locally.
+Administrators can add, enable, or disable users from **Settings → User accounts**. Passwords are stored as salted scrypt hashes rather than plaintext. Authentication uses secure, HTTP-only session cookies, with sessions stored on the server. Do not store financial source files or calculated results in these tables.
 
-Anyone who can reach the app URL can use the interface. There is no per-person or per-credit-union authorization. Do not use this configuration to host centrally stored credit-union data without separate isolation. Protect sensitive data at the device/network level and do not package financial reports into deployment assets.
+**First-account settings migration:** On the same browser/device that was used before login was enabled, successfully creating the first account copies existing XP2/DataSafe selection, sign convention, and remembered folder handle into that account's own local settings scope. Existing values remain intact as a fallback. The browser may ask to authorize the remembered folder again. Settings on another machine cannot be migrated automatically without a shared store.
 
-## Run
+## Installation and deployment
 
-Requires Node.js 22.12+.
+Requires Node.js 22.12 or newer, Netlify Functions, and Netlify Database.
 
 ```sh
 npm ci
 npm test
 npm run build
-npm run dev
 ```
 
-The app starts directly at its existing React entry point (index.html or app.html). Deploy dist/ to an HTTPS static host. Netlify build settings are in netlify.toml.
+Deploy the entire repository to Netlify (not just the generated static `dist` folder), so the database migrations and `/api/auth` function are deployed.
 
-## Reconciliation
+Set the function-scoped secret `ABACUS_SETUP_TOKEN` in the deployment environment before the first deployment. Open the site, create the initial administrator using the setup key, then remove or rotate that setup secret. Additional users are created by an administrator inside Settings.
 
-Load the GL trial balance and any required core-system exports for Shares, Loans, Cash, Share Drafts, EFT or ATM. Review file dates, sign conventions, and mappings before balancing. Exceptions, drill-down results, exports and printing are local-session features. PDF opening passwords, when required by an encrypted source PDF, are not ABACUS login credentials and are not persisted.
+## Settings and data boundaries
 
-## Security boundaries
+The existing `settings` object store in browser IndexedDB remains local and scoped to the authenticated account and credit-union workspace. Core-system selection, sign convention and optional remembered folder handle are retained. Settings do not automatically synchronize between browsers or computers.
 
-The absence of a login is intentional, not a security mechanism. No financial input or reconciliation output is sent to a database by the current frontend. Folder permission dialogs belong to the browser and may still appear. Locally selected files, downloaded evidence, printing and browser extensions remain device security considerations. Historical authentication/database files were removed from this source tree; that does not delete any previously provisioned remote database or disable site-level access policies configured outside this repository.
+Financial input files, parsed GL balances, variance notes and computed reports remain in browser memory; the authentication backend stores only user credentials (hashed), account metadata, and session hashes. Never upload real financial exports into GitHub, Netlify deployments or the database.
+
+## Core functions
+
+The reconciliation application includes GL trial balance, Shares/Loans/Cash, Share Draft, EFT, ATM balancing, ACH setup, exceptions, reports, local evidence export, core-system selection (XP2/DataSafe) and bundled mapping reference. PDF-protected documents may request their own document passwords, independent of the ABACUS account login.
+
+## Verification
+
+Successful deployment and migration do not by themselves establish that authentication is functional. Validate new-admin setup, first-account settings retention, ordinary login, logout, password rejection, disabled-account rejection, new user creation, file processing and local settings persistence before treating production as verified.
