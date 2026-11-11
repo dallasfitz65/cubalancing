@@ -175,3 +175,17 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .app>aside>nav .nav-files .file-upload-one-line{min-width:0;max-width:100%}
 .app>aside>nav .nav-files .file-status{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .app>aside>nav .nav-item{max-width:100%;overflow-wrap:anywhere}
+
+/* Server-verified login and local user-management surfaces */
+.abacus-login{min-height:100vh;display:grid;place-items:center;padding:24px;background:#10263d;color:#1c2b3d}
+.abacus-login-card{background:#fff;border-radius:14px;padding:34px;max-width:450px;width:100%;box-shadow:0 20px 60px #0004;display:flex;flex-direction:column;gap:10px}
+.abacus-login-card h1{font-size:26px;margin:4px 0}
+.abacus-login-card p{line-height:1.45}
+.abacus-login-card label{font-weight:650;margin-top:10px}
+.abacus-login-card input,.abacus-user-form input,.abacus-user-form select{width:100%;padding:11px;border:1px solid #aebbc9;border-radius:7px;color:#12283d;background:white}
+.abacus-login-card button{padding:13px;margin-top:15px}
+.abacus-login-card small{color:#536779;line-height:1.5;margin-top:12px}
+.abacus-login-error{color:#a01822;font-weight:600}
+.abacus-user-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:end;gap:12px}
+.abacus-user-form label{display:flex;flex-direction:column;gap:7px}
+.abacus-user-form button{padding:12px}
