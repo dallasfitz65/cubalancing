@@ -17,6 +17,9 @@ function fixture({user={id:7,username:'admin',role:'admin'},membership={role:'ad
   if(sql.startsWith('UPDATE abacus_tenant_settings'))return {rows:[{version:2}]};
   if(sql.startsWith('INSERT INTO abacus_credit_unions'))return {rows:[{id:A,name:args[0]}]};
   if(sql.startsWith('SELECT c.id,c.name'))return {rows:[]};
+  if(sql.startsWith('SELECT mapping,version'))return {rows:[]};
+  if(sql.startsWith('INSERT INTO abacus_tenant_mappings'))return {rows:[{version:1}]};
+  if(sql.startsWith('UPDATE abacus_tenant_mappings'))return {rows:[{version:2}]};
   if(sql.startsWith('SELECT id FROM abacus_reconciliation_runs'))return {rows:[]};
   if(sql.startsWith('SELECT id,workspace,mode,status,check_count'))return {rows:[]};
   return {rows:[]};
@@ -61,4 +64,26 @@ test('history migration forces RLS and allows no update or delete',()=>{
  assert.match(sql,/CREATE POLICY abacus_runs_read/);
  assert.match(sql,/CREATE POLICY abacus_runs_insert/);
  assert.doesNotMatch(sql,/CREATE POLICY .* FOR UPDATE|CREATE POLICY .* FOR DELETE/);
+});
+
+test('centralized GL mapping requires tenant admin membership and server validation',async()=>{
+ const mapping={name:'Institution mapping',entries:[{gl:'901-0010',description:'Regular Shares',category:'Shares',code:'PS'}]};
+ const req=post('save-mapping',{tenantId:A,coreSystem:'xp2',mapping,version:0});
+ const f=fixture();
+ assert.equal((await f.handler(req)).status,200);
+ const written=f.queries.find(q=>q.sql.startsWith('INSERT INTO abacus_tenant_mappings'));
+ assert.equal(written.args[0],A);
+ assert.equal(written.args[1],'xp2');
+ assert.ok(JSON.parse(written.args[2]).entries.length===1);
+ const denied=fixture({membership:{role:'reconciler'}});
+ assert.equal((await denied.handler(post('save-mapping',{tenantId:B,coreSystem:'xp2',mapping,version:0}))).status,403);
+ const bad=fixture();
+ assert.equal((await bad.handler(post('save-mapping',{tenantId:A,coreSystem:'xp2',mapping:{name:'Invalid',entries:[{gl:'bad',description:'x',category:'Shares',code:'PS'}]},version:0}))).status,400);
+});
+test('account mapping table has forced row-level security and versioned composite keys',()=>{
+ const sql=readFileSync(new URL('../netlify/database/migrations/20261113201000_tenant_mappings.sql',import.meta.url),'utf8');
+ assert.match(sql,/FORCE ROW LEVEL SECURITY/);
+ assert.match(sql,/PRIMARY KEY\(credit_union_id,core_system\)/);
+ assert.match(sql,/CREATE POLICY abacus_mapping_read/);
+ assert.match(sql,/CREATE POLICY abacus_mapping_update/);
 });
