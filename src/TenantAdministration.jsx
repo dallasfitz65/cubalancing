@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {tenantAPI,isServerTenant} from './tenant-api.mjs';
 import {accountAPI} from './Login.jsx';
 import {getSetting} from './settings-table.mjs';
+import {recallFolder,rememberFolder} from './folder-preferences.mjs';
 export default function TenantAdministration({account,activeCU,unions,onReload,onSelect}){
  const [name,setName]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const [users,setUsers]=useState([]),[targetUser,setTargetUser]=useState(''),[role,setRole]=useState('reconciler');
@@ -27,8 +28,13 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
     if(value==null)continue;
     await tenantAPI('set-setting',{tenantId:activeCU,body:{key,value,version:0}});saved++;
    }
+   const oldFolder=await recallFolder('local-browser:local-demo')||await recallFolder('user:'+account.id+':local-demo');
+   const newScope='user:'+account.id+':'+activeCU;
+   let folderCopied=false;
+   if(oldFolder&&!(await recallFolder(newScope))){await rememberFolder(oldFolder,newScope);folderCopied=true;}
    const refreshed=await tenantAPI('settings',{tenantId:activeCU});setSettings(refreshed.settings);
-   setMessage(saved?'Imported '+saved+' previously saved setting(s).':'No new settings imported; existing tenant settings were preserved.');
+   setMessage((saved?'Imported '+saved+' shared preference(s). ':'Existing shared settings preserved. ')+(folderCopied?'Local folder preference copied; refresh to reconnect it.':'No local folder change.'));
+
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <section className="folder-settings"><h2>Credit union management</h2>
@@ -36,7 +42,7 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
  <form onSubmit={create} className="abacus-user-form"><label>New credit union name<input maxLength={150} required value={name} onChange={e=>setName(e.target.value)} placeholder="Institution name"/></label><button className="primary" type="submit" disabled={busy}>Add credit union</button></form>
  {tenant&&<><h3>Assign users to {unions.find(x=>x.id===activeCU)?.name||'credit union'}</h3>
  <form onSubmit={assign} className="abacus-user-form"><label>User<select required value={targetUser} onChange={e=>setTargetUser(e.target.value)}><option value="">Select user</option>{users.filter(x=>x.active).map(u=><option key={u.id} value={u.id}>{u.username}</option>)}</select></label><label>Institution role<select value={role} onChange={e=>setRole(e.target.value)}><option value="admin">Credit union admin</option><option value="reconciler">Reconciler</option><option value="reviewer">Reviewer</option></select></label><button disabled={busy||!targetUser} type="submit">Assign user</button></form>
- <h3>Central settings migration</h3><p>Import existing local XP2/DataSafe and sign-convention preferences for this credit union. Only absent settings are copied. Browser directory handles remain local.</p>
+ <h3>Central settings migration</h3><p>Import existing local XP2/DataSafe, sign-convention and same-device folder preferences for this credit union. Only absent settings are copied. Browser directory handles remain local.</p>
  <button type="button" onClick={importExisting} disabled={busy}>Import existing local settings</button>
  <p>Saved centrally: {settings.length?settings.map(x=>x.setting_key).join(', '):'No settings saved yet'}</p></>}
  {!tenant&&<p>Select a credit union above to configure shared settings and user access.</p>}
