@@ -14,21 +14,23 @@
 4. Assign users to that credit union as admin, reconciler or reviewer.
 5. Use **Import existing local settings** if appropriate. Existing shared settings are never overwritten by this import. Selected directory handles remain on the current browser/device.
 6. Update **XP2 / DataSafe** in Settings. The server stores the setting in `abacus_tenant_settings` with optimistic versioning.
-7. Run balancing. A successful authenticated balancing run stores a **summary** in `abacus_reconciliation_runs`.
-8. View up to 100 recent saved summaries in Dashboard → Balancing History.
+7. In **Settings → Account mapping**, review the displayed XP2 or DataSafe mapping, then save that core-system mapping for the selected credit union. Each institution/core combination has its own versioned record. Saving the default copy does not validate DataSafe file structures.
+8. Run balancing. A successful authenticated balancing run stores a **summary** in `abacus_reconciliation_runs`.
+9. View up to 100 recent saved summaries in Dashboard → Balancing History.
 
 ## Tenant model
 
 - `abacus_credit_unions` — institution metadata
 - `abacus_user_credit_unions` — active user memberships and institution roles
 - `abacus_tenant_settings` — shared preferences (`core-system`, `sign-convention`)
+- `abacus_tenant_mappings` — separate validated, versioned XP2 and DataSafe GL/core account mapping for each institution
 - `abacus_reconciliation_runs` — append-only per-institution reconciliation run summaries
 
 All new tenant tables use PostgreSQL row-level security with transaction-local authenticated user/tenant context and API membership checks. Platform administrators must still be explicitly assigned to each credit union before viewing or editing its settings or history.
 
 ## What is saved
 
-Central SQL tables save institution and membership information, versioned preference values, a summary of completed reconciliation runs (timestamps, type, status, check/issue/unmapped counts, source file SHA-256 fingerprints and mapping version).
+Central SQL tables save institution and membership information, versioned preference values, approved GL/core mapping definitions, a summary of completed reconciliation runs (timestamps, type, status, check/issue/unmapped counts, source file SHA-256 fingerprints and mapping version).
 
 **Not saved centrally:** raw GL/core files, member names, account numbers, item-level balances, member transactions, browser folder handles, source filenames, variance notes, detailed exceptions, or PDF passwords. They remain in browser memory (or the user's chosen exported files) unless separate storage is implemented later.
 
