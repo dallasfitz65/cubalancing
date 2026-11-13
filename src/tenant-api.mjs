@@ -1,7 +1,8 @@
 // Authenticated API used only for server-backed credit union configuration and run metadata.
-export async function tenantAPI(op,{tenantId,body}={}){
+export async function tenantAPI(op,{tenantId,body,coreSystem}={}){
  const query=new URLSearchParams({op});
  if(tenantId)query.set('tenantId',tenantId);
+ if(coreSystem)query.set('coreSystem',coreSystem);
  const response=await fetch('/api/tenants?'+query.toString(),{
   method:body?'POST':'GET',
   credentials:'same-origin',
