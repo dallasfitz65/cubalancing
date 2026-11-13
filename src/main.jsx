@@ -17,7 +17,9 @@ import {sourceRoles,selectSections,requiredRoles,suggestRole,loadedRunRoles} fro
 import {getSetting,saveSetting} from './settings-table.mjs';
 import Login,{accountAPI} from './Login.jsx';
 // Temporary UI flag: keep account infrastructure in place for later reactivation.
-const LOGIN_ENABLED=false;
+// Ordinary ABACUS stays login-free; the separate portal uses full server authentication.
+// This is a UI mode switch, not a security boundary.
+const LOGIN_ENABLED=new URLSearchParams(window.location.search).get('portal')==='1';
 const GUEST_ACCOUNT={id:'local-demo',username:'Local workspace',role:'guest'};
 import UserManagement from './UserManagement.jsx';
 import TenantAdministration from './TenantAdministration.jsx';
