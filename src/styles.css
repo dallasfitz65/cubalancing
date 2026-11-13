@@ -189,3 +189,24 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .abacus-user-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:end;gap:12px}
 .abacus-user-form label{display:flex;flex-direction:column;gap:7px}
 .abacus-user-form button{padding:12px}
+
+/* Rules documentation, executive reconciliation status */
+.abacus-help{display:grid;gap:14px;padding:12px 0;max-width:1100px}
+.abacus-help h1{font-size:23px;margin:0}
+.abacus-help h2{font-size:17px;margin:4px 0}
+.abacus-help select{max-width:330px;padding:10px;background:white;border:1px solid #cbd5df;border-radius:7px}
+.abacus-help .folder-settings{margin:0}
+.abacus-help-rule{border-top:1px solid #dde5ee;padding:14px 0 6px}
+.abacus-help-rule h3{margin:0 0 5px;font-size:14px}
+.abacus-help-rule p{margin:6px 0}
+.abacus-help-rule ul{margin:8px 0}
+.abacus-help-source{font-size:12px;color:#61768c}
+.abacus-exec-overview{border:1px solid #d5dee7;background:white;border-radius:12px;padding:20px;margin:0 0 16px}
+.abacus-exec-overview h2{font-size:19px;margin:0 0 14px}
+.abacus-exec-overview h2 small{font-weight:400;color:#677a8b;font-size:11px}
+.abacus-exec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
+.abacus-exec-tile{border:1px solid #dce4ed;border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.abacus-exec-tile span{color:#51687e;font-size:12px}
+.abacus-exec-tile strong{font-size:23px;color:#142d45}
+.abacus-exec-tile small{font-size:11px;color:#61758a}
+.abacus-exec-overview>p{font-size:12px;color:#61758a;margin:12px 0 0}
