@@ -2,7 +2,7 @@
 
 ## Access and user accounts
 
-ABACUS now uses a server-side PostgreSQL user table (`abacus_users`) and an expiring session table (`abacus_sessions`). Users sign in before accessing the reconciliation application. The first account is provisioned using the **one-time setup key** configured as the Netlify `ABACUS_SETUP_TOKEN` secret. The first account receives administrator access. The setup endpoint rejects any further initialization after that account exists.
+The production homepage now requires login (no guest access). ABACUS uses a server-side PostgreSQL user table (`abacus_users`) and an expiring session table (`abacus_sessions`). Users sign in before accessing the reconciliation application. The first account is provisioned using the **one-time setup key** configured as the Netlify `ABACUS_SETUP_TOKEN` secret. The first account receives administrator access. The setup endpoint rejects any further initialization after that account exists.
 
 Administrators can add, enable, or disable users from **Settings → User accounts**. Passwords are stored as salted scrypt hashes rather than plaintext. Authentication uses secure, HTTP-only session cookies, with sessions stored on the server. Do not store financial source files or calculated results in these tables.
 
@@ -24,7 +24,7 @@ Set the function-scoped secret `ABACUS_SETUP_TOKEN` in the deployment environmen
 
 ## Settings and data boundaries
 
-The existing `settings` object store in browser IndexedDB remains local and scoped to the authenticated account and credit-union workspace. Core-system selection, sign convention and optional remembered folder handle are retained. Settings do not automatically synchronize between browsers or computers.
+For authenticated tenant workspaces, core-system selection and sign convention synchronize through versioned PostgreSQL settings; institution GL mappings are persisted separately per core system. The existing browser IndexedDB settings and remembered folder handle remain local. The first-login migration preserves previously saved local values. Financial source files remain in the browser, not the central database.
 
 Financial input files, parsed GL balances, variance notes and computed reports remain in browser memory; the authentication backend stores only user credentials (hashed), account metadata, and session hashes. Never upload real financial exports into GitHub, Netlify deployments or the database.
 
@@ -35,3 +35,9 @@ The reconciliation application includes GL trial balance, Shares/Loans/Cash, Sha
 ## Verification
 
 Successful deployment and migration do not by themselves establish that authentication is functional. Validate new-admin setup, first-account settings retention, ordinary login, logout, password rejection, disabled-account rejection, new user creation, file processing and local settings persistence before treating production as verified.
+
+## Production access (November 2026)
+
+The default URL is `https://cuabacus2.netlify.app/`. All routes now require server-authenticated ABACUS user sessions. Legacy `?portal=1` links continue to work but the parameter is not required. The SQL tenant and history endpoints have always required authentication.
+
+New credit unions are set up under Settings after signing in. Only hashed source-file fingerprints, balancing summary metadata, and validated mappings are saved centrally; no raw source files or account-level member data are transferred. See `docs/MULTI_TENANT_SETUP.md`.
