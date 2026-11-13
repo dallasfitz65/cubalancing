@@ -2,8 +2,8 @@
 
 ## Access modes
 
-- Regular site: `https://cuabacus2.netlify.app/` — **temporary local workspace**, no login. This mode cannot read or write central tenant data.
-- Authenticated portal: `https://cuabacus2.netlify.app/?portal=1` — requires server authentication. This query parameter only selects the login UI; all central API access enforces a real session and tenant authorization.
+- Production site: `https://cuabacus2.netlify.app/` — requires server authentication before loading any reconciliation workspace.
+- Legacy portal links with `?portal=1` remain valid but the query parameter is no longer needed. There is no guest bypass in production.
 - Before activating any credit union on the central server, create an administrator account through the existing one-time setup workflow. After activation rotate/remove the one-time setup key.
 
 ## Central credit-union setup
@@ -43,7 +43,7 @@ Reconciliation history entries reflect browser-reported results; they are not in
 - Verify at least two tenants using separate memberships and ensure cross-tenant reads/writes are denied by PostgreSQL RLS in an integration environment.
 - Implement validated institution-specific account mappings, detailed exception persistence and review/approval workflows.
 - Implement production-grade audit trails, secure file ingestion, unattended jobs and recovery/backups.
-- Keep unauthenticated guest mode away from sensitive central database operations; require the portal for tenant data.
+- Production access requires the login screen and server-side tenant authorization. No unauthenticated guest mode is enabled.
 - Test backup and restore before processing live credit union information.
 
 The historical SQL migrations must remain checked in even if superseded; deleting an applied migration causes Netlify database deployments to fail.
