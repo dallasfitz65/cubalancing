@@ -1,5 +1,6 @@
 import {getDatabase} from '@netlify/database';
 import {createHash} from 'node:crypto';
+import {validateMaster} from '../../src/master-mapping.mjs';
 
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -12,7 +13,7 @@ function validateSetting(key,value){
  throw Error('Unrecognized setting value');
 }
 async function session(client,req){const raw=token(req);if(!/^[a-f0-9]{64}$/.test(raw))return null;const hash=createHash('sha256').update(raw).digest('hex');const r=await client.query('SELECT u.id,u.username,u.role FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);return r.rows[0]||null;}
-async function body(req){if(req.headers.get('content-type')?.split(';')[0]!=='application/json')throw Error('JSON required');const raw=await req.text();if(raw.length>8192)throw Error('Payload too large');return JSON.parse(raw);}
+async function body(req,maxBytes=8192){if(req.headers.get('content-type')?.split(';')[0]!=='application/json')throw Error('JSON required');const raw=await req.text();if(raw.length>maxBytes)throw Error('Payload too large');return JSON.parse(raw);}
 export async function createHandler(req,{database=getDatabase}={}){
  let client,inTransaction=false;
  try {
@@ -52,7 +53,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    await client.query('COMMIT');inTransaction=false;
    return reply({ok:true});
   }
-  const tenantId=req.method==='GET'?url.searchParams.get('tenantId'):(await body(req));
+  const tenantId=req.method==='GET'?url.searchParams.get('tenantId'):(await body(req,op==='save-mapping'?500000:8192));
   const incoming=req.method==='GET'?null:tenantId;
   const id=req.method==='GET'?tenantId:incoming?.tenantId;
   if(!uuid.test(String(id||'')))return reply({error:'Valid credit union required'},400);
@@ -60,6 +61,29 @@ export async function createHandler(req,{database=getDatabase}={}){
   const member=await client.query('SELECT role FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND active=true',[user.id,id]);
   if(member.rows.length!==1)return reply({error:'Credit union access denied'},403);
   await client.query("SELECT set_config('abacus.tenant_id',$1,true)",[id]);
+  if(req.method==='GET'&&op==='mapping'){
+   const system=url.searchParams.get('coreSystem');
+   if(!['xp2','datasafe'].includes(system))return reply({error:'Core system required'},400);
+   const result=await client.query('SELECT mapping,version,updated_at FROM abacus_tenant_mappings WHERE credit_union_id=$1 AND core_system=$2',[id,system]);
+   await client.query('COMMIT');inTransaction=false;
+   return reply(result.rows.length?{mapping:result.rows[0].mapping,version:Number(result.rows[0].version),updatedAt:result.rows[0].updated_at}:{mapping:null,version:0});
+  }
+  if(req.method==='POST'&&op==='save-mapping'){
+   if(member.rows[0].role!=='admin')return reply({error:'Credit union administrator required'},403);
+   const system=incoming?.coreSystem,raw=incoming?.mapping,expected=incoming?.version;
+   if(!['xp2','datasafe'].includes(system)||!Number.isSafeInteger(expected)||expected<0||!raw||typeof raw.name!=='string'||raw.name.length>255||!Array.isArray(raw.entries)||raw.entries.length<1||raw.entries.length>2000)return reply({error:'Invalid mapping upload'},400);
+   const entries=validateMaster(raw.entries.map(e=>[e.gl,e.description,'','',e.category,e.code]));
+   const mapping={name:raw.name,entries,version:'sha256:'+createHash('sha256').update(JSON.stringify(entries)).digest('hex')};
+   let result;
+   if(expected===0){
+    result=await client.query("INSERT INTO abacus_tenant_mappings(credit_union_id,core_system,mapping,updated_by) VALUES($1,$2,$3::jsonb,$4) ON CONFLICT DO NOTHING RETURNING version",[id,system,JSON.stringify(mapping),user.id]);
+   }else{
+    result=await client.query("UPDATE abacus_tenant_mappings SET mapping=$1::jsonb,version=version+1,updated_at=now(),updated_by=$2 WHERE credit_union_id=$3 AND core_system=$4 AND version=$5 RETURNING version",[JSON.stringify(mapping),user.id,id,system,expected]);
+   }
+   if(!result.rows.length)return reply({error:'Mapping changed elsewhere; reload before saving'},409);
+   await client.query('COMMIT');inTransaction=false;
+   return reply({ok:true,mapping,version:Number(result.rows[0].version)});
+  }
   if(req.method==='GET'&&op==='runs'){
    const r=await client.query("SELECT id,workspace,mode,status,check_count,issue_count,unmapped_count,source_count,rule_version,run_at,created_at FROM abacus_reconciliation_runs WHERE credit_union_id=$1 ORDER BY run_at DESC,id DESC LIMIT 100",[id]);
    await client.query('COMMIT');inTransaction=false;
