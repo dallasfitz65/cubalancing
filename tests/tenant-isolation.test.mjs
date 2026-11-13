@@ -17,6 +17,8 @@ function fixture({user={id:7,username:'admin',role:'admin'},membership={role:'ad
   if(sql.startsWith('UPDATE abacus_tenant_settings'))return {rows:[{version:2}]};
   if(sql.startsWith('INSERT INTO abacus_credit_unions'))return {rows:[{id:A,name:args[0]}]};
   if(sql.startsWith('SELECT c.id,c.name'))return {rows:[]};
+  if(sql.startsWith('SELECT id FROM abacus_reconciliation_runs'))return {rows:[]};
+  if(sql.startsWith('SELECT id,workspace,mode,status,check_count'))return {rows:[]};
   return {rows:[]};
  }};
  return {queries, handler:req=>createHandler(req,{database:()=>({pool:{connect:async()=>client}})})};
@@ -30,3 +32,33 @@ test('settings input is allowlisted with version requirements',async()=>{const f
 test('cross-site settings write is rejected before database connection',async()=>{const f=fixture();assert.equal((await f.handler(post('set-setting',{tenantId:A,key:'core-system',value:'xp2',version:0},{origin:'https://attacker.example'}))).status,400);assert.equal(f.queries.length,0);});
 test('transaction context uses authenticated actor, not client-supplied actor',async()=>{const f=fixture();assert.equal((await f.handler(get('settings',A))).status,200);assert.ok(f.queries.some(q=>q.sql.includes("set_config('abacus.user_id'")&&q.args[0]==='7'));assert.ok(f.queries.some(q=>q.sql.includes("set_config('abacus.tenant_id'")&&q.args[0]===A));assert.ok(f.queries.some(q=>q.sql==='COMMIT'));});
 test('schema enforces RLS and credit union scoped composite keys',()=>{const sql=readFileSync(new URL('../netlify/database/migrations/20261113190000_multitenant_foundation.sql',import.meta.url),'utf8');for(const t of ['abacus_credit_unions','abacus_user_credit_unions','abacus_tenant_settings'])assert.match(sql,new RegExp('ALTER TABLE '+t+' FORCE ROW LEVEL SECURITY'));assert.match(sql,/PRIMARY KEY\(credit_union_id, setting_key\)/);assert.match(sql,/current_setting\('abacus.tenant_id',true\)/);});
+
+test('history is tenant-isolated and requires a signed-in member',async()=>{
+ const f=fixture({membership:null});
+ assert.equal((await f.handler(get('runs',B))).status,403);
+ assert.ok(!f.queries.some(q=>q.sql.includes('FROM abacus_reconciliation_runs')));
+ const guest=fixture();assert.equal((await guest.handler(get('runs',A,false))).status,401);
+});
+test('append-only run endpoint saves minimal metadata but no raw source data',async()=>{
+ const f=fixture();
+ const run={id:'f34bba12-35ee-477d-8bf7-f8bbd2cf985b',workspace:'overview',mode:'real',status:'balanced',checkCount:12,issueCount:0,unmappedCount:0,sourceCount:1,sourceHashes:[{role:'gl',sha256:'a'.repeat(64)}],ruleVersion:'sha256:'+ 'b'.repeat(64),memberAccount:'SECRET'};
+ const r=await f.handler(post('save-run',{tenantId:A,run}));assert.equal(r.status,201);
+ const insert=f.queries.find(q=>q.sql.startsWith('INSERT INTO abacus_reconciliation_runs'));
+ assert.ok(insert);assert.ok(!JSON.stringify(insert.args).includes('SECRET'));
+ assert.equal(insert.args[1],A);assert.equal(insert.args[2],7);
+});
+test('non-reconcilers cannot save runs and bad counts fail validation',async()=>{
+ const x={id:'f34bba12-35ee-477d-8bf7-f8bbd2cf985b',workspace:'overview',mode:'real',status:'exceptions',checkCount:1,issueCount:2,unmappedCount:0,sourceCount:0,sourceHashes:[]};
+ const viewer=fixture({membership:{role:'reviewer'}});
+ assert.equal((await viewer.handler(post('save-run',{tenantId:A,run:x}))).status,403);
+ const admin=fixture();
+ assert.equal((await admin.handler(post('save-run',{tenantId:A,run:x}))).status,400);
+ assert.ok(!admin.queries.some(q=>q.sql.startsWith('INSERT INTO abacus_reconciliation_runs')));
+});
+test('history migration forces RLS and allows no update or delete',()=>{
+ const sql=readFileSync(new URL('../netlify/database/migrations/20261113195000_reconciliation_history.sql',import.meta.url),'utf8');
+ assert.match(sql,/FORCE ROW LEVEL SECURITY/);
+ assert.match(sql,/CREATE POLICY abacus_runs_read/);
+ assert.match(sql,/CREATE POLICY abacus_runs_insert/);
+ assert.doesNotMatch(sql,/CREATE POLICY .* FOR UPDATE|CREATE POLICY .* FOR DELETE/);
+});
