@@ -60,6 +60,24 @@ export async function createHandler(req,{database=getDatabase}={}){
   const member=await client.query('SELECT role FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND active=true',[user.id,id]);
   if(member.rows.length!==1)return reply({error:'Credit union access denied'},403);
   await client.query("SELECT set_config('abacus.tenant_id',$1,true)",[id]);
+  if(req.method==='GET'&&op==='runs'){
+   const r=await client.query("SELECT id,workspace,mode,status,check_count,issue_count,unmapped_count,source_count,rule_version,run_at,created_at FROM abacus_reconciliation_runs WHERE credit_union_id=$1 ORDER BY run_at DESC,id DESC LIMIT 100",[id]);
+   await client.query('COMMIT');inTransaction=false;
+   return reply({runs:r.rows});
+  }
+  if(req.method==='POST'&&op==='save-run'){
+   if(!['admin','reconciler'].includes(member.rows[0].role))return reply({error:'Reconciliation permission required'},403);
+   const run=incoming?.run;
+   if(!run||!uuid.test(String(run.id||''))||!['shares-loans','cash','overview','drafts','eft','atm'].includes(run.workspace)||!['real','demo'].includes(run.mode)||!['balanced','exceptions','partial'].includes(run.status)||![run.checkCount,run.issueCount,run.unmappedCount,run.sourceCount].every(n=>Number.isSafeInteger(n)&&n>=0)||run.checkCount>100000||run.issueCount>run.checkCount||run.unmappedCount>100000||run.sourceCount>100)return reply({error:'Invalid reconciliation summary'},400);
+   const sourceHashes=run.sourceHashes;
+   if(!Array.isArray(sourceHashes)||sourceHashes.length>20||sourceHashes.length!==run.sourceCount||!sourceHashes.every(x=>x&&typeof x.role==='string'&&/^[a-z_]{2,30}$/.test(x.role)&&typeof x.sha256==='string'&&/^[a-f0-9]{64}$/.test(x.sha256)))return reply({error:'Invalid source fingerprints'},400);
+   if(run.ruleVersion!==null&&run.ruleVersion!==undefined&&(typeof run.ruleVersion!=='string'||run.ruleVersion.length>100))return reply({error:'Invalid rule version'},400);
+   const exists=await client.query('SELECT id FROM abacus_reconciliation_runs WHERE id=$1',[run.id]);
+   if(exists.rows.length)return reply({error:'Run identifier already exists'},409);
+   await client.query("INSERT INTO abacus_reconciliation_runs(id,credit_union_id,created_by,workspace,mode,status,check_count,issue_count,unmapped_count,source_count,source_hashes,rule_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12)",[run.id,id,user.id,run.workspace,run.mode,run.status,run.checkCount,run.issueCount,run.unmappedCount,run.sourceCount,JSON.stringify(sourceHashes),run.ruleVersion??null]);
+   await client.query('COMMIT');inTransaction=false;
+   return reply({ok:true,id:run.id},201);
+  }
   if(req.method==='GET'&&op==='settings'){
    const r=await client.query('SELECT setting_key,setting_value,version,updated_at FROM abacus_tenant_settings WHERE credit_union_id=$1 ORDER BY setting_key',[id]);
    await client.query('COMMIT');inTransaction=false;
