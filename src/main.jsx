@@ -16,11 +16,8 @@ import ATM from './ATM.jsx';
 import {sourceRoles,selectSections,requiredRoles,suggestRole,loadedRunRoles} from './workspaces.mjs';
 import {getSetting,saveSetting} from './settings-table.mjs';
 import Login,{accountAPI} from './Login.jsx';
-// Temporary UI flag: keep account infrastructure in place for later reactivation.
-// Ordinary ABACUS stays login-free; the separate portal uses full server authentication.
-// This is a UI mode switch, not a security boundary.
-const LOGIN_ENABLED=new URLSearchParams(window.location.search).get('portal')==='1';
-const GUEST_ACCOUNT={id:'local-demo',username:'Local workspace',role:'guest'};
+// Production requires authenticated sessions for every reconciliation workspace.
+// Previous local IndexedDB settings remain unchanged for first-login migration.
 import UserManagement from './UserManagement.jsx';
 import TenantAdministration from './TenantAdministration.jsx';
 import {tenantAPI,isServerTenant} from './tenant-api.mjs';
@@ -228,10 +225,12 @@ async function migrateInitialSettings(account){
 }
 function AuthGate(){
  const [account,setAccount]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
- useEffect(()=>{if(!LOGIN_ENABLED)return;let live=true;accountAPI('me').then(({user})=>{if(live)setAccount(user);}).catch(()=>{}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[]);
- async function onContinue(user,firstAccount){if(firstAccount)await migrateInitialSettings(user);setAccount(user);}
+ useEffect(()=>{let live=true;accountAPI('me').then(({user})=>{if(live)setAccount(user);}).catch(()=>{}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[]);
+ async function onContinue(user,firstAccount){
+  if(firstAccount){try{await migrateInitialSettings(user);}catch(e){console.warn('Existing local preference migration was unavailable:',e);}}
+  setAccount(user);
+ }
  async function onLogout(){setError('');try{await accountAPI('logout',{});setAccount(null);}catch(e){setError(e.message);}}
- if(!LOGIN_ENABLED)return <App account={GUEST_ACCOUNT} onLogout={()=>{}}/>;
  if(loading)return <div className="abacus-login"><p>Loading ABACUS…</p></div>;
  if(!account)return <Login onContinue={onContinue}/>;
  return <>{error&&<div role="alert" className="error">{error}</div>}<App key={account.id} account={account} onLogout={onLogout}/></>;
