@@ -210,3 +210,9 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .abacus-exec-tile strong{font-size:23px;color:#142d45}
 .abacus-exec-tile small{font-size:11px;color:#61758a}
 .abacus-exec-overview>p{font-size:12px;color:#61758a;margin:12px 0 0}
+
+/* One-time administrator recovery */
+.abacus-recovery-form{display:flex;flex-direction:column;gap:10px}
+.abacus-recovery-form label{font-weight:650;margin-top:10px}
+.abacus-recovery-form input,.abacus-recovery-form select{width:100%;padding:11px;border:1px solid #aebbc9;border-radius:7px;color:#12283d;background:white}
+.abacus-recovery-form button{margin-top:15px}
