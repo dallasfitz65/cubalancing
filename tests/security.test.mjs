@@ -6,3 +6,10 @@ test('deploy policy blocks third-party scripts and framing and disables HTTP cac
 test('remembered-folder persistence refuses file objects and arbitrary data',async()=>{const {rememberFolder}=await import('../src/folder-preferences.mjs');await assert.rejects(rememberFolder({kind:'file',name:'member-data.txt'}),/Only a directory/);await assert.rejects(rememberFolder({balances:[1,2]}),/Only a directory/);});
 
 test('IndexedDB settings table is configuration-only with explicit scoped entries',()=>{const code=readFileSync(new URL('settings-table.mjs',source),'utf8');assert.match(code,/TABLE='settings'/);assert.match(code,/scope\+':'\+name/);assert.doesNotMatch(code,/financialData|memberBalances|saveReconciliation|saveTransaction/);});
+
+test('production ABACUS requires login rather than relying on a portal query flag',()=>{
+ const code=readFileSync(new URL('main.jsx',source),'utf8');
+ assert.match(code,/if\(!account\)return <Login onContinue=/);
+ assert.match(code,/accountAPI\('me'\)/);
+ assert.doesNotMatch(code,/LOGIN_ENABLED|GUEST_ACCOUNT|return <App account=\{GUEST_ACCOUNT\}/);
+});
