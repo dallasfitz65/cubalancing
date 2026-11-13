@@ -1,0 +1,18 @@
+// Money arithmetic uses integer cents. Transactions should be normalized by a verified parser.
+export function toCents(value){if(typeof value==='number'){if(!Number.isFinite(value))throw Error('Invalid amount');return Math.round(value*100);}if(typeof value!=='string')throw Error('Invalid amount');const raw=value.trim().replace(/[$,\s]/g,'');const neg=raw.startsWith('(')&&raw.endsWith(')');const decimal=neg?raw.slice(1,-1):raw;if(!/^[+-]?\d+(?:\.\d{1,2})?$/.test(decimal))throw Error('Invalid money notation');const valueNumber=Number(decimal)*(neg?-1:1);if(!Number.isSafeInteger(Math.round(valueNumber*100)))throw Error('Amount out of range');return Math.round(valueNumber*100);}
+export function reconcileComponents({control,components,identified=0,toleranceCents=0}){if(!Number.isSafeInteger(control)||!Number.isSafeInteger(identified)||!Array.isArray(components)||components.some(c=>!Number.isSafeInteger(c.amountCents))||!Number.isSafeInteger(toleranceCents)||toleranceCents<0)throw Error('Use integer cents and valid components');const accounted=components.reduce((n,c)=>n+c.amountCents,0);const unexplained=control-accounted-identified;return {controlCents:control,accountedCents:accounted,identifiedCents:identified,unexplainedCents:unexplained,status:Math.abs(unexplained)<=toleranceCents?(identified===0?'balanced':'explained-open'):'unexplained'};}
+export function cashRollForward({opening,loaded=0,removed=0,dispensed=0,accepted=0}){for(const v of [opening,loaded,removed,dispensed,accepted])if(!Number.isSafeInteger(v))throw Error('Expected integer cents');return opening+loaded-removed-dispensed+accepted;}
+export function expectedSettlement(type,values){const read=k=>{const n=values[k]??0;if(!Number.isSafeInteger(n))throw Error('Expected integer cents: '+k);return n;};if(type==='ach')return read('receivedCredits')-read('receivedDebits')-read('originatedCredits')+read('originatedDebits')+read('settledReturnCashEffect');if(type==='eft')return read('purchases')-read('refunds')-read('interchangeReceived')+read('networkFees')+read('adjustments');if(type==='atm')return read('nonmemberReimbursement')-read('outsideMemberWithdrawals')+read('feesReceived')-read('feesPaid')+read('adjustments');throw Error('Unknown settlement type');}
+const normalize=v=>String(v??'').trim().toUpperCase();
+export function matchTransactions(source,target,{keys=['reference','amountCents'],dateWindowDays=0}={}){
+ if(!Array.isArray(source)||!Array.isArray(target)||!keys.length||dateWindowDays<0||!Number.isInteger(dateWindowDays))throw Error('Invalid matching configuration');
+ const used=new Set(),matches=[],exceptions=[];
+ for(const [i,row] of source.entries()){
+  const candidates=target.map((other,j)=>({other,j})).filter(({other,j})=>!used.has(j)&&keys.every(key=>key==='amountCents'?Number.isSafeInteger(row[key])&&row[key]===other[key]:normalize(row[key])!==''&&normalize(row[key])===normalize(other[key]))&&(!dateWindowDays||!row.date||!other.date||Math.abs(Date.parse(row.date)-Date.parse(other.date))<=dateWindowDays*86400000));
+  if(candidates.length===1){used.add(candidates[0].j);matches.push({sourceIndex:i,targetIndex:candidates[0].j});}
+  else exceptions.push({sourceIndex:i,reason:candidates.length?'ambiguous_match':'unmatched_source'});
+ }
+ const unmatchedTarget=target.map((_,i)=>i).filter(i=>!used.has(i));
+ return {matches,exceptions,unmatchedTarget,counts:{source:source.length,target:target.length,matched:matches.length,unmatchedSource:exceptions.length,unmatchedTarget:unmatchedTarget.length}};
+}
+// The matching engine does not auto-post GL adjustments or mark an explained open item closed.
