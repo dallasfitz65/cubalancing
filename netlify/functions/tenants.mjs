@@ -40,6 +40,18 @@ export async function createHandler(req,{database=getDatabase}={}){
    await client.query('COMMIT');inTransaction=false;
    return reply({tenant:created.rows[0]},201);
   }
+  if(req.method==='POST'&&op==='assign-user'){
+   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   const input=await body(req);
+   if(!uuid.test(String(input.tenantId||''))||!/^\\d+$/.test(String(input.userId||''))||!['admin','reconciler','reviewer'].includes(input.role))return reply({error:'Invalid user assignment'},400);
+   const target=await client.query('SELECT id FROM abacus_users WHERE id=$1 AND active=true',[input.userId]);
+   const tenant=await client.query('SELECT id FROM abacus_credit_unions WHERE id=$1 AND active=true',[input.tenantId]);
+   if(!target.rows.length||!tenant.rows.length)return reply({error:'User or credit union not found'},404);
+   await client.query(`INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role,active) VALUES($1,$2,$3,true)
+    ON CONFLICT(user_id,credit_union_id) DO UPDATE SET role=excluded.role,active=true`,[input.userId,input.tenantId,input.role]);
+   await client.query('COMMIT');inTransaction=false;
+   return reply({ok:true});
+  }
   const tenantId=req.method==='GET'?url.searchParams.get('tenantId'):(await body(req));
   const incoming=req.method==='GET'?null:tenantId;
   const id=req.method==='GET'?tenantId:incoming?.tenantId;
