@@ -28,7 +28,15 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    const user=await currentUser(client,req);
    if(!user)return reply({error:'Not signed in'},401);
    if(op==='me')return reply({user:publicUser(user)});
-   if(op==='users'&&user.role==='admin'){const rows=await client.query('SELECT id,username,role,active,created_at FROM abacus_users ORDER BY id');return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});}
+   if(op==='users'&&user.role==='admin'){
+    const rows=await client.query(`SELECT u.id,u.username,u.role,u.active,u.created_at,
+     COALESCE(json_agg(json_build_object('id',c.id,'name',c.name,'role',m.role)) FILTER(WHERE c.id IS NOT NULL AND m.active=true),'[]'::json) AS credit_unions
+     FROM abacus_users u
+     LEFT JOIN abacus_user_credit_unions m ON m.user_id=u.id
+     LEFT JOIN abacus_credit_unions c ON c.id=m.credit_union_id
+     GROUP BY u.id ORDER BY u.id`);
+    return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});
+   }
    return reply({error:'Forbidden'},403);
   }
   const body=await readBody(req);
@@ -60,9 +68,26 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   if(!actor)return reply({error:'Not signed in'},401);
   if(op==='logout'){const token=tokenFrom(req);await client.query('DELETE FROM abacus_sessions WHERE token_hash=$1',[hash(token)]);return reply({ok:true},200,{'Set-Cookie':cookie('',0)});}
   if(op==='create-user'&&actor.role==='admin'){
-   if(!usernameValid(body.username)||!passwordValid(body.password)||!['admin','user'].includes(body.role))return reply({error:'Provide a valid username, role and password of at least 12 characters'},400);
+   if(!usernameValid(body.username)||!passwordValid(body.password)||!['admin','user'].includes(body.role)||!['admin','reconciler','reviewer'].includes(body.institutionRole)||typeof body.creditUnionId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.creditUnionId))
+    return reply({error:'A valid credit union, institution role, username and password (12+ characters) are required'},400);
    const pw=await encodePassword(body.password);
-   try{const result=await client.query('INSERT INTO abacus_users(username,password_hash,role) VALUES($1,$2,$3) RETURNING id,username,role,active',[body.username.trim(),pw,body.role]);return reply({user:{...result.rows[0],id:String(result.rows[0].id)}},201);}catch(e){if(e.code==='23505')return reply({error:'Username already exists'},409);throw e;}
+   let creating=false;
+   try{
+    await client.query('BEGIN');creating=true;
+    // User creation and tenant membership must commit atomically.
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(actor.id)]);
+    await client.query("SELECT set_config('abacus.platform_admin','true',true)");
+    const union=await client.query('SELECT id,name FROM abacus_credit_unions WHERE id=$1 AND active=true',[body.creditUnionId]);
+    if(!union.rows.length){await client.query('ROLLBACK');creating=false;return reply({error:'Credit union not found or inactive'},404);}
+    const created=await client.query('INSERT INTO abacus_users(username,password_hash,role) VALUES($1,$2,$3) RETURNING id,username,role,active',[body.username.trim(),pw,body.role]);
+    await client.query('INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role,active) VALUES($1,$2,$3,true)',[created.rows[0].id,body.creditUnionId,body.institutionRole]);
+    await client.query('COMMIT');creating=false;
+    return reply({user:{...created.rows[0],id:String(created.rows[0].id),credit_unions:[{id:union.rows[0].id,name:union.rows[0].name,role:body.institutionRole}]}},201);
+   }catch(e){
+    if(creating)await client.query('ROLLBACK').catch(()=>{});
+    if(e.code==='23505')return reply({error:'Username already exists'},409);
+    throw e;
+   }
   }
   if(op==='set-active'&&actor.role==='admin'){
    const id=String(body.id||'');if(!/^\d+$/.test(id)||typeof body.active!=='boolean'||id===String(actor.id))return reply({error:'Invalid user change'},400);
