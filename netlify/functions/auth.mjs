@@ -29,13 +29,18 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    if(!user)return reply({error:'Not signed in'},401);
    if(op==='me')return reply({user:publicUser(user)});
    if(op==='users'&&user.role==='admin'){
-    const rows=await client.query(`SELECT u.id,u.username,u.role,u.active,u.created_at,
+    await client.query('BEGIN');
+    try{
+     await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
+     await client.query("SELECT set_config('abacus.platform_admin','true',true)");
+     const rows=await client.query(`SELECT u.id,u.username,u.role,u.active,u.created_at,
      COALESCE(json_agg(json_build_object('id',c.id,'name',c.name,'role',m.role)) FILTER(WHERE c.id IS NOT NULL AND m.active=true),'[]'::json) AS credit_unions
      FROM abacus_users u
      LEFT JOIN abacus_user_credit_unions m ON m.user_id=u.id
      LEFT JOIN abacus_credit_unions c ON c.id=m.credit_union_id
      GROUP BY u.id ORDER BY u.id`);
-    return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});
+    await client.query('COMMIT');return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});
+    }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
    }
    return reply({error:'Forbidden'},403);
   }
