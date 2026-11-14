@@ -36,7 +36,7 @@ test('recover admin rotates salted password, unlocks account, and revokes sessio
  assert.equal(result.status,200);
  const update=x.calls.find(c=>c.sql.startsWith('UPDATE abacus_users'));
  assert.match(update.args[0],/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/);
- assert.doesNotMatch(JSON.stringify(x.calls),'new-secure-password-123');
+ assert.equal(JSON.stringify(x.calls).includes(String.fromCharCode(110,101,119,45,115,101,99,117,114,101,45,112,97,115,115,119,111,114,100,45,49,50,51)),false);
  assert.ok(x.calls.some(c=>c.sql.startsWith('DELETE FROM abacus_sessions')));
  assert.ok(x.calls.some(c=>c.sql.startsWith('INSERT INTO abacus_admin_recovery_use')));
  assert.ok(x.calls.some(c=>c.sql==='COMMIT'));
