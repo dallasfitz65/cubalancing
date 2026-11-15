@@ -23,6 +23,16 @@ export default function UserManagement(){
    await refresh();
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
+ async function remove(user){
+  if(busy)return;
+  if(!window.confirm('Remove '+user.username+' from ABACUS? This disables their login and all credit union assignments. Reconciliation and audit history will be retained.'))return;
+  setBusy(true);setError('');setMessage('');
+  try{
+   await accountAPI('delete-user',{id:user.id});
+   setMessage('User removed. Their login and institution access have been revoked; historical records remain.');
+   await refresh();
+  }catch(e){setError(e.message);}finally{setBusy(false);}
+ }
  async function change(user){
   setBusy(true);setError('');setMessage('');
   try{
@@ -31,11 +41,11 @@ export default function UserManagement(){
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <section className="folder-settings"><h2>User accounts</h2>
- <p>Every new user must be assigned to an active credit union during creation. The platform administrator can access multiple institutions through explicit assignments; ordinary users see only their assigned institution(s).</p>
+ <p>Every new user must be assigned to an active credit union during creation. Delete user revokes access and preserves the audit trail; administrators cannot be deleted from this screen. The platform administrator can access multiple institutions through explicit assignments; ordinary users see only their assigned institution(s).</p>
  <div className="table-scroll"><table><thead><tr><th>USERNAME</th><th>PLATFORM ROLE</th><th>ASSIGNED CREDIT UNIONS</th><th>STATUS</th><th>ACTION</th></tr></thead>
  <tbody>{users.map(u=><tr key={u.id}><td>{u.username}</td><td>{u.role}</td>
  <td>{u.credit_unions?.length?u.credit_unions.map(c=>c.name+' ('+c.role+')').join(', '):<strong>Not assigned — administrator setup required</strong>}</td>
- <td>{u.active?'Active':'Disabled'}</td><td><button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button></td></tr>)}</tbody></table></div>
+ <td>{u.active?'Active':'Disabled'}</td><td><div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button><button type="button" disabled={busy||u.role==='admin'} title={u.role==='admin'?'Administrators must be deactivated or transferred before removal':'Remove user access without deleting reconciliation history'} onClick={()=>remove(u)} aria-label={'Delete user '+u.username}>Delete user</button></div></td></tr>)}</tbody></table></div>
  <h3>Add user</h3>
  {!creditUnions.length&&<p role="status">Create a credit union in Credit union management before adding users.</p>}
  <form className="abacus-user-form" onSubmit={add}>
