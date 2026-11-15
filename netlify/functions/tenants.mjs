@@ -1,6 +1,7 @@
 import {getDatabase} from '@netlify/database';
 import {createHash} from 'node:crypto';
 import {validateMaster} from '../../src/master-mapping.mjs';
+import {insertActivity} from './activity-writer.mjs';
 
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +39,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(!name||name.length>150||/[\x00-\x1f\x7f]/.test(name))return reply({error:'Invalid credit union name'},400);
    const created=await client.query('INSERT INTO abacus_credit_unions(name) VALUES($1) RETURNING id,name',[name]);
    await client.query("INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role) VALUES($1,$2,'admin')",[user.id,created.rows[0].id]);
+   await insertActivity(client,user.id,'tenant_created',created.rows[0].id);
    await client.query('COMMIT');inTransaction=false;
    return reply({tenant:created.rows[0]},201);
   }
@@ -50,6 +52,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(!target.rows.length||!tenant.rows.length)return reply({error:'User or credit union not found'},404);
    await client.query(`INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role,active) VALUES($1,$2,$3,true)
     ON CONFLICT(user_id,credit_union_id) DO UPDATE SET role=excluded.role,active=true`,[input.userId,input.tenantId,input.role]);
+   await insertActivity(client,user.id,'user_assigned',input.tenantId,input.userId,input.role);
    await client.query('COMMIT');inTransaction=false;
    return reply({ok:true});
   }
@@ -81,6 +84,7 @@ export async function createHandler(req,{database=getDatabase}={}){
     result=await client.query("UPDATE abacus_tenant_mappings SET mapping=$1::jsonb,version=version+1,updated_at=now(),updated_by=$2 WHERE credit_union_id=$3 AND core_system=$4 AND version=$5 RETURNING version",[JSON.stringify(mapping),user.id,id,system,expected]);
    }
    if(!result.rows.length)return reply({error:'Mapping changed elsewhere; reload before saving'},409);
+   await insertActivity(client,user.id,'mapping_saved',id,null,system);
    await client.query('COMMIT');inTransaction=false;
    return reply({ok:true,mapping,version:Number(result.rows[0].version)});
   }
@@ -119,6 +123,7 @@ export async function createHandler(req,{database=getDatabase}={}){
     r=await client.query("UPDATE abacus_tenant_settings SET setting_value=$1::jsonb,version=version+1,updated_at=now(),updated_by=$2 WHERE credit_union_id=$3 AND setting_key=$4 AND version=$5 RETURNING version",[JSON.stringify(value),user.id,id,key,version]);
    }else return reply({error:'Expected current setting version'},400);
    if(!r.rows.length)return reply({error:'Setting was updated elsewhere; reload and retry'},409);
+   await insertActivity(client,user.id,'setting_saved',id,null,key);
    await client.query('COMMIT');inTransaction=false;return reply({ok:true,version:Number(r.rows[0].version)});
   }
   return reply({error:'Unknown operation'},404);
