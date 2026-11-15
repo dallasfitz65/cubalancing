@@ -4,7 +4,12 @@ export function parseDraftReport(text,role){
  const batch=text.match(/SHARE DRAFT BCTL\s+(\d+)/)?.[1];if(!batch)throw Error('Share Draft batch number is missing.');
  const date=text.match(/\b\d{2}-\d{2}-\d{2}\b/)?.[0];
  const institution=text.split(/\r?\n/)[1]?.split(/ {3,}/).map(x=>x.trim()).find(Boolean);if(!institution||!date)throw Error('Report institution or date is missing.');
- if(role==='sdps'){if(!text.includes('SHARE DRAFT POSTING TOTALS'))throw Error('Expected an SDPS posting recap.');return {batch,date,institution,posted:amount(requiredLine(text,'TOTAL POSTED ')),notPosted:amount(requiredLine(text,'TOTAL NOT POSTED ')),returned:amount(requiredLine(text,'TOTAL DRAFTS RETURNED')),honored:amount(requiredLine(text,'TOTAL DRAFTS MARKED - HONOR'))};}
+ if(role==='sdps'){if(!text.includes('SHARE DRAFT POSTING TOTALS'))throw Error('Expected an SDPS posting recap.');return {batch,date,institution,
+ // SDPS displays V / E / R amount columns; R is the final reconciled amount.
+ posted:amount(requiredLine(text,'TOTAL POSTED ')),
+ notPosted:amount(requiredLine(text,'TOTAL NOT POSTED ')),
+ returned:amount(requiredLine(text,'TOTAL DRAFTS RETURNED')),
+ honored:amount(requiredLine(text,'TOTAL DRAFTS MARKED - HONOR'))};}
  if(role==='sdre'){if(!/S H A R E\s+D R A F T\s+R E F O R M A T/.test(text))throw Error('Expected an SDRE reformat report.');return {batch,date,institution,processing:amount(requiredLine(text,'PROCESSING TOTALS')),transmission:amount(requiredLine(text,'PAYABLE THRU BANK - TRANSMISS TOTALS'))};}
  if(role==='sdrt'){if(!text.includes('REJECTED SHARE DRAFT ITEMS RETURNED'))throw Error('Expected an SDRT returned-items report.');return {batch,date,institution,items:amount(requiredLine(text,'TOTAL ITEM COUNT/AMOUNT')),returned:amount(requiredLine(text,'RETURNED ITEM COUNT/AMOUNT')),manual:amount(requiredLine(text,'TOTAL MANUAL COUNT/AMOUNT')),honored:amount(requiredLine(text,'TOTAL HONORED COUNT/AMOUNT'))};}
  throw Error('Unknown share draft report.');
