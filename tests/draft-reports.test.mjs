@@ -25,7 +25,7 @@ test('SDPS final posted column is selected when multiple posting columns exist',
  'TOTAL POSTED 147 51,122.40 4 783.50 151 51,905.90',
  'TOTAL NOT POSTED 4 883.50 0 100.00 0 100.00',
  'TOTAL DRAFTS RETURNED 0 0.00',
- 'TOTAL DRAFTS MARKED - HONOR 1 100.00'].join('\\n');
+ 'TOTAL DRAFTS MARKED - HONOR 1 100.00'].join(String.fromCharCode(10));
  const parsed=parseDraftReport(text,'sdps');
  assert.equal(parsed.posted,5190590);
  assert.equal(parsed.notPosted,10000);
