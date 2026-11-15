@@ -216,3 +216,8 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .abacus-recovery-form label{font-weight:650;margin-top:10px}
 .abacus-recovery-form input,.abacus-recovery-form select{width:100%;padding:11px;border:1px solid #aebbc9;border-radius:7px;color:#12283d;background:white}
 .abacus-recovery-form button{margin-top:15px}
+
+/* Admin99 platform-wide activity filters */
+.abacus-audit-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+.abacus-audit-filters label{display:flex;flex-direction:column;gap:7px;font-weight:600}
+.abacus-audit-filters select,.abacus-audit-filters input{background:#fff;border:1px solid #bfccd8;border-radius:7px;padding:10px;min-width:0}
