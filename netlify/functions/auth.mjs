@@ -38,6 +38,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
      FROM abacus_users u
      LEFT JOIN abacus_user_credit_unions m ON m.user_id=u.id
      LEFT JOIN abacus_credit_unions c ON c.id=m.credit_union_id
+     WHERE u.deleted_at IS NULL
      GROUP BY u.id ORDER BY u.id`);
     await client.query('COMMIT');return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});
     }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
@@ -94,9 +95,31 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     throw e;
    }
   }
+  if(op==='delete-user'&&actor.role==='admin'){
+   const id=String(body.id||'');
+   if(!/^[0-9]{1,20}$/.test(id)||id===String(actor.id))return reply({error:'Cannot delete your own administrator account'},400);
+   let inTransaction=false;
+   try{
+    await client.query('BEGIN');inTransaction=true;
+    await client.query('SELECT pg_advisory_xact_lock(18499174)');
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(actor.id)]);
+    await client.query("SELECT set_config('abacus.platform_admin','true',true)");
+    const target=await client.query('SELECT id,role,active,deleted_at FROM abacus_users WHERE id=$1 FOR UPDATE',[id]);
+    if(!target.rows.length||target.rows[0].deleted_at){await client.query('ROLLBACK');inTransaction=false;return reply({error:'User account not found'},404);}
+    if(target.rows[0].role==='admin'){
+     const admins=await client.query("SELECT count(*)::integer AS total FROM abacus_users WHERE role='admin' AND active=true AND deleted_at IS NULL");
+     if(Number(admins.rows[0].total)<=1){await client.query('ROLLBACK');inTransaction=false;return reply({error:'Cannot delete the last active administrator'},409);}
+    }
+    await client.query('UPDATE abacus_users SET active=false,deleted_at=now(),deleted_by=$1,updated_at=now() WHERE id=$2',[actor.id,id]);
+    await client.query('UPDATE abacus_user_credit_unions SET active=false WHERE user_id=$1',[id]);
+    await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);
+    await client.query('COMMIT');inTransaction=false;
+    return reply({ok:true});
+   }catch(e){if(inTransaction)await client.query('ROLLBACK').catch(()=>{});throw e;}
+  }
   if(op==='set-active'&&actor.role==='admin'){
    const id=String(body.id||'');if(!/^\d+$/.test(id)||typeof body.active!=='boolean'||id===String(actor.id))return reply({error:'Invalid user change'},400);
-   await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2',[body.active,id]);if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);return reply({ok:true});
+   const changed=await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2 AND deleted_at IS NULL RETURNING id',[body.active,id]);if(!changed.rows.length)return reply({error:'User account not found'},404);if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);return reply({ok:true});
   }
   return reply({error:'Forbidden'},403);
  }catch(error){return reply({error:'Authentication service unavailable or request invalid'},503);}finally{client?.release();}
