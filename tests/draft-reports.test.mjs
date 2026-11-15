@@ -5,3 +5,28 @@ test('different batches, institutions and posting dates cannot be combined',()=>
 test('unrecognized and incomplete reports fail explicitly',()=>{assert.throws(()=>parseDraftReport('invalid','sdps'));assert.throws(()=>parseDraftReport('\n TEST CU   03-14-22\n SHARE DRAFT BCTL 123\n SHARE DRAFT POSTING TOTALS','sdps'));});
 
 test('A–G summary uses returned, honored and manual totals and detects one cent',async()=>{const {buildDraftSummary}=await import('../src/draft-reports.mjs');const returns={...rt,returned:100,manual:0};assert.deepEqual(buildDraftSummary(ps,re,returns),{A:10300,B:10000,C:300,D:100,E:200,F:0,G:0});assert.equal(buildDraftSummary(ps,re,{...returns,manual:1}).G,-1);assert.throws(()=>buildDraftSummary(ps,re,rt));});
+
+test('historical aggregate-only preview reconciles across posting, reformat and returns',async()=>{
+ const {SHARE_DRAFT_PREVIEW}=await import('../src/share-draft-preview.mjs');
+ const [ps,re,rt]=SHARE_DRAFT_PREVIEW.reports;
+ assert.ok(checkDraftReports(ps,re,rt).every(check=>check.ok));
+ const {buildDraftSummary}=await import('../src/draft-reports.mjs');
+ assert.deepEqual(buildDraftSummary(ps,re,rt),SHARE_DRAFT_PREVIEW.summary);
+ assert.equal(SHARE_DRAFT_PREVIEW.summary.G,0);
+ assert.equal(SHARE_DRAFT_PREVIEW.gl.beginning,0);
+ assert.equal(SHARE_DRAFT_PREVIEW.gl.ending,0);
+ assert.equal(SHARE_DRAFT_PREVIEW.gl.totalDebits,SHARE_DRAFT_PREVIEW.gl.totalCredits);
+ const preview=JSON.stringify(SHARE_DRAFT_PREVIEW);
+ assert.doesNotMatch(preview,/MICR|TRACE|member_id|account_number|253978824/i);
+});
+test('SDPS final posted column is selected when multiple posting columns exist',()=>{
+ const text=[' ','EXAMPLE CU       SHARE DRAFT RECAP RPT       01-26-22','SDPS SHARE DRAFT BCTL 3241',
+ 'SHARE DRAFT POSTING TOTALS',
+ 'TOTAL POSTED 147 51,122.40 4 783.50 151 51,905.90',
+ 'TOTAL NOT POSTED 4 883.50 0 100.00 0 100.00',
+ 'TOTAL DRAFTS RETURNED 0 0.00',
+ 'TOTAL DRAFTS MARKED - HONOR 1 100.00'].join('\\n');
+ const parsed=parseDraftReport(text,'sdps');
+ assert.equal(parsed.posted,5190590);
+ assert.equal(parsed.notPosted,10000);
+});
