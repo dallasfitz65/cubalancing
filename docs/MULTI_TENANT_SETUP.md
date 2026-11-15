@@ -47,3 +47,7 @@ Reconciliation history entries reflect browser-reported results; they are not in
 - Test backup and restore before processing live credit union information.
 
 The historical SQL migrations must remain checked in even if superseded; deleting an applied migration causes Netlify database deployments to fail.
+
+## Administrator recovery key rotation
+
+The application supports one-time administrator recovery through **Recover administrator access** on the production sign-in page. A new 64-character recovery key can be provisioned by setting the production secret `ABACUS_RECOVERY_TOKEN_HASH` to the lowercase SHA-256 hex digest of the new key and deploying again. Never commit or display the raw recovery key or the new password in source control. Each recovery hash can be consumed once; recovery updates a selected administrator's salted password and revokes that account's sessions without deleting existing credit unions or financial history.
