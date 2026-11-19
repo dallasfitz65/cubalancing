@@ -1,4 +1,5 @@
 import React,{useState,useEffect,useRef} from 'react';
+import ATMInvestigation from './ATMInvestigation.jsx';
 
 const SOURCES=[
   {key:'transactions',name:'ATM transaction journal',file:'atm-transactions.csv'},
@@ -53,7 +54,7 @@ async function demoFiles(exception=false){
   }));
   return Object.fromEntries(entries);
 }
-export default function ATM({files={},setFiles,onReview}){
+export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
   const initialized=useRef(false);
   useEffect(()=>{
@@ -116,5 +117,6 @@ export default function ATM({files={},setFiles,onReview}){
       {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. The exception scenario intentionally changes the GL clearing amount by $50.</p>}
       <p><small>Files remain in this browser session. The GL demo file is a separate synthetic ATM-specific CSV, not the existing credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
+    {aiEnabled&&<ATMInvestigation report={report}/>}
   </section>;
 }
