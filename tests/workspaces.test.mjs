@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {requiredRoles,selectSections,suggestRole} from '../src/workspaces.mjs';
@@ -7,3 +8,14 @@ test('drafts are separate and every original account remains in exactly one work
 test('folder names provide suggestions only and unknown names remain unassigned',()=>{assert.equal(suggestRole('trial balance.pdf'),'gl');assert.equal(suggestRole('SVST.txt'),'svst');assert.equal(suggestRole('report.txt'),'');});
 
 test('partial runs require only loaded supporting files within the selected workspace',async()=>{const {loadedRunRoles}=await import('../src/workspaces.mjs');assert.deepEqual(loadedRunRoles('overview',{svst:{}}),['gl','svst']);assert.deepEqual(loadedRunRoles('shares-loans',{lnst:{},cobd:{}}),['gl','lnst','cobd']);assert.deepEqual(loadedRunRoles('cash',{svst:{}}),['gl']);assert.deepEqual(loadedRunRoles('overview',{svst:{},lnst:{},cobd:{}}),['gl','svst','lnst','cobd']);});
+
+test('synthetic detail PDFs route to EFT and Share Draft slots, never shared GL',()=>{
+ assert.equal(suggestRole('EFT_GL_Detail_20261120.pdf'),'eftgl');
+ assert.equal(suggestRole('ShareDrafts_GL_Detail_20261120.pdf'),'draftgl');
+ assert.equal(suggestRole('GL_Trial_Balance_20261120.txt'),'gl');
+});
+test('shared GL picker warns against EFT/Share Draft ledger detail files',()=>{
+ const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
+ assert.match(main,/key==='gl'&&\['eftgl','draftgl'\]\.includes\(suggestRole\(file\.name\)\)/);
+ assert.match(main,/Wrong GL file selected/);
+});
