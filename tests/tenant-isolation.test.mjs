@@ -111,9 +111,9 @@ test('backend rejects folder paths, control characters and source data as settin
 });
 test('folder handle stays local while only folder name is synchronized',()=>{
  const jsx=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
- assert.match(jsx,/persistPreference\\('folder-name',handle\\.name\\)/);
- assert.match(jsx,/persistPreference\\('folder-name',''\\)/);
- assert.match(jsx,/setBackendFolderName\\(selected\\['folder-name'\\]/);
- assert.match(jsx,/rememberFolder\\(handle,folderScope\\)/);
- assert.match(jsx,/not the file contents, local directory path, or browser access permission/);
+ assert.ok(jsx.includes("persistPreference('folder-name',handle.name)"));
+ assert.ok(jsx.includes("persistPreference('folder-name','')"));
+ assert.ok(jsx.includes("setBackendFolderName(typeof selected['folder-name']"));
+ assert.ok(jsx.includes('rememberFolder(handle,folderScope)'));
+ assert.ok(jsx.includes('not the file contents, local directory path, or browser access permission'));
 });
