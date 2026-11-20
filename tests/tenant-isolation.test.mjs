@@ -87,3 +87,33 @@ test('account mapping table has forced row-level security and versioned composit
  assert.match(sql,/CREATE POLICY abacus_mapping_read/);
  assert.match(sql,/CREATE POLICY abacus_mapping_update/);
 });
+
+test('balancing folder name is stored in versioned, tenant-specific backend settings only',async()=>{
+ const f=fixture();
+ const request=post('set-setting',{tenantId:A,key:'folder-name',value:'ABACUS-DEMO',version:0});
+ const response=await f.handler(request);
+ assert.equal(response.status,200);
+ const row=f.queries.find(q=>q.sql.startsWith('INSERT INTO abacus_tenant_settings'));
+ assert.equal(row.args[0],A);
+ assert.equal(row.args[1],'folder-name');
+ assert.equal(JSON.parse(row.args[2]),'ABACUS-DEMO');
+ const denied=fixture({membership:null});
+ assert.equal((await denied.handler(post('set-setting',{tenantId:B,key:'folder-name',value:'Other-CU',version:0}))).status,403);
+});
+test('backend rejects folder paths, control characters and source data as settings',async()=>{
+ const f=fixture();
+ for(const value of ['C:\\\\Shared\\\\Reports','../../etc','a'.repeat(256),'a\\nserver']) {
+  const response=await f.handler(post('set-setting',{tenantId:A,key:'folder-name',value,version:0}));
+  assert.equal(response.status,400);
+ }
+ const reset=await f.handler(post('set-setting',{tenantId:A,key:'folder-name',value:'',version:0}));
+ assert.equal(reset.status,200);
+});
+test('folder handle stays local while only folder name is synchronized',()=>{
+ const jsx=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
+ assert.match(jsx,/persistPreference\\('folder-name',handle\\.name\\)/);
+ assert.match(jsx,/persistPreference\\('folder-name',''\\)/);
+ assert.match(jsx,/setBackendFolderName\\(selected\\['folder-name'\\]/);
+ assert.match(jsx,/rememberFolder\\(handle,folderScope\\)/);
+ assert.match(jsx,/not the file contents, local directory path, or browser access permission/);
+});
