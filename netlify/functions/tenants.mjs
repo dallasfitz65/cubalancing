@@ -10,7 +10,7 @@ function token(req){const item=(req.headers.get('cookie')||'').split(';').map(x=
 function checkOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw Error('Invalid origin');if(req.headers.get('sec-fetch-site')==='cross-site')throw Error('Cross-site request denied');}
 function validateSetting(key,value){
  if(key==='core-system'&&['xp2','datasafe'].includes(value))return value;
- if(key==='sign-convention'&&['credit-negative','natural'].includes(value))return value;
+ if(key==='sign-convention'&&['credit-negative','natural','reverse-all'].includes(value))return value;
  if(key==='ai-enabled'&&typeof value==='boolean')return value;
  throw Error('Unrecognized setting value');
 }
