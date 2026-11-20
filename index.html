@@ -35,17 +35,28 @@
     .hero-buttons{display:flex;flex-wrap:wrap;gap:13px}
     .trust{margin-top:34px;display:flex;gap:11px;align-items:center;color:#adc1cf;font-size:12px}
     .trust-dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
-    .visual{position:relative;background:#f9fbfd;border:1px solid #cbd7e2;border-radius:18px;box-shadow:0 32px 68px #0008;overflow:hidden;transform:rotate(-1deg)}
-    .visual-top{height:55px;background:#f7f9fb;border-bottom:1px solid #dce5ed;padding:0 21px;display:flex;align-items:center;justify-content:space-between;color:#1a314c;font-size:13px;font-weight:800}
-    .visual-top span{color:#657991;font-size:11px}
-    .visual-body{padding:25px;color:var(--ink)}
-    .mini-title{font-size:12px;color:#5c7088;text-transform:uppercase;letter-spacing:.14em;font-weight:800}
-    .metric{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:15px 0;padding:17px;border-radius:10px;background:#edf4f7}
-    .metric strong{font-size:16px}.metric small{display:block;font-size:11px;color:#60758a}
-    .status{display:inline-flex;border-radius:100px;background:#d6eee5;color:#216a50;padding:6px 10px;font-size:11px;font-weight:800}
-    .status.warn{background:#fff0d5;color:#855b1e}
-    .visual-foot{padding:18px 25px;background:#e8f0f4;color:#486177;font-size:12px;display:flex;gap:12px;align-items:center}
-    .indicator{display:inline-block;width:24px;height:24px;border-radius:6px;background:#bfd8dd}
+    .visual{position:relative;border:1px solid #276283;background:#0d324c;border-radius:18px;box-shadow:0 32px 68px #0008;overflow:hidden;transform:rotate(-1deg);padding:20px 19px 17px;isolation:isolate}
+    .visual:before{content:"";position:absolute;inset:-100px -160px auto auto;width:330px;height:330px;background:radial-gradient(circle,#0d9ed654,transparent 72%);pointer-events:none;z-index:-1}
+    .visual-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:3px 2px 18px}
+    .visual-dots{display:flex;align-items:center;gap:13px}
+    .visual-dot{width:13px;height:13px;border-radius:50%;background:#e64b52;box-shadow:0 2px 6px #0003}
+    .visual-dot:nth-child(2){background:#ffbe21}.visual-dot:nth-child(3){background:#23d277}
+    .visual-demo{color:#9fc3d3;font-size:10px;line-height:1.4;font-weight:800;letter-spacing:.11em;text-transform:uppercase;text-align:right}
+    .visual-body{padding:0;color:#f5fafd}
+    .visual-heading{display:flex;justify-content:space-between;gap:10px;align-items:baseline;color:#f2f9ff;font-weight:750;font-size:14px;margin:2px 0 13px}
+    .visual-heading span{color:#82cced;font-size:11px;font-weight:600}
+    .visual-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+    .visual-metric{min-width:0;display:flex;flex-direction:column;justify-content:space-between;min-height:135px;padding:15px 14px 13px;border:1px solid #36566b;background:#15374e;border-radius:8px}
+    .visual-metric-label{display:block;font-size:clamp(13px,1.35vw,17px);font-weight:650;color:white;line-height:1.25}
+    .visual-metric-value{display:block;font-size:clamp(24px,2.3vw,32px);font-weight:800;line-height:1.2;letter-spacing:-.045em;color:#fff;margin:7px 0 1px}
+    .visual-trend{font-size:14px;font-weight:700;color:#24d76c}.visual-trend span{font-size:18px;margin-right:7px}
+    .visual-progress{margin-top:22px}
+    .visual-progress-head{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:14px;font-weight:600;color:#f4f9fd;margin-bottom:9px}
+    .visual-progress-head strong{font-size:13px;color:#20cfff;font-weight:700}
+    .visual-track{height:11px;border-radius:20px;background:#1b526c;overflow:hidden}
+    .visual-track span{display:block;background:linear-gradient(90deg,#0798d3,#12d1fb);border-radius:20px;height:100%}
+    .visual-foot{margin-top:20px;display:flex;gap:8px;align-items:center;color:#9ab9ca;font-size:11px;line-height:1.5}
+    .visual-foot-mark{color:#f2c985;font-size:14px}
     section.light{background:var(--cream);color:var(--ink);padding:90px 0}
     .section-head{max-width:700px;margin-bottom:39px}
     .section-head .eyebrow{color:#396b6e}
@@ -102,16 +113,23 @@
           </div>
           <p class="trust"><span class="trust-dot" aria-hidden="true"></span> Secure sign-in required for the reconciliation workspace</p>
         </div>
-        <div class="visual" aria-label="Illustration of the ABACUS balancing workspace; example labels are not live financial results">
-          <div class="visual-top">▦ &nbsp; ABACUS BALANCING <span>WORKSPACE PREVIEW</span></div>
-          <div class="visual-body">
-            <div class="mini-title">Reconciliation modules</div>
-            <div class="metric"><div><strong>Shares, Loans &amp; Cash</strong><small>Core-to-GL comparisons</small></div><span class="status">Available</span></div>
-            <div class="metric"><div><strong>Share Drafts</strong><small>Dedicated balancing workflow</small></div><span class="status">Available</span></div>
-            <div class="metric"><div><strong>EFT Balancing</strong><small>Source file review</small></div><span class="status">Available</span></div>
-            <div class="metric"><div><strong>ATM Balancing</strong><small>Prototype reconciliation controls</small></div><span class="status warn">Demo</span></div>
+        <div class="visual" role="img" aria-label="Illustrative demo dashboard with shares, loans, certificates and cash sample balances. These figures and progress indicators are not live ABACUS results.">
+          <div class="visual-top">
+            <div class="visual-dots" aria-hidden="true"><span class="visual-dot"></span><span class="visual-dot"></span><span class="visual-dot"></span></div>
+            <div class="visual-demo">Illustrative demo · Not live data</div>
           </div>
-          <div class="visual-foot"><span class="indicator" aria-hidden="true"></span>Illustrative preview · No member or transaction data shown</div>
+          <div class="visual-body">
+            <div class="visual-heading">Balancing overview <span>Example workspace</span></div>
+            <div class="visual-metrics">
+              <div class="visual-metric"><div><span class="visual-metric-label">Shares Balanced</span><strong class="visual-metric-value">$4.2M</strong></div><div class="visual-trend"><span aria-hidden="true">↑</span>98.5%</div></div>
+              <div class="visual-metric"><div><span class="visual-metric-label">Loans Balanced</span><strong class="visual-metric-value">$12.8M</strong></div><div class="visual-trend"><span aria-hidden="true">↑</span>98.5%</div></div>
+              <div class="visual-metric"><div><span class="visual-metric-label">Certificates</span><strong class="visual-metric-value">$3.1M</strong></div><div class="visual-trend"><span aria-hidden="true">✓</span>100%</div></div>
+              <div class="visual-metric"><div><span class="visual-metric-label">Cash</span><strong class="visual-metric-value">$892K</strong></div><div class="visual-trend"><span aria-hidden="true">↑</span>97.8%</div></div>
+            </div>
+            <div class="visual-progress"><div class="visual-progress-head"><span>Daily Processing</span><strong>Example: Complete</strong></div><div class="visual-track" aria-hidden="true"><span style="width:100%"></span></div></div>
+            <div class="visual-progress"><div class="visual-progress-head"><span>Anomaly Detection</span><strong>Example: 0 Issues</strong></div><div class="visual-track" aria-hidden="true"><span style="width:100%"></span></div></div>
+          </div>
+          <div class="visual-foot"><span class="visual-foot-mark" aria-hidden="true">◇</span>Sample illustration only. No actual credit union financial or transaction data.</div>
         </div>
       </div>
     </section>
