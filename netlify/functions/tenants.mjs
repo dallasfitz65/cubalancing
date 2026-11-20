@@ -12,6 +12,7 @@ function validateSetting(key,value){
  if(key==='core-system'&&['xp2','datasafe'].includes(value))return value;
  if(key==='sign-convention'&&['credit-negative','natural','reverse-all'].includes(value))return value;
  if(key==='ai-enabled'&&typeof value==='boolean')return value;
+ if(key==='folder-name'&&typeof value==='string'&&value.length<=255&&!/[\\/\x00-\x1f\x7f]/.test(value))return value.trim();
  throw Error('Unrecognized setting value');
 }
 async function session(client,req){const raw=token(req);if(!/^[a-f0-9]{64}$/.test(raw))return null;const hash=createHash('sha256').update(raw).digest('hex');const r=await client.query('SELECT u.id,u.username,u.role FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);return r.rows[0]||null;}
