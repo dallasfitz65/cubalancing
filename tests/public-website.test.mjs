@@ -23,5 +23,19 @@ test('Vite preserves both the public website and existing app entry',()=>{
 test('public website has no live customer data, account credentials or fake AI marketing claims',()=>{
  assert.doesNotMatch(landing,/@[a-z0-9.-]+\.[a-z]{2,}/i);
  assert.doesNotMatch(landing,/password\s*[:=]|api[_-]?key\s*[:=]/i);
- assert.match(landing,/Prototype reconciliation controls/);
+ assert.match(landing,/Illustrative demo · Not live data/);
+ assert.match(landing,/No actual credit union financial or transaction data/);
+});
+
+test('homepage hero uses original dark dashboard visual while protecting the live workspace',()=>{
+ assert.match(landing,/class="visual-dots"/);
+ assert.match(landing,/Shares Balanced/);
+ assert.match(landing,/Loans Balanced/);
+ assert.match(landing,/Certificates/);
+ assert.match(landing,/Cash/);
+ assert.match(landing,/Daily Processing/);
+ assert.match(landing,/Anomaly Detection/);
+ assert.match(landing,/role="img"/);
+ assert.match(landing,/Illustrative demo · Not live data/);
+ assert.match(landing,/href="\/app\.html"/);
 });
