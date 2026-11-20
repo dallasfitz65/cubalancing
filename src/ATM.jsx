@@ -53,7 +53,7 @@ async function demoFiles(exception=false){
   }));
   return Object.fromEntries(entries);
 }
-export default function ATM({files={},setFiles,onReview}){
+export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
   const initialized=useRef(false);
   useEffect(()=>{
@@ -114,6 +114,11 @@ export default function ATM({files={},setFiles,onReview}){
       <button type="button" onClick={()=>setDetail(v=>!v)}>{detail?'Hide':'Show'} transaction detail</button>
       {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}
       {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. The exception scenario intentionally changes the GL clearing amount by $50.</p>}
+      {aiEnabled&&<section className="atm-investigation" aria-label="Investigation assistant" style={{marginTop:22,padding:20,border:'1px solid #bed7e8',borderRadius:10,background:'#f0f7fb'}}>
+       <h3>Investigation assistant</h3>
+       <p><strong>Local rules-based interpretation.</strong> United Solutions private AI is not connected. No ATM source data leaves this browser through this feature.</p>
+       {report.checks.every(check=>check.ok)?<p>All four implemented ATM demo checks agree. This does not verify cutoff timing, processor fees or production posting rules.</p>:<><p>{report.checks.filter(check=>!check.ok).length} reconciliation check(s) require investigation:</p><ul>{report.checks.filter(check=>!check.ok).map(check=><li key={check.name}><strong>{check.name}</strong>: {money(check.variance)} difference between expected and actual amounts. Review the source cash, network or GL file before posting.</li>)}</ul></>}
+      </section>}
       <p><small>Files remain in this browser session. The GL demo file is a separate synthetic ATM-specific CSV, not the existing credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
   </section>;
