@@ -39,3 +39,13 @@ test('homepage hero uses original dark dashboard visual while protecting the liv
  assert.match(landing,/Illustrative demo · Not live data/);
  assert.match(landing,/href="\/app\.html"/);
 });
+
+test('ABACUS marketing website follows CU Analytics style hierarchy without changing the app',()=>{
+ assert.match(landing,/CU-Analytics-inspired public-site presentation/);
+ assert.match(landing,/\.hero\{background:linear-gradient\(116deg,#f9fcff/);
+ assert.match(landing,/\.button\.primary\{background:#126baa/);
+ assert.match(landing,/h1\{font-size:clamp\(42px,5vw,66px\)/);
+ assert.match(landing,/\.cards\{gap:22px\}/);
+ assert.match(landing,/href="\/app\.html"/);
+ assert.match(landing,/Illustrative demo · Not live data/);
+});
