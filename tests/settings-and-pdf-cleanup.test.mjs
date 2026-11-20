@@ -7,9 +7,9 @@ test('AI toggle stays interactable if settings load is pending and reports save 
  const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  assert.match(ui,/useEffect\(\(\)=>\{let active=true;setSettingsReady\(false\);setAiEnabled\(false\)/);
  assert.doesNotMatch(ui,/setMaster\(getCoreMapping\(coreSystem\)\);setSettingsReady\(!centralTenant\)/);
- assert.match(ui,/checked=\{aiEnabled\} disabled=\{aiSaving\}/);
+ assert.match(ui,/aria-pressed=\{aiEnabled\}/);
  assert.match(ui,/Settings still loading/);
- assert.match(ui,/AI setting was not saved/);
+ assert.match(ui,/AI setting could not be saved/);
 });
 test('Share Draft checks do not require PDF extraction or PDF destruction',()=>{
  const drafts=readFileSync(new URL('../src/ShareDrafts.jsx',import.meta.url),'utf8');
