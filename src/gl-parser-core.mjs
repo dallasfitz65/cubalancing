@@ -61,6 +61,11 @@ function reconstructRows(items, viewport, pdfjs){
  }
  return lines.sort((a,b)=>a.y-b.y).map(l=>({text:l.parts.sort((a,b)=>a.x-b.x).map(p=>p.text).join('  ')}));
 }
+// PDF.js document and loading tasks have different lifecycle implementations.
+// Cleanup must never replace the actual extraction or validation error.
+async function safeDestroy(resource){
+ if(resource&&typeof resource.destroy==='function')await resource.destroy();
+}
 export async function extractGL(file,{onProgress=()=>{},requestPassword=async()=>null,timeoutMs=60000,pdfLibrary:pdfjs}={}){
  if(!file||file.size===0||file.size>10*1024*1024)throw new Error('Select a nonempty file under 10 MB.');
  const bytes=new Uint8Array(await file.arrayBuffer());
@@ -73,8 +78,8 @@ export async function extractGL(file,{onProgress=()=>{},requestPassword=async()=
  const task=pdfjs.getDocument({data:bytes,isEvalSupported:false,enableXfa:false,disableFontFace:true,useSystemFonts:true,useWorkerFetch:false,useWasm:false,stopAtErrors:true,maxImageSize:10000000});
  let attempts=0,timer;
  task.onPassword=async(update,reason)=>{
-  if(++attempts>3){await task.destroy();return;}
-  try{const password=await requestPassword(reason===pdfjs.PasswordResponses.INCORRECT_PASSWORD);if(password===null){await task.destroy();return;}update(password);}catch{await task.destroy();}
+  if(++attempts>3){await safeDestroy(task);return;}
+  try{const password=await requestPassword(reason===pdfjs.PasswordResponses.INCORRECT_PASSWORD);if(password===null){await safeDestroy(task);return;}update(password);}catch{await safeDestroy(task);}
  };
  try{
   return await Promise.race([(async()=>{
@@ -96,5 +101,5 @@ export async function extractGL(file,{onProgress=()=>{},requestPassword=async()=
  }catch(e){
   if(e?.name==='PasswordException')throw new Error('PDF password is required or incorrect.');
   throw new Error(e?.message||'PDF extraction failed.');
- }finally{clearTimeout(timer);await task.destroy();}
+ }finally{clearTimeout(timer);await safeDestroy(task);}
 }
