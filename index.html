@@ -83,6 +83,55 @@
     .cta h2{margin:0 0 10px}.cta p{color:#bdd1dd;margin:0}
     footer{padding:33px 0;background:#08172a;border-top:1px solid #ffffff1c}
     .foot-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;color:#93abba;font-size:13px}
+    /* CU-Analytics-inspired public-site presentation: clean navigation, generous
+       headline scale, blue/white editorial sections, consistent CTA sizing.
+       ABACUS product/dashboard artwork and secure app entry are preserved. */
+    :root{--navy:#0c2445;--mid:#123961;--teal:#087e9c;--gold:#1b74bb;--cream:#f5f8fc;--ink:#122946;--muted:#52657d}
+    body{background:#f5f8fc;color:#19324d;font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.7}
+    .wrap{width:min(1220px,calc(100% - 64px))}
+    header{background:#fff;border-bottom:1px solid #e1e9f2;box-shadow:0 2px 13px #0c2c510b}
+    .header-inner{min-height:91px}
+    .logo{color:#113d68;font-size:25px;letter-spacing:.11em}
+    .logo small{color:#617e9e;font-size:10px;letter-spacing:.19em}
+    .mark{color:#fff;background:#14558b;border-color:#14558b}
+    nav{color:#26476b;font-size:14px;gap:28px}
+    .nav-link:hover,.footer-link:hover{color:#087aaa}
+    .button{border-radius:6px;padding:15px 27px;font-size:15px;font-weight:700;box-shadow:none}
+    .button.primary{background:#126baa;color:#fff;box-shadow:0 9px 25px #126baa24}
+    .button.primary:hover{background:#07558e}
+    .button.secondary{background:#fff;color:#155e91;border-color:#b2cde0}
+    .button.nav-button{padding:12px 22px}
+    .hero{background:linear-gradient(116deg,#f9fcff 0%,#eef6fc 60%,#e5f1f9 100%);padding:100px 0 105px}
+    .hero:before{opacity:.05;background-image:linear-gradient(#3885a5 1px,transparent 1px),linear-gradient(90deg,#3885a5 1px,transparent 1px);mask-image:linear-gradient(90deg,transparent,#000);pointer-events:none}
+    .hero-layout{grid-template-columns:1.03fr .97fr;gap:55px}
+    .eyebrow{font-size:12px;letter-spacing:.16em;color:#1677ab}
+    h1{font-size:clamp(42px,5vw,66px);font-weight:800;line-height:1.12;color:#123451;letter-spacing:-.047em;margin-bottom:24px}
+    .accent{color:#1476b0}
+    .intro{color:#496680;font-size:19px;line-height:1.78;max-width:590px}
+    .trust{color:#546f85;font-size:13px}
+    .trust-dot{background:#0c93a5}
+    section.light{background:#fff;color:var(--ink);padding:100px 0}
+    .section-head{max-width:790px;margin-bottom:43px}
+    .section-head .eyebrow{color:#176fa0}
+    h2{font-size:clamp(30px,3.5vw,46px);line-height:1.18;color:inherit}
+    .section-head p{font-size:17px;color:#526c82;line-height:1.8}
+    .cards{gap:22px}
+    .card{border:1px solid #dce8f0;padding:30px 26px;border-radius:10px;box-shadow:0 6px 24px #1239610c}
+    .card-num{color:#1c80b7;font-size:12px}
+    .card h3{font-size:20px;margin-top:22px;color:#173c5d}
+    .card p{color:#5b7086;font-size:15px}
+    .how{background:#f1f6fb;color:#163a58;padding:98px 0}
+    .step-no{background:#dceef8;color:#146f9a}
+    .step p{font-size:15px}
+    .quote{background:#103757;border-radius:13px;box-shadow:0 15px 40px #10375723}
+    .quote .eyebrow{color:#8fd7ed}
+    .quote h2{color:#fff}
+    .cta{background:linear-gradient(115deg,#124c7b,#0c3157);padding:85px 0}
+    .cta .eyebrow{color:#b5e3f5}
+    .cta h2{color:#fff}
+    .cta p{color:#d1e5f3}
+    footer{background:#0c2745}
+    @media(max-width:740px){.wrap{width:min(100% - 34px,1220px)}.header-inner{min-height:75px}.hero{padding:67px 0}.intro{font-size:17px}.hero-layout{gap:42px}section.light,.how{padding:65px 0}.cta{padding:60px 0}.button{padding:13px 20px}}
     @media(max-width:960px){.hero-layout{gap:42px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.how-layout{gap:30px}}
     @media(max-width:740px){.wrap{width:min(100% - 34px,1160px)}.header-inner{min-height:76px;flex-wrap:wrap;padding:14px 0}.logo{font-size:19px}nav{gap:15px}.nav-link{display:none}.hero{padding:68px 0}.hero-layout,.how-layout{grid-template-columns:1fr}.hero-layout{gap:45px}.visual{transform:none}.intro{font-size:16px}.cards{grid-template-columns:1fr}.cta-inner{flex-direction:column;align-items:start}.cta{padding:55px 0}section.light,.how{padding:64px 0}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button{transition:none}.button:hover{transform:none}}
