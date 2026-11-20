@@ -8,7 +8,7 @@ test('AI toggle stays interactable if settings load is pending and reports save 
  assert.match(ui,/useEffect\(\(\)=>\{let active=true;setSettingsReady\(false\);setAiEnabled\(false\)/);
  assert.doesNotMatch(ui,/setMaster\(getCoreMapping\(coreSystem\)\);setSettingsReady\(!centralTenant\)/);
  assert.match(ui,/aria-pressed=\{aiEnabled\}/);
- assert.match(ui,/Settings still loading/);
+ assert.match(ui,/Credit union settings are still loading/);
  assert.match(ui,/AI setting could not be saved/);
 });
 test('Share Draft checks do not require PDF extraction or PDF destruction',()=>{
