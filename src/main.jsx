@@ -50,6 +50,7 @@ function App({account,onLogout}){
  const [result,setResult]=useState(null),[activity,setActivity]=useState([]),[notes,setNotes]=useState({}),[busy,setBusy]=useState(false),[progress,setProgress]=useState(''),[error,setError]=useState('');
  const [settingsReady,setSettingsReady]=useState(false),[settingsStatus,setSettingsStatus]=useState('');
  const [aiEnabled,setAiEnabled]=useState(false),[aiSaving,setAiSaving]=useState(false);
+ const [aiNotice,setAiNotice]=useState('');
  const [unions,setUnions]=useState([{id:'local-demo',name:'Local Credit Union'}]),[activeCU,setActiveCU]=useState('local-demo'),[serverVersion,setServerVersion]=useState(null),[cuName,setCUName]=useState('Local Credit Union'),[nameSaving,setNameSaving]=useState(false);
  const [savedCUName,setSavedCUName]=useState('');
  const folderScope=account.role==='guest'?`local-browser:${activeCU}`:`user:${account.id}:${activeCU}`;
@@ -69,14 +70,21 @@ function App({account,onLogout}){
   let active=true;tenantAPI('runs',{tenantId:activeCU}).then(x=>{if(active)setHistoricalRuns(x.runs);}).catch(e=>{if(active)setHistoryStatus('History unavailable: '+e.message);});return()=>{active=false;};},[activeCU,centralTenant]);
  async function changeAiEnabled(enabled){
   if(aiSaving)return;
-  if(!settingsReady){setSettingsStatus('Settings still loading; retry shortly.');return;}
+  if(!settingsReady){setAiNotice('Credit union settings are still loading. Please retry once loading completes.');return;}
+  const previous=aiEnabled;
+  setAiEnabled(enabled);
   setAiSaving(true);
+  setAiNotice('Saving '+(enabled?'enabled':'disabled')+' setting for this credit union…');
   try{
    await persistPreference('ai-enabled',enabled);
-   setAiEnabled(enabled);
-   setSettingsStatus(enabled?'AI assistant display enabled for this credit union. External AI is not yet connected.':'AI assistant disabled for this credit union.');
-  }catch(e){setSettingsStatus('AI setting was not saved: '+e.message);}
-  finally{setAiSaving(false);}
+   setAiNotice((enabled?'Enabled':'Disabled')+' and saved for this credit union. The assistant provides local ATM rules-based analysis; no external AI is connected.');
+   setSettingsStatus('AI assistant preference saved.');
+  }catch(e){
+   setAiEnabled(previous);
+   const error='AI setting could not be saved: '+e.message+'. The switch was restored to '+(previous?'On':'Off')+'.';
+   setAiNotice(error);
+   setSettingsStatus(error);
+  }finally{setAiSaving(false);}
  }
  async function persistPreference(key,value){
   if(!centralTenant){await saveSetting(folderScope,key,value);return;}
@@ -85,7 +93,7 @@ function App({account,onLogout}){
   setTenantVersions(prev=>({...prev,[key]:response.version}));
  }
 
- useEffect(()=>{let active=true;setSettingsReady(false);setAiEnabled(false);
+ useEffect(()=>{let active=true;setSettingsReady(false);setAiEnabled(false);setAiNotice('');
   (async()=>{
    try {
     if(centralTenant){
@@ -209,7 +217,7 @@ function App({account,onLogout}){
  {label:'ATM issues',value:atmResult?.checks?.filter(c=>c.ok===false).length??'—',hint:'From latest ATM review'}
  ].map(k=><div className="abacus-exec-tile" key={k.label}><span>{k.label}</span><strong>{k.value}</strong><small>{k.hint}</small></div>)}</div><p>This is verified session activity only; historical trends, exception aging, account certification and durable audit history require the planned persistent run store.</p></section>}{page==='overview'&&<section className="dashboard-quicklinks" aria-label="Dashboard detail views"><button type="button" onClick={()=>setPage('exceptions')}>Exceptions <span aria-hidden="true">→</span></button><button type="button" onClick={()=>setPage('history')}>Balancing History <span aria-hidden="true">→</span></button></section>}{['exceptions','history'].includes(page)&&<div className="dashboard-back"><button type="button" onClick={()=>setPage('overview')}>← Back to Dashboard</button></div>}{page==='settings'&&<section className="folder-settings" aria-label="GL sign convention settings"><h2>GL balance sign convention</h2><label htmlFor="gl-sign-convention">How should ABACUS interpret signed trial balance amounts?</label><select id="gl-sign-convention" value={sign} disabled={!settingsReady||busy} onChange={e=>setConvention(e.target.value)}>{Object.entries(GL_SIGN_CONVENTIONS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><p>{sign==='natural'?'Use the balances exactly as supplied. Select this for the original synthetic demo GL trial balance, where all amounts are positive.':sign==='credit-negative'?'Reverse only share and certificate liability GL balances (90x accounts). Use when these liabilities are exported as credits/negative while assets remain positive.':'Reverse every GL balance, including loans and cash. Use only when the entire trial balance is exported with the opposite sign convention.'}</p><p>Variance = core report balance − normalized GL balance. ABACUS keeps the original trial balance file unchanged and never applies absolute-value matching. Changing this selection recalculates the currently displayed result immediately as a preview. Click Run Balancing to save a new verified run with this convention.</p></section>}
  {page==='settings'&&<section className="folder-settings"><h2>Core system</h2><label htmlFor="core-system-selection">Select core processing system</label><select id="core-system-selection" aria-label="Core system" value={coreSystem} disabled={busy} onChange={e=>changeCoreSystem(e.target.value)}><option value="xp2">XP2</option><option value="datasafe">DataSafe</option></select><p>{CORE_SYSTEMS[coreSystem].validation}. DataSafe starts with an independent copy of the current XP2 mapping and processing rules; DataSafe-specific file formats are not yet verified.</p><p>{centralTenant?'Core system saved centrally for this credit union.':'The selected system is saved on this browser.'} No source files or member details are uploaded.</p></section>}{page==='settings'&&<GLMappingImport tenantId={activeCU} coreSystem={coreSystem} master={master} version={mappingVersion} canSave={centralTenant&&settingsReady&&!busy} onSaved={(mapping,nextVersion)=>{setMaster(mapping);setMappingVersion(nextVersion);setResult(null);setReview(null);setApproved(false);setMappingOK(false);setSettingsStatus('New GL mapping saved. Prior balancing results cleared; run reconciliation again.');}}/>}
- {page==='settings'&&<section className="folder-settings" aria-label="AI settings"><h2>AI assistant</h2><label style={{display:'flex',alignItems:'center',gap:12}}><input type="checkbox" checked={aiEnabled} disabled={aiSaving} onChange={e=>changeAiEnabled(e.target.checked)}/><strong>Enable AI investigation assistant</strong></label><p>Off by default. This setting is saved per credit union. Enabling it reveals a rules-based ATM investigation summary; it does not send financial files to an external AI provider. United Solutions private AI integration is not yet connected.</p>{!settingsReady&&<p role="status">Settings are loading. Enabling AI may require retrying after the load completes.</p>}{aiSaving&&<p role="status">Saving AI setting…</p>}</section>}
+ {page==='settings'&&<section className="folder-settings" aria-label="AI settings"><h2>AI investigation assistant</h2><p><strong>Current setting: {aiEnabled?'On':'Off'}</strong>{aiSaving?' (saving…)':''}</p><button type="button" className={aiEnabled?'':'primary'} style={{padding:'13px 20px',fontSize:15,minWidth:230}} aria-pressed={aiEnabled} disabled={aiSaving} onClick={()=>changeAiEnabled(!aiEnabled)}>{aiSaving?'Saving…':aiEnabled?'Disable AI investigation assistant':'Enable AI investigation assistant'}</button><p>Off by default. This setting is saved per credit union. When enabled, a local rules-based ATM investigation summary appears. United Solutions private AI integration is not connected, and no financial files are sent to an external AI provider.</p>{!settingsReady&&<p role="status">Settings are still loading; a save attempt will report this status.</p>}{aiNotice&&<p role={aiNotice.includes('could not be saved')?'alert':'status'} style={{fontWeight:650,color:aiNotice.includes('could not be saved')?'#a33331':'#246251'}}>{aiNotice}</p>}</section>}
  {page==='settings'&&<section className="folder-settings"><h2>Local workspace</h2><p>Reconciliation files, results and notes remain in browser memory. {centralTenant?'XP2/DataSafe and balancing preferences are saved centrally; folder handles remain local.':'Settings are saved on this browser only until a credit union login and tenant are selected.'} Closing or refreshing this page clears financial data.</p><p>Workspace: {cuName}</p><p>Settings storage: {centralTenant?'Central PostgreSQL (preferences) + local IndexedDB (folder)':'Local IndexedDB only (temporary login bypass)'}.</p>{settingsStatus&&<p role="status">{settingsStatus}</p>}</section>}
  {progress&&<div role="status" className="progress">{progress}</div>}{error&&<div role="alert" className="error">{error}</div>}
 
