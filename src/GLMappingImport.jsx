@@ -2,14 +2,6 @@ import React,{useState,useEffect} from 'react';
 import {importMaster} from './master-mapping.mjs';
 import {tenantAPI} from './tenant-api.mjs';
 
-function csvCell(value){const str=String(value??'');return /[",\n\r]/.test(str)?'"'+str.replaceAll('"','""')+'"':str;}
-function downloadMapping(entries,name){
- const csv=entries.map(e=>[e.gl,e.description,'','',e.category,e.code].map(csvCell).join(',')).join('\r\n')+'\r\n';
- const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
- const url=URL.createObjectURL(blob);
- const link=document.createElement('a');link.href=url;link.download=name;link.click();
- setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
 export default function GLMappingImport({tenantId,coreSystem,master,version,canSave,onSaved}){
  const [draft,setDraft]=useState(null),[fileName,setFileName]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[saving,setSaving]=useState(false);
  useEffect(()=>{setDraft(null);setFileName('');setError('');setNotice('');},[tenantId,coreSystem]);
@@ -40,10 +32,13 @@ export default function GLMappingImport({tenantId,coreSystem,master,version,canS
   <h2>GL account translation / mapping</h2>
   <p>Import the six-column GL translation CSV for the selected credit union and core system ({coreSystem.toUpperCase()}). Each row must be <code>GL, description, blank, blank, category, core code</code>, with no header row. Supported categories: Shares, Certificates, Loans and Cash.</p>
   <p><strong>Current mapping:</strong> {master?.name||'Default mapping'} · {master?.entries?.length||0} entries · {version?('Saved version '+version):'Default profile'}</p>
-  <button type="button" disabled={!master?.entries?.length} onClick={()=>downloadMapping(master.entries,'ABACUS_'+coreSystem.toUpperCase()+'_Mapping_Backup.csv')}>Download current mapping CSV</button>
   <div style={{marginTop:16}}>
-   <label htmlFor="gl-mapping-csv-upload"><strong>Choose updated mapping CSV</strong></label>
-   <input id="gl-mapping-csv-upload" type="file" accept=".csv,text/csv" disabled={!canSave||saving} onChange={e=>{selectFile(e.target.files?.[0]);e.target.value='';}}/>
+   <label htmlFor="gl-mapping-csv-upload"><strong>Updated mapping CSV</strong></label>
+   <div className="mapping-file-selector">
+    <span className="mapping-filename">{fileName||'No CSV selected'}</span>
+    <label htmlFor="gl-mapping-csv-upload" aria-label="Choose updated mapping CSV" title="Choose updated mapping CSV" className={'mapping-file-icon'+(!canSave||saving?' mapping-file-disabled':'')} role="button" tabIndex={!canSave||saving?-1:0} onKeyDown={e=>{if((e.key==='Enter'||e.key===' ')&&canSave&&!saving){e.preventDefault();document.getElementById('gl-mapping-csv-upload')?.click();}}}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4.5h10l5 5v10H4z"/><path d="M14 4.5v5h5"/><path d="M8 15h8m-4-4v8"/></svg></label>
+   </div>
+   <input id="gl-mapping-csv-upload" className="visually-hidden-file" type="file" accept=".csv,text/csv" disabled={!canSave||saving} onChange={e=>{selectFile(e.target.files?.[0]);e.target.value='';}}/>
   </div>
   {!canSave&&<p>Saving requires a selected server-backed credit union and credit union administrator access.</p>}
   {error&&<p className="error" role="alert">{error}</p>}
