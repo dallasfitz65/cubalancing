@@ -22,7 +22,7 @@ test('Input folder remains scan-only, output folder is saved locally but never w
  assert.match(main,/setFolderConnection\('missing'\)/);
 });
 test('Settings sections provide accessible help dialogs instead of paragraph instructions',()=>{
- for(const title of ['Folder Configuration','AI investigation assistant','GL balance sign convention','Core system','Account mapping','Local workspace'])
+ for(const title of ['Folder Configuration','AI investigation assistant','GL Balance Sign Swap','Core system','Account mapping','Local workspace'])
   assert.match(main,new RegExp('<SectionHelp title="'+title+'"'));
  assert.match(help,/showModal\(\)/);
  assert.match(help,/ref\.current\?\.close\(\)/);
