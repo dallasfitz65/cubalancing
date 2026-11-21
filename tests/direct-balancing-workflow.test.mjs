@@ -20,7 +20,7 @@ test('selected balance sign is traceable on report without hiding source values'
 test('folder import no longer forces an unverifiable manual date checkbox',()=>{
  assert.doesNotMatch(ui,/!datesConfirmed\|\|!chosen.length/);
  assert.doesNotMatch(ui,/I checked that selected reports use the correct business date/);
- assert.match(ui,/Load selected files — no approval step/);
+ assert.match(ui,/Load identified files/);
  assert.match(ui,/No recognized report files selected/);
  assert.match(ui,/if\(new Set\(roles\).size!==roles.length\)/);
  assert.match(ui,/Unsupported file type or size/);
