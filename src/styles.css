@@ -221,3 +221,25 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .abacus-audit-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
 .abacus-audit-filters label{display:flex;flex-direction:column;gap:7px;font-weight:600}
 .abacus-audit-filters select,.abacus-audit-filters input{background:#fff;border:1px solid #bfccd8;border-radius:7px;padding:10px;min-width:0}
+
+
+/* Compact, accessible folder settings and section-scoped help. */
+.section-title-help{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.section-title-help h2,.section-title-help h3{margin:0}
+.section-help-trigger{width:25px;height:25px;min-width:25px;padding:0;border-radius:50%;background:#e9f0f6;color:#234660;border:1px solid #b4c5d4;font-size:14px;font-weight:700}
+.section-help-trigger:hover{background:#dbeaf6}
+.section-help-dialog{width:min(540px,calc(100vw - 32px));max-height:85vh;border:1px solid #c5d4df;border-radius:12px;box-shadow:0 14px 45px #0d284636;padding:20px;background:#fff;color:#172538}
+.section-help-dialog::backdrop{background:#09182799}
+.section-help-body{line-height:1.65}
+.section-help-body p{margin:10px 0}
+.folder-config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:18px;margin-top:16px;margin-bottom:14px}
+.folder-config-field{min-width:0}
+.folder-config-field>label{display:block;font-weight:700;margin-bottom:7px}
+.folder-config-controls{display:flex;gap:6px;align-items:center}
+.folder-config-controls input{flex:1 1 110px;min-width:0;height:40px;border:1px solid #c9d5e2;border-radius:7px;background:#f7f9fb;padding:8px 10px;color:#233d54}
+.folder-config-controls button{height:40px;font-size:13px;white-space:nowrap;padding:7px 10px}
+.folder-config-controls .folder-clear-button{width:36px;min-width:36px;font-size:16px;padding:0;color:#9d3737;background:#fff}
+.folder-config-controls .folder-clear-button:hover{background:#fbecec}
+.folder-secondary-action{margin-top:8px}
+.folder-inline-status{font-size:12px;color:#47617a;margin:8px 0}
+@media(max-width:670px){.folder-config-controls{flex-wrap:wrap}.folder-config-controls input{flex-basis:100%}}
