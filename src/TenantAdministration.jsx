@@ -1,11 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {tenantAPI,isServerTenant} from './tenant-api.mjs';
-import {accountAPI} from './Login.jsx';
 export default function TenantAdministration({account,activeCU,unions,onReload,onSelect}){
  const [name,setName]=useState(''),[newCore,setNewCore]=useState('xp2'),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const [lookupQuery,setLookupQuery]=useState(''),[lookupResults,setLookupResults]=useState([]),[lookupBusy,setLookupBusy]=useState(false),[selectedNCUA,setSelectedNCUA]=useState(null),[manualInstitution,setManualInstitution]=useState(false);
  const addDialog=useRef(null);
- const [users,setUsers]=useState([]),[targetUser,setTargetUser]=useState(''),[role,setRole]=useState('reconciler');
  const [coreProfile,setCoreProfile]=useState({status:'loading',core:null});
  const authorized=account.role==='admin';
  const tenant=isServerTenant(activeCU);
@@ -14,7 +12,6 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
   tenantAPI('settings',{tenantId:activeCU}).then(data=>{if(!live)return;const setting=(data.settings||[]).find(item=>item.setting_key==='core-system');const core=setting?.setting_value;setCoreProfile({status:core?'ready':'unconfigured',core:typeof core==='string'?core:null});}).catch(()=>{if(live)setCoreProfile({status:'error',core:null});});
   return()=>{live=false;};
  },[activeCU,tenant]);
- useEffect(()=>{if(!authorized)return;accountAPI('users').then(x=>setUsers(x.users)).catch(e=>setError(e.message));},[authorized]);
  async function lookupNCUA(e){
   e.preventDefault();if(!authorized||lookupBusy||busy)return;
   setError('');setLookupResults([]);setSelectedNCUA(null);setLookupBusy(true);
@@ -42,7 +39,7 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    created=response.tenant;
    try{
     await tenantAPI('set-setting',{tenantId:created.id,body:{key:'core-system',value:newCore,version:0}});
-    setMessage('Credit union created with '+newCore.toUpperCase()+' selected. Assign users below.');
+    setMessage('Credit union created with '+newCore.toUpperCase()+' selected. Use User Management + to add and assign users.');
    }catch(configError){
     setMessage('Credit union created, but its core system could not be saved: '+configError.message+'. Select the institution and configure Settings.');
    }
@@ -53,10 +50,6 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    else setError(e.message);
   }finally{setBusy(false);}
  }
- async function assign(e){e.preventDefault();if(!authorized||!tenant)return;setBusy(true);setError('');setMessage('');try{
-  await tenantAPI('assign-user',{body:{tenantId:activeCU,userId:targetUser,role}});
-  setMessage('User assigned to this credit union.');
- }catch(e){setError(e.message);}finally{setBusy(false);}}
 
  return <section className="folder-settings" aria-label="Credit union management">
  <div className="section-title-help">
@@ -65,7 +58,7 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>}
  </div>
- {!authorized?<p>Only the platform administrator can manage credit unions and assign users.</p>:<>
+ {!authorized?<p>Only the platform administrator can manage credit unions.</p>:<>
  <div className="tenant-list-wrapper">
   <table className="tenant-list-table">
    <thead><tr><th>Credit Union</th><th>NCUA Charter</th><th>Status</th><th>Action</th></tr></thead>
@@ -100,7 +93,7 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    <select id="tenant-new-core" value={newCore} onChange={e=>setNewCore(e.target.value)}>
     <option value="xp2">XP2</option><option value="datasafe">DataSafe</option><option value="portico">Portico</option>
    </select>
-   <p>DataSafe and Portico source adapters remain unvalidated. Configure user assignments and reconciliation mappings after creating the credit union.</p>
+   <p>DataSafe and Portico source adapters remain unvalidated. Add users through User Management + and configure reconciliation mappings after creating the credit union.</p>
    {error&&<p className="error" role="alert">{error}</p>}
    <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>addDialog.current?.close()}>Cancel</button><button className="primary" type="submit" disabled={busy||lookupBusy||(!selectedNCUA&&!manualInstitution)||!name.trim()}>{busy?'Creating…':'Add Credit Union'}</button></div>
   </form>
@@ -114,8 +107,6 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    <div><span>Status</span><strong>{selectedUnion?.active===false?'Inactive':'Active'}</strong></div>
   </div>
  </section>
- <h3>Assign users to {selectedUnion?.name||'credit union'}</h3>
- <form onSubmit={assign} className="abacus-user-form"><label>User<select required value={targetUser} onChange={e=>setTargetUser(e.target.value)}><option value="">Select user</option>{users.filter(x=>x.active).map(u=><option key={u.id} value={u.id}>{u.username}</option>)}</select></label><label>Institution role<select value={role} onChange={e=>setRole(e.target.value)}><option value="admin">Credit union admin</option><option value="reconciler">Reconciler</option><option value="reviewer">Reviewer</option></select></label><button disabled={busy||!targetUser} type="submit">Assign user</button></form>
 </>}
  {!tenant&&<p>Select a credit union above to configure shared settings and user access.</p>}
  </>}
