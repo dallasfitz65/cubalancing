@@ -1,6 +1,7 @@
 import React,{useState,useEffect} from 'react';
 import {importMaster} from './master-mapping.mjs';
 import {tenantAPI} from './tenant-api.mjs';
+import SectionHelp from './SectionHelp.jsx';
 
 export default function GLMappingImport({tenantId,coreSystem,master,version,canSave,onSaved}){
  const [draft,setDraft]=useState(null),[fileName,setFileName]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[saving,setSaving]=useState(false);
@@ -29,8 +30,12 @@ export default function GLMappingImport({tenantId,coreSystem,master,version,canS
  }
  const groups=draft?Object.entries(draft.reduce((tot,e)=>(tot[e.category]=(tot[e.category]||0)+1,tot),{})):[];
  return <section className="folder-settings" aria-label="GL mapping CSV import">
-  <h2>GL account translation / mapping</h2>
-  <p>Import the six-column GL translation CSV for the selected credit union and core system ({coreSystem.toUpperCase()}). Each row must be <code>GL, description, blank, blank, category, core code</code>, with no header row. Supported categories: Shares, Certificates, Loans and Cash.</p>
+  <div className="section-title-help">
+   <h2>GL account translation / mapping</h2>
+   <SectionHelp title="GL account translation / mapping">
+    <p>Import the six-column GL translation CSV for the selected credit union and core system ({coreSystem.toUpperCase()}). Each row must be <code>GL, description, blank, blank, category, core code</code>, with no header row. Supported categories: Shares, Certificates, Loans and Cash.</p>
+   </SectionHelp>
+  </div>
   <p><strong>Current mapping:</strong> {master?.name||'Default mapping'} · {master?.entries?.length||0} entries · {version?('Saved version '+version):'Default profile'}</p>
   <div style={{marginTop:16}}>
    <label htmlFor="gl-mapping-csv-upload"><strong>Updated mapping CSV</strong></label>
