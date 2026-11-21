@@ -13,7 +13,7 @@ test('Settings ordering puts AI assistant first and Local workspace last',()=>{
  const ai=ui.indexOf('aria-label="AI settings"');
  const core=ui.indexOf('<h2>Core system</h2>');
  const gl=ui.indexOf('aria-label="GL sign convention settings"');
- const folder=ui.indexOf('<h2>Balancing folder</h2>');
+ const folder=ui.indexOf('<h2>Folder import &amp; file coverage</h2>');
  const workspace=ui.indexOf('<h2>Local workspace</h2>');
  assert.ok(ai>=0&&ai<gl&&ai<core);
  assert.ok(workspace>folder);
