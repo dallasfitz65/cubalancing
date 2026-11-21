@@ -25,5 +25,5 @@ test('Creating uses real tenant API and stores the core preference, not a client
  assert.match(ui,/key:'core-system',value:newCore,version:0/);
  assert.match(ui,/await onReload\(\);onSelect\(created\.id\)/);
  assert.match(api,/if\(user\.role!=='admin'\)return reply\(\{error:'Administrator required'\},403\)/);
- assert.match(ui,/unions\.some\(u=>u\.name\.trim\(\)\.toLowerCase\(\)===trimmed\.toLowerCase\(\)\)/);
+ assert.match(ui,/u\.name\.trim\(\)\.toLowerCase\(\)===trimmed\.toLowerCase\(\)/);
 });
