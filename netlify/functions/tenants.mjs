@@ -9,7 +9,7 @@ const sessionCookie='__Host-abacus_session';
 function token(req){const item=(req.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(sessionCookie+'='));return item?.slice(sessionCookie.length+1)||'';}
 function checkOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw Error('Invalid origin');if(req.headers.get('sec-fetch-site')==='cross-site')throw Error('Cross-site request denied');}
 function validateSetting(key,value){
- if(key==='core-system'&&['xp2','datasafe'].includes(value))return value;
+ if(key==='core-system'&&['xp2','datasafe','portico'].includes(value))return value;
  if(key==='sign-convention'&&['credit-negative','natural','reverse-all'].includes(value))return value;
  if(key==='ai-enabled'&&typeof value==='boolean')return value;
  if(key==='folder-name'&&typeof value==='string'&&value.length<=255&&!/[\\/\x00-\x1f\x7f]/.test(value))return value.trim();
@@ -96,7 +96,7 @@ export async function createHandler(req,{database=getDatabase}={}){
   await client.query("SELECT set_config('abacus.tenant_id',$1,true)",[id]);
   if(req.method==='GET'&&op==='mapping'){
    const system=url.searchParams.get('coreSystem');
-   if(!['xp2','datasafe'].includes(system))return reply({error:'Core system required'},400);
+   if(!['xp2','datasafe','portico'].includes(system))return reply({error:'Core system required'},400);
    const result=await client.query('SELECT mapping,version,updated_at FROM abacus_tenant_mappings WHERE credit_union_id=$1 AND core_system=$2',[id,system]);
    await client.query('COMMIT');inTransaction=false;
    return reply(result.rows.length?{mapping:result.rows[0].mapping,version:Number(result.rows[0].version),updatedAt:result.rows[0].updated_at}:{mapping:null,version:0});
