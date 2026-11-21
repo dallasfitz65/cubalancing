@@ -7,7 +7,7 @@ test('AI toggle stays interactable if settings load is pending and reports save 
  const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  assert.match(ui,/useEffect\(\(\)=>\{let active=true;setSettingsReady\(false\);setAiEnabled\(false\)/);
  assert.doesNotMatch(ui,/setMaster\(getCoreMapping\(coreSystem\)\);setSettingsReady\(!centralTenant\)/);
- assert.match(ui,/aria-pressed=\{aiEnabled\}/);
+ assert.match(ui,/checked=\{aiEnabled\}/);
  assert.match(ui,/Credit union settings are still loading/);
  assert.match(ui,/AI setting could not be saved/);
 });
