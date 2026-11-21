@@ -24,7 +24,7 @@ test('Shares and Loans no longer shows synthetic balances on initial view',()=>{
  const main=source('main.jsx');
  assert.doesNotMatch(main,/Shares &amp; Loans — prepopulated sample balances/);
  assert.doesNotMatch(main,/Embedded Shares and Loans demo preview/);
- assert.match(main,/Select your source files from the left menu/);
+ assert.match(main,/Open Settings → Folder import/);
  assert.match(main,/DEMO_SECTIONS/,'Explicit demo mode stays available without prepopulated live displays');
 });
 
