@@ -337,3 +337,13 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .main-user-guide-content li{margin-bottom:8px}
 .main-user-guide-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding-top:14px;border-top:1px solid #dae4eb;font-size:12px;color:#5a7183}
 @media(max-width:620px){.main-user-guide-dialog{padding:14px}.main-user-guide-layout{grid-template-columns:1fr;gap:12px}.main-user-guide-topics{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid #dbe4eb;padding:0 0 10px}.main-user-guide-topics button{flex:0 0 auto}.main-user-guide-content{max-height:51vh}.main-user-guide-footer{align-items:flex-start;flex-direction:column}}
+
+
+/* Keep the two GL mapping sections aligned in one row on wider screens. */
+.gl-mapping-panels{display:grid;grid-template-columns:minmax(360px,1fr) minmax(520px,1.4fr);gap:16px;align-items:start;margin-bottom:18px}
+.gl-mapping-panels>.folder-settings{min-width:0;height:100%;margin:0}
+.gl-mapping-panels .section-title-help{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
+.gl-mapping-panels .section-title-help h2{font-size:clamp(14px,1.16vw,18px);white-space:nowrap;margin:0}
+.gl-mapping-panels .table-scroll{max-width:100%;overflow-x:auto}
+@media(max-width:1180px){.gl-mapping-panels{grid-template-columns:minmax(0,1fr)}.gl-mapping-panels .section-title-help h2{font-size:18px}}
+@media(max-width:520px){.gl-mapping-panels .section-title-help h2{font-size:clamp(12px,3.4vw,16px)}}
