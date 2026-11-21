@@ -27,7 +27,7 @@ try{
  else {record('Runtime database role','PASS','Not superuser or BYPASSRLS');flags.role=true;}
 
  await tx(async()=>{
-  const r=await client.query("SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) AS owner FROM pg_class c WHERE c.oid = ANY($1::text[])::regclass[]",[requiredTables]);
+  const r=await client.query("SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) AS owner FROM pg_class c WHERE c.relname = ANY($1::text[]) AND c.relnamespace = 'public'::regnamespace",[requiredTables]);
   // The explicit table-name loop avoids confusing an absent table with a passing policy check.
   const seen=new Map(r.rows.map(x=>[x.relname,x]));
   for(const name of requiredTables){
