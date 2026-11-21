@@ -13,14 +13,14 @@ test('malformed mapping CSV and conflicting core codes are rejected',()=>{
  assert.throws(()=>importMaster('901-0010,Regular Shares,,,Shares,1\n901-0020,Other Shares,,,Shares,1'),/Conflicting mapping/);
  assert.throws(()=>importMaster('901-0010,Regular Shares,BAD,,Shares,1'),/expected GL/);
 });
-test('mapping importer offers review, backup, and an explicit versioned tenant save',()=>{
+test('mapping importer offers review, icon picker, and an explicit versioned tenant save',()=>{
  const component=readFileSync(new URL('../src/GLMappingImport.jsx',import.meta.url),'utf8');
  const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  const api=readFileSync(new URL('../netlify/functions/tenants.mjs',import.meta.url),'utf8');
  assert.match(component,/importMaster\(text\)/);
  assert.match(component,/save-mapping/);
  assert.match(component,/version\}\}/);
- assert.match(component,/Download current mapping CSV/);
+ assert.doesNotMatch(component,/Download current mapping CSV/);
  assert.match(component,/window\.confirm/);
  assert.match(main,/<GLMappingImport/);
  assert.match(main,/setMappingVersion\(nextVersion\)/);
