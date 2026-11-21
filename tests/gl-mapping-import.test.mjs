@@ -17,6 +17,10 @@ test('mapping importer offers review, icon picker, and an explicit versioned ten
  const component=readFileSync(new URL('../src/GLMappingImport.jsx',import.meta.url),'utf8');
  const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  const api=readFileSync(new URL('../netlify/functions/tenants.mjs',import.meta.url),'utf8');
+ assert.match(component,/import SectionHelp from '\.\/SectionHelp\.jsx'/);
+ assert.match(component,/<SectionHelp title="GL account translation \/ mapping">/);
+ assert.match(component,/Import the six-column GL translation CSV/);
+ assert.ok(component.indexOf('<SectionHelp title="GL account translation / mapping">')<component.indexOf('Import the six-column GL translation CSV'));
  assert.match(component,/importMaster\(text\)/);
  assert.match(component,/save-mapping/);
  assert.match(component,/version\}\}/);
