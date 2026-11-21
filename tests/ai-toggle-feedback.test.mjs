@@ -20,7 +20,7 @@ test('AI state changes before server save and restores if it fails',()=>{
 });
 test('AI save errors display adjacent to button and existing tenant permissions remain enforced',()=>{
  assert.match(ui,/role=\{aiNotice.includes\('could not be saved'\)\?'alert':'status'\}/);
- assert.match(ui,/United Solutions private AI integration is not connected/);
+ assert.match(ui,/United Solutions enterprise AI is not connected/);
  const api=readFileSync(new URL('../netlify/functions/tenants.mjs',import.meta.url),'utf8');
  assert.match(api,/key==='ai-enabled'&&typeof value==='boolean'/);
  assert.match(api,/Credit union administrator required/);
