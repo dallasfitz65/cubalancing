@@ -318,3 +318,22 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .tenant-profile-fields>div{display:flex;flex-direction:column;gap:5px;min-width:0}
 .tenant-profile-fields span{font-size:12px;color:#597084}
 .tenant-profile-fields strong{font-size:14px;overflow-wrap:anywhere}
+
+
+/* Main header user guide, using the shared dialog visual language. */
+.main-help-trigger{width:34px;height:34px;flex:0 0 34px;border:1px solid #a6bfce;border-radius:50%;background:#e8f1f6;color:#1c4963;font-size:19px;font-weight:750;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.main-help-trigger:hover{background:#d4e8f4}
+.main-user-guide-dialog{width:min(940px,calc(100vw - 24px));max-height:min(90vh,860px);padding:22px;border:1px solid #c3d1dc;border-radius:14px;background:#fff;color:#192d40;box-shadow:0 20px 50px #0d20365c}
+.main-user-guide-dialog::backdrop{background:#0c1d32a6}
+.main-user-guide-dialog .dialog-head{margin-bottom:18px}
+.main-user-guide-layout{display:grid;grid-template-columns:minmax(180px,225px) minmax(0,1fr);gap:20px}
+.main-user-guide-topics{display:flex;flex-direction:column;gap:7px;border-right:1px solid #dbe4eb;padding-right:14px}
+.main-user-guide-topics button{text-align:left;font-size:13px;padding:11px 12px}
+.main-user-guide-topics button.guide-topic-selected{background:#164769;color:#fff;border-color:#164769}
+.main-user-guide-content{min-width:0;max-height:54vh;overflow:auto;padding-right:8px;font-size:14px;line-height:1.65}
+.main-user-guide-content h3{font-size:18px;margin:0 0 12px}
+.main-user-guide-content p{margin:0 0 12px}
+.main-user-guide-content ol{padding-left:22px;margin:0 0 16px}
+.main-user-guide-content li{margin-bottom:8px}
+.main-user-guide-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding-top:14px;border-top:1px solid #dae4eb;font-size:12px;color:#5a7183}
+@media(max-width:620px){.main-user-guide-dialog{padding:14px}.main-user-guide-layout{grid-template-columns:1fr;gap:12px}.main-user-guide-topics{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid #dbe4eb;padding:0 0 10px}.main-user-guide-topics button{flex:0 0 auto}.main-user-guide-content{max-height:51vh}.main-user-guide-footer{align-items:flex-start;flex-direction:column}}
