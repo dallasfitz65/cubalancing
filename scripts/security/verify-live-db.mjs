@@ -5,7 +5,7 @@ import {getDatabase} from '@netlify/database';
 const results=[];
 const record=(name,status,detail)=>{results.push({name,status,detail});process.stdout.write(status+' '+name+(detail?' — '+detail:'')+'\n');};
 const assert=(condition,message)=>{if(!condition)throw Error(message);};
-const flags={role:false,rls:false,isolation:false,connection:false};
+const flags={role:false,rls:false,isolation:false,connection:false,coverage:false};
 const app=getDatabase();
 const client=await app.pool.connect();
 async function tx(fn){
@@ -74,7 +74,8 @@ try{
   flags.isolation=true;flags.connection=true;
   record('Cross-tenant DB isolation','PASS','Tenant B inaccessible; tenant A visible');
   record('Pooled-session context reset','PASS','User, tenant and admin transaction settings cleared after rollback');
-  if(!A.settings&&!A.mappings&&!A.runs)record('Tenant data coverage','INCOMPLETE','Tenant A has no visible settings, mappings, or runs; test populated fixtures for deeper coverage');
+  if(!A.settings&&!A.mappings&&!A.runs)record('Tenant data coverage','INCOMPLETE','Tenant A has no visible settings, mappings, or runs; populated fixtures are required');
+  else {flags.coverage=true;record('Tenant data coverage','PASS','At least one populated tenant A data table was checked');}
  }
 }catch(e){
  record('Security verification','FAIL',e.message);
@@ -83,7 +84,7 @@ try{
  client.release();
  await app.pool.end();
 }
-if(!flags.role||!flags.rls||!flags.isolation||!flags.connection){
+if(!flags.role||!flags.rls||!flags.isolation||!flags.connection||!flags.coverage){
  process.stdout.write('Security verification incomplete: production RLS enforcement is NOT certified.\n');
  process.exitCode=1;
 }
