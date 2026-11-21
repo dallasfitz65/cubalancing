@@ -419,3 +419,6 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .atm-upload-control:focus-within{outline:3px solid #69b4ed;outline-offset:2px}
 .atm-source-controls button{font-size:13px}
 .atm-source-readiness{margin:14px 0 0;color:#476579;font-size:13px;line-height:1.5}
+
+/* ABACUS product descriptor immediately below sidebar brand */
+.app>aside .abacus-sidebar-subtitle{color:#b7ccdd;font-size:11px;font-weight:700;letter-spacing:2.1px;text-align:center;margin:4px 0 10px;flex-shrink:0}
