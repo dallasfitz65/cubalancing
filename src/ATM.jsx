@@ -1,4 +1,5 @@
 import React,{useState,useEffect,useRef} from 'react';
+import {answerAtmQuestion} from './atm-assistant.mjs';
 
 const SOURCES=[
   {key:'transactions',name:'ATM transaction journal',file:'atm-transactions.csv'},
@@ -55,6 +56,7 @@ async function demoFiles(exception=false){
 }
 export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
+  const [question,setQuestion]=useState(''),[chat,setChat]=useState([]);
   const initialized=useRef(false);
   useEffect(()=>{
     if(initialized.current)return;
@@ -96,6 +98,7 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
     }catch(e){setReport(null);setError(e.message);}finally{setBusy(false);}
   }
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
+  function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
     <div className="draft-report-title"><h2>ATM Balancing</h2></div>
     <p><strong>Demonstration only.</strong> All records are fictional. Cash and settlement reconciliation run separately; this prototype is not a validated processor integration or production accounting control.</p>
@@ -114,12 +117,22 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
       <button type="button" onClick={()=>setDetail(v=>!v)}>{detail?'Hide':'Show'} transaction detail</button>
       {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}
       {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. The exception scenario intentionally changes the GL clearing amount by $50.</p>}
-      {aiEnabled&&<section className="atm-investigation" aria-label="Investigation assistant" style={{marginTop:22,padding:20,border:'1px solid #bed7e8',borderRadius:10,background:'#f0f7fb'}}>
-       <h3>Investigation assistant</h3>
-       <p><strong>Local rules-based interpretation.</strong> United Solutions private AI is not connected. No ATM source data leaves this browser through this feature.</p>
-       {report.checks.every(check=>check.ok)?<p>All four implemented ATM demo checks agree. This does not verify cutoff timing, processor fees or production posting rules.</p>:<><p>{report.checks.filter(check=>!check.ok).length} reconciliation check(s) require investigation:</p><ul>{report.checks.filter(check=>!check.ok).map(check=><li key={check.name}><strong>{check.name}</strong>: {money(check.variance)} difference between expected and actual amounts. Review the source cash, network or GL file before posting.</li>)}</ul></>}
-      </section>}
       <p><small>Files remain in this browser session. The GL demo file is a separate synthetic ATM-specific CSV, not the existing credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
+    {aiEnabled&&<section className="atm-investigation" aria-label="ATM investigation chat" style={{marginTop:22,padding:20,border:'1px solid #bed7e8',borderRadius:10,background:'#f0f7fb'}}>
+      <h3>Ask the System — ATM investigation</h3>
+      <p><strong>Local rules-based chat.</strong> Answers reference only this browser's current ATM report. United Solutions enterprise AI is not connected, and no data is transmitted to an AI service.</p>
+      {!report&&<p role="status">No ATM report yet. Run balancing or load a demo, then ask about variances and reconciliation controls.</p>}
+      <div className="atm-chat-suggestions" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+       {['Why is ATM out of balance?','Explain the cash proof','Check GL balances','Explain network settlement'].map(q=><button key={q} type="button" onClick={()=>ask(q)}>{q}</button>)}
+      </div>
+      <div aria-live="polite" aria-label="ATM assistant conversation" className="atm-chat-history" style={{maxHeight:320,overflowY:'auto',marginBottom:14}}>
+       {chat.map((item,i)=><div key={i} style={{marginBottom:12}}><p><strong>You:</strong> {item.question}</p><p><strong>Assistant:</strong> {item.answer}</p></div>)}
+      </div>
+      <form onSubmit={e=>{e.preventDefault();ask(question);}} style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+       <input aria-label="Ask about ATM reconciliation" style={{flex:'1 1 250px',minWidth:0,padding:10}} value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Ask why ATM is out of balance…"/>
+       <button className="primary" type="submit" disabled={!question.trim()}>Ask</button>
+      </form>
+    </section>}
   </section>;
 }
