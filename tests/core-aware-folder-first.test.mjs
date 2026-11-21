@@ -44,3 +44,14 @@ test('sidebar is navigation-only and folder scan resets stale reconciliation sta
  assert.match(main,/Folder import &amp; file coverage/);
  assert.match(main,/Source coverage by module/);
 });
+
+test('unverified adapters cannot start XP2 reconciliation or publish provisional mapping',()=>{
+ assert.match(main,/disabled=\{busy\|\|coreSystem!=='xp2'\} onClick=\{run\}/);
+ assert.match(main,/canSave=\{centralTenant&&settingsReady&&!busy&&coreSystem==='xp2'\}/);
+ assert.match(main,/const displaySections=coreSystem==='xp2'\?/);
+});
+test('folder sweep is bounded and rejects partial import',()=>{
+ assert.match(main,/async function sweep\(directory,depth\)/);
+ assert.match(main,/if\(list.length>200\)throw Error/);
+ assert.match(main,/Folder nesting exceeds three levels/);
+});
