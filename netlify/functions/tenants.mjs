@@ -64,8 +64,9 @@ export async function createHandler(req,{database=getDatabase}={}){
    const q=(url.searchParams.get('q')||'').trim();
    if(q.length<2||q.length>100)return reply({error:'Enter a name or charter of 2–100 characters'},400);
    try{
-    const results=await searchNCUA(q);
     await client.query('COMMIT');inTransaction=false;
+    client.release();client=null; // never hold a database connection during external lookup
+    const results=await searchNCUA(q);
     return reply(results);
    }catch(e){return reply({error:e.name==='AbortError'?'NCUA search timed out. Retry.':'NCUA search unavailable. Retry.'},502);}
   }
