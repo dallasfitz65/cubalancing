@@ -115,5 +115,5 @@ test('folder handle stays local while only folder name is synchronized',()=>{
  assert.ok(jsx.includes("persistPreference('folder-name','')"));
  assert.ok(jsx.includes("setBackendFolderName(typeof selected['folder-name']"));
  assert.ok(jsx.includes('rememberFolder(handle,folderScope)'));
- assert.ok(jsx.includes('not the file contents, local directory path, or browser access permission'));
+ assert.ok(jsx.includes('Folder paths, raw files and output credentials are not uploaded.'));
 });
