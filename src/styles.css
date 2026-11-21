@@ -347,3 +347,9 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .gl-mapping-panels .table-scroll{max-width:100%;overflow-x:auto}
 @media(max-width:1180px){.gl-mapping-panels{grid-template-columns:minmax(0,1fr)}.gl-mapping-panels .section-title-help h2{font-size:18px}}
 @media(max-width:520px){.gl-mapping-panels .section-title-help h2{font-size:clamp(12px,3.4vw,16px)}}
+
+/* CU | ABACUS logo on sign-in and authenticated sidebar */
+.abacus-brand-logo{display:block;width:100%;max-width:225px;height:auto;object-fit:contain}
+.abacus-login-logo{display:block;width:100%;max-width:340px;height:auto;object-fit:contain;align-self:center;margin:0 auto 14px}
+.abacus-login-card .abacus-login-logo{background:#10263d;padding:14px;border-radius:8px}
+@media(max-width:720px){.abacus-brand-logo{max-width:195px}.abacus-login-logo{max-width:300px}}
