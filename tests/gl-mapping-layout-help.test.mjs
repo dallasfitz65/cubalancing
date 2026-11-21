@@ -8,7 +8,7 @@ const styles=readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
 
 test('GL mapping importer and read-only table share one settings row',()=>{
  assert.match(main,/<div className="gl-mapping-panels"><GLMappingImport/);
- assert.match(main,/<MasterMapping master=\{master\}/><\/div><\/\>\}/);
+ assert.ok(main.includes('<MasterMapping master={master}/></div></>}'));
  assert.match(styles,/\.gl-mapping-panels\{display:grid;grid-template-columns/);
  assert.match(styles,/@media\(max-width:1180px\)/);
 });
