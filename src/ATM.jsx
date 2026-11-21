@@ -56,7 +56,7 @@ async function demoFiles(exception=false){
 }
 export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
-  const [question,setQuestion]=useState(''),[chat,setChat]=useState([]);
+  const [question,setQuestion]=useState(''),[chat,setChat]=useState([]),[chatOpen,setChatOpen]=useState(false);
   const initialized=useRef(false);
   useEffect(()=>{
     if(initialized.current)return;
@@ -119,20 +119,24 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
       {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. The exception scenario intentionally changes the GL clearing amount by $50.</p>}
       <p><small>Files remain in this browser session. The GL demo file is a separate synthetic ATM-specific CSV, not the existing credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
-    {aiEnabled&&<section className="atm-investigation" aria-label="ATM investigation chat" style={{marginTop:22,padding:20,border:'1px solid #bed7e8',borderRadius:10,background:'#f0f7fb'}}>
-      <h3>Ask the System — ATM investigation</h3>
-      <p><strong>Local rules-based chat.</strong> Answers reference only this browser's current ATM report. United Solutions enterprise AI is not connected, and no data is transmitted to an AI service.</p>
+    {aiEnabled&&<div className="atm-assistant-dock">
+      <button type="button" className="atm-chat-launcher" aria-expanded={chatOpen} aria-controls="atm-chat-window" onClick={()=>setChatOpen(open=>!open)}>{chatOpen?'Close chat':'Ask the System'}{chat.length>0&&!chatOpen?' · '+chat.length:''}</button>
+      {chatOpen&&<section id="atm-chat-window" className="atm-investigation atm-chat-window" aria-label="ATM investigation chat">
+      <div className="atm-chat-header"><h3>Ask the System</h3><button type="button" aria-label="Close ATM assistant" onClick={()=>setChatOpen(false)}>✕</button></div>
+      <p className="atm-chat-subtitle">ATM Balancing · Local rules-based assistant</p>
+      <p className="atm-chat-disclosure">Answers use this browser's current ATM report only. Enterprise AI is not connected. No data is sent to an AI service.</p>
       {!report&&<p role="status">No ATM report yet. Run balancing or load a demo, then ask about variances and reconciliation controls.</p>}
-      <div className="atm-chat-suggestions" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+      <div className="atm-chat-suggestions">
        {['Why is ATM out of balance?','Explain the cash proof','Check GL balances','Explain network settlement'].map(q=><button key={q} type="button" onClick={()=>ask(q)}>{q}</button>)}
       </div>
-      <div aria-live="polite" aria-label="ATM assistant conversation" className="atm-chat-history" style={{maxHeight:320,overflowY:'auto',marginBottom:14}}>
+      <div aria-live="polite" aria-label="ATM assistant conversation" className="atm-chat-history">
        {chat.map((item,i)=><div key={i} style={{marginBottom:12}}><p><strong>You:</strong> {item.question}</p><p><strong>Assistant:</strong> {item.answer}</p></div>)}
       </div>
-      <form onSubmit={e=>{e.preventDefault();ask(question);}} style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-       <input aria-label="Ask about ATM reconciliation" style={{flex:'1 1 250px',minWidth:0,padding:10}} value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Ask why ATM is out of balance…"/>
+      <form className="atm-chat-compose" onSubmit={e=>{e.preventDefault();ask(question);}}>
+       <input aria-label="Ask about ATM reconciliation" value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Ask why ATM is out of balance…"/>
        <button className="primary" type="submit" disabled={!question.trim()}>Ask</button>
       </form>
-    </section>}
+      </section>}
+    </div>}
   </section>;
 }
