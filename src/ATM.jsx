@@ -1,4 +1,4 @@
-import React,{useState,useEffect,useRef} from 'react';
+import React,{useState} from 'react';
 import {answerAtmQuestion} from './atm-assistant.mjs';
 
 const SOURCES=[
@@ -57,35 +57,34 @@ async function demoFiles(exception=false){
 export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
   const [question,setQuestion]=useState(''),[chat,setChat]=useState([]),[chatOpen,setChatOpen]=useState(false);
-  const initialized=useRef(false);
-  useEffect(()=>{
-    if(initialized.current)return;
-    initialized.current=true;
-    let cancelled=false;
-    async function prefill(){
-      try{const defaults=await demoFiles();
-        if(!cancelled)setFiles(current=>{
-          const next={...current};
-          for(const source of SOURCES)if(!next['atm_'+source.key])next['atm_'+source.key]=defaults[source.key];
-          return next;
-        });
-      }catch(e){if(!cancelled)setError('Demo prefill unavailable: '+e.message);}
-    }
-    prefill();
-    return ()=>{cancelled=true;};
-  },[setFiles]);
-  async function demo(exception=false){
-    setBusy(true);setError('');setReport(null);
+  const [demoStatus,setDemoStatus]=useState('');
+  const ready=SOURCES.every(source=>Boolean(files['atm_'+source.key]));
+  function invalidateReport(){
+    setReport(null);setDetail(false);setChat([]);onReview?.(null);
+  }
+  async function loadDemo(exception=false){
+    setBusy(true);setError('');setDemoStatus('');
     try{
       const chosen=await demoFiles(exception);
-      const data=Object.fromEntries(await Promise.all(SOURCES.map(async source=>[source.key,parseCSV(await chosen[source.key].text())])));
-      const result=evaluate(data);
+      invalidateReport();
       setFiles(current=>({...current,...Object.fromEntries(SOURCES.map(source=>['atm_'+source.key,chosen[source.key]]))}));
-      setReport(result);onReview?.(result);
+      setDemoStatus(exception?'Exception test files loaded ($50 GL clearing difference). Click Run ATM Balancing to calculate results.':'Balanced test files loaded. Click Run ATM Balancing to calculate results.');
     }catch(e){setError(e.message);}finally{setBusy(false);}
   }
+  function selectSource(source,file){
+    if(!file)return;
+    if(!/\\.csv$/i.test(file.name)||!file.size||file.size>10*1024*1024){setError('Select a nonempty CSV file under 10 MB for '+source.name+'.');return;}
+    setError('');setDemoStatus('Custom source file selected. Review all four sources before running.');
+    invalidateReport();
+    setFiles(current=>({...current,['atm_'+source.key]:file}));
+  }
+  function clearSource(source){
+    setError('');setDemoStatus('Source cleared. Load or select all required sources before running.');
+    invalidateReport();
+    setFiles(current=>({...current,['atm_'+source.key]:null}));
+  }
   async function run(){
-    setError('');setBusy(true);
+    setError('');setBusy(true);setDemoStatus('');
     try{
       const missing=SOURCES.filter(source=>!files['atm_'+source.key]).map(source=>source.name);
       if(missing.length)throw Error('Missing sources: '+missing.join(', '));
@@ -95,15 +94,37 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
         return [source.key,parseCSV(await file.text())];
       })));
       const result=evaluate(data);setReport(result);onReview?.(result);
-    }catch(e){setReport(null);setError(e.message);}finally{setBusy(false);}
+    }catch(e){invalidateReport();setError(e.message);}finally{setBusy(false);}
   }
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
     <div className="draft-report-title"><h2>ATM Balancing</h2></div>
-    <p><strong>Demonstration only.</strong> All records are fictional. Cash and settlement reconciliation run separately; this prototype is not a validated processor integration or production accounting control.</p>
-    <div className="atm-actions"><button className="primary" disabled={busy} onClick={()=>demo(false)}>Load balanced demo</button><button disabled={busy} onClick={()=>demo(true)}>Load exception demo ($50)</button><button disabled={busy} onClick={run}>Run ATM Balancing</button><button disabled={!report} onClick={()=>window.print()}>Print / PDF</button></div>
-    <p>Four demo files are preselected under <strong>ATM Balancing</strong> in the left menu. Use the eye icon to view a file, or the trash icon to replace it with your own CSV.</p>
+    <p><strong>Demonstration only.</strong> The included test data is fictional. Real processor integration, multi-terminal balancing and production accounting controls require additional validation.</p>
+    <section className="atm-source-setup" aria-label="ATM test files and source checks">
+      <div className="atm-source-setup-head"><h3>ATM Source Checks</h3><p>Select one of the provided test scenarios or choose your own ATM CSV source files, then run the same reconciliation controls.</p></div>
+      <div className="atm-actions">
+        <button type="button" disabled={busy} onClick={()=>loadDemo(false)}>Load balanced test files</button>
+        <button type="button" disabled={busy} onClick={()=>loadDemo(true)}>Load exception test files ($50)</button>
+        <button type="button" className="primary" disabled={busy||!ready} onClick={run}>{busy?'Processing…':'Run ATM Balancing'}</button>
+        <button type="button" disabled={!report||busy} onClick={()=>window.print()}>Print / PDF</button>
+      </div>
+      {demoStatus&&<p className="atm-test-status" role="status">{demoStatus}</p>}
+      <div className="atm-source-file-grid">
+        {SOURCES.map(source=>{
+          const file=files['atm_'+source.key];
+          return <div className="atm-source-file" key={source.key}>
+            <strong>{source.name}</strong>
+            <span className={file?'source-loaded':'source-missing'}>{file?file.name:'Not selected'}</span>
+            <div className="atm-source-controls">
+              <label className="atm-upload-control">Choose CSV<input type="file" accept=".csv,text/csv" disabled={busy} aria-label={'Choose CSV for '+source.name} onChange={e=>{selectSource(source,e.target.files?.[0]);e.target.value='';}}/></label>
+              {file&&<button type="button" disabled={busy} onClick={()=>clearSource(source)} aria-label={'Clear '+source.name}>Clear</button>}
+            </div>
+          </div>;
+        })}
+      </div>
+      <p className="atm-source-readiness" role="status">{ready?'4 of 4 ATM sources ready for validation.':'Select or load all four required ATM sources before running.'} Filename selection does not verify amounts, dates or GL reconciliation.</p>
+    </section>
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
       <div className="draft-report-title"><h2>ATM Reconciliation — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
