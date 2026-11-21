@@ -35,3 +35,9 @@ test('ATM chat is visible with assistant enabled and only provides grounded loca
  assert.match(answerAtmQuestion('Explain cash proof',report),/beginning/);
  assert.match(answerAtmQuestion('Why is ATM out of balance?',null),/Run ATM Balancing/);
 });
+
+test('tenant database allows the keys exposed by Settings',()=>{
+ const migration=readFileSync(new URL('../netlify/database/migrations/20261121004500_tenant_settings_ai_folder_keys.sql',import.meta.url),'utf8');
+ for(const key of ['core-system','sign-convention','ai-enabled','folder-name'])assert.match(migration,new RegExp("'"+key+"'"));
+ assert.match(migration,/DROP CONSTRAINT IF EXISTS abacus_tenant_settings_setting_key_check/);
+});
