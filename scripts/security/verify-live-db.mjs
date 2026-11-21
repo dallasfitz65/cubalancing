@@ -33,6 +33,7 @@ try{
   for(const name of requiredTables){
    const item=seen.get(name);
    if(!item||!item.relrowsecurity||!item.relforcerowsecurity)throw Error('RLS missing/not forced on '+name);
+   if(item.owner===role.role)throw Error('Runtime connection owns protected table '+name+'; use a separate least-privilege app role');
   }
  });
  flags.rls=true;record('Tenant table RLS','PASS','All five baseline tables have ENABLE and FORCE RLS');
