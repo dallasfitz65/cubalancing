@@ -1,5 +1,5 @@
-import xp2Mapping from './account-master.json';
-import dataSafeMapping from './datasafe-account-master.json';
+import xp2Mapping from './account-master.json' with {type:'json'};
+import dataSafeMapping from './datasafe-account-master.json' with {type:'json'};
 
 export const CORE_SYSTEMS=Object.freeze({
   xp2:{label:'XP2',mapping:xp2Mapping,validation:'Current configuration'},
