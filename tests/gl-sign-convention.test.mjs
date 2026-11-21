@@ -34,10 +34,10 @@ test('invalid convention fails, no absolute-value matching',()=>{
  assert.throws(()=>normalizeGL(GL(-15000,27000,36000),'absolute'));
  assert.equal(Object.keys(GL_SIGN_CONVENTIONS).length,3);
 });
-test('Settings exposes sign selector and tenant service persists reversed-all choice',()=>{
+test('Settings exposes sign swap switch and tenant service persists reversed-all choice',()=>{
  const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  const api=readFileSync(new URL('../netlify/functions/tenants.mjs',import.meta.url),'utf8');
- assert.match(ui,/<select id="gl-sign-convention"/);
+ assert.match(ui,/<SettingsSwitch id="gl-sign-swap"/);
  assert.match(ui,/normalizeGL\(runReview,sign\)/);
  assert.match(ui,/persistPreference\('sign-convention',value\)/);
  assert.match(api,/\['credit-negative','natural','reverse-all'\]/);
