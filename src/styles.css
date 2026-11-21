@@ -370,7 +370,7 @@ aside nav .nav-files .file .file-status{font-size:12px}
 
 /* ATM-only Ask the System: CU-Analytics-style floating conversation */
 .atm-assistant-dock{position:fixed;right:24px;bottom:22px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
-.atm-chat-launcher{border:0;border-radius:999px;background:#174d73;color:white;font:700 14px inherit;padding:13px 20px;box-shadow:0 8px 24px rgba(7,32,56,.25);cursor:pointer}
+.atm-chat-launcher{border:0;border-radius:999px;background:#174d73;color:white;font-size:14px;font-weight:700;padding:13px 20px;box-shadow:0 8px 24px rgba(7,32,56,.25);cursor:pointer}
 .atm-chat-launcher:hover{background:#103d5e}
 .atm-chat-window{box-sizing:border-box;width:min(420px,calc(100vw - 32px));max-height:min(650px,calc(100dvh - 115px));overflow:auto;display:flex;flex-direction:column;padding:0 18px 18px;background:#fff;border:1px solid #bed7e8;border-radius:14px;box-shadow:0 18px 55px rgba(7,32,56,.24);color:#17324b}
 .atm-chat-header{position:sticky;top:0;z-index:1;background:#174d73;color:#fff;display:flex;align-items:center;justify-content:space-between;margin:0 -18px;padding:14px 18px;border-radius:13px 13px 0 0}
