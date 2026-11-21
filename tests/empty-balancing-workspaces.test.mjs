@@ -30,7 +30,7 @@ test('Shares and Loans no longer shows synthetic balances on initial view',()=>{
 
 test('Shares, Loans and Cash shows Run Balancing beside other green workspace actions',()=>{
  const main=source('main.jsx');
- assert.match(main,/\(page==='shares-loans'\|\|page==='cash'\)&&<div className="draft-actions shares-loans-actions"><button type="button" className="primary" disabled=\{busy\} onClick=\{run\}/);
+ assert.match(main,/\(page==='shares-loans'\|\|page==='cash'\)&&<div className="draft-actions shares-loans-actions"><button type="button" className="primary" disabled=\{busy\|\|coreSystem!=='xp2'\} onClick=\{run\}/);
  assert.match(main,/balancing&&page!=='shares-loans'&&page!=='cash'&&<button className="primary"/,'Do not show duplicate run buttons in Shares, Loans or Cash');
  assert.match(main,/\(page==='shares-loans'\|\|page==='cash'\)&&<div className="draft-actions shares-loans-actions">[\s\S]*Run Balancing/);
 });
