@@ -41,12 +41,13 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
    const input=await body(req);
    const value=input?.value,version=input?.version;
-   if(!value||typeof value!=='object'||Array.isArray(value)||!['united-openai','united-ollama','custom'].includes(value.provider)
+   if(!value||typeof value!=='object'||Array.isArray(value)||!['local-rules','united-openai','united-ollama','custom'].includes(value.provider)
     ||typeof value.baseUrl!=='string'||value.baseUrl.length>2048
     ||typeof value.model!=='string'||value.model.length>200
     ||!['oauth-sso','server-token','mtls'].includes(value.authMethod)
     ||Object.keys(value).some(k=>!['provider','baseUrl','model','authMethod'].includes(k))
     ||!Number.isSafeInteger(version)||version<0)return reply({error:'Invalid platform AI configuration'},400);
+   if(value.provider==='local-rules'&&(value.baseUrl!==''||value.model!==''||value.authMethod!=='oauth-sso'))return reply({error:'Local rules provider does not require API configuration'},400);
    if(value.baseUrl){
     let u;try{u=new URL(value.baseUrl);}catch{return reply({error:'Invalid HTTPS base URL'},400);}
     if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)return reply({error:'Valid HTTPS URL without credentials or query parameters required'},400);
