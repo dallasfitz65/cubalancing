@@ -2,6 +2,7 @@ import {getDatabase} from '@netlify/database';
 import {createHash} from 'node:crypto';
 import {validateMaster} from '../../src/master-mapping.mjs';
 import {insertActivity} from './activity-writer.mjs';
+import {searchNCUA} from '../../src/ncua-lookup.mjs';
 
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -58,16 +59,39 @@ export async function createHandler(req,{database=getDatabase}={}){
    await client.query('COMMIT');inTransaction=false;
    return reply({ok:true,version:Number(r.rows[0].version)});
   }
+  if(req.method==='GET'&&op==='ncua-search'){
+   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   const q=(url.searchParams.get('q')||'').trim();
+   if(q.length<2||q.length>100)return reply({error:'Enter a name or charter of 2–100 characters'},400);
+   try{
+    const results=await searchNCUA(q);
+    await client.query('COMMIT');inTransaction=false;
+    return reply(results);
+   }catch(e){return reply({error:e.name==='AbortError'?'NCUA search timed out. Retry.':'NCUA search unavailable. Retry.'},502);}
+  }
   if(req.method==='GET'&&op==='tenants'){
-   const found=await client.query('SELECT c.id,c.name,c.active,m.role AS membership_role FROM abacus_credit_unions c LEFT JOIN abacus_user_credit_unions m ON m.credit_union_id=c.id AND m.user_id=$1 WHERE m.active=true OR $2::boolean=true ORDER BY c.name',[user.id,user.role==='admin']);
+   const found=await client.query('SELECT c.id,c.name,c.ncua_charter,c.active,m.role AS membership_role FROM abacus_credit_unions c LEFT JOIN abacus_user_credit_unions m ON m.credit_union_id=c.id AND m.user_id=$1 WHERE m.active=true OR $2::boolean=true ORDER BY c.name',[user.id,user.role==='admin']);
    await client.query('COMMIT');inTransaction=false;
    return reply({tenants:found.rows});
   }
   if(req.method==='POST'&&op==='create-tenant'){
    if(user.role!=='admin')return reply({error:'Administrator required'},403);
-   const input=await body(req),name=typeof input.name==='string'?input.name.trim():'';
-   if(!name||name.length>150||/[\x00-\x1f\x7f]/.test(name))return reply({error:'Invalid credit union name'},400);
-   const created=await client.query('INSERT INTO abacus_credit_unions(name) VALUES($1) RETURNING id,name',[name]);
+   const input=await body(req);
+   let name=typeof input.name==='string'?input.name.trim():'';
+   const charter=input.ncuaCharter==null?'':String(input.ncuaCharter).trim();
+   if(!name||name.length>150||/[\x00-\x1f\x7f]/.test(name)||charter&&!/^\d{1,12}$/.test(charter))
+    return reply({error:'Invalid credit union name or NCUA charter'},400);
+   if(charter){
+    let lookup;
+    try{lookup=await searchNCUA(charter);}catch{return reply({error:'NCUA identity validation unavailable; retry later'},502);}
+    const match=lookup.results.find(row=>row.charter===charter);
+    if(!match)return reply({error:'NCUA charter not found among active institutions'},400);
+    name=match.name;
+    if(name.length>150)return reply({error:'NCUA institution name is too long'},400);
+   }
+   const existing=charter?await client.query('SELECT id,name FROM abacus_credit_unions WHERE ncua_charter=$1',[charter]):{rows:[]};
+   if(existing.rows.length)return reply({error:'This NCUA charter is already registered in Abacus'},409);
+   const created=await client.query('INSERT INTO abacus_credit_unions(name,ncua_charter) VALUES($1,$2) RETURNING id,name,ncua_charter',[name,charter||null]);
    await client.query("INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role) VALUES($1,$2,'admin')",[user.id,created.rows[0].id]);
    await insertActivity(client,user.id,'tenant_created',created.rows[0].id);
    await client.query('COMMIT');inTransaction=false;
