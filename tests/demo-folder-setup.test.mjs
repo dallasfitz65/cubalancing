@@ -7,7 +7,7 @@ const migration=readFileSync(new URL('../netlify/database/migrations/20261121010
 
 test('demo fallback has requested credit union name',()=>{
  assert.match(ui,/\{id:'local-demo',name:'Demo Credit Union'\}/);
- assert.match(ui,/setCUName\]=useState\('Demo Credit Union'\)/);
+ assert.match(ui,/\[cuName,setCUName\]=useState\('Demo Credit Union'\)/);
 });
 test('rename migration targets only a single existing American Partners tenant',()=>{
  assert.match(migration,/lower\(btrim\(name\)\)='american partners'/);
