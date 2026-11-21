@@ -52,6 +52,7 @@ function App({account,onLogout}){
  const [settingsReady,setSettingsReady]=useState(false),[settingsStatus,setSettingsStatus]=useState('');
  const [aiEnabled,setAiEnabled]=useState(false),[aiSaving,setAiSaving]=useState(false);
  const [aiNotice,setAiNotice]=useState('');
+ const [aiIntegration,setAiIntegration]=useState({provider:'united-openai',baseUrl:'',model:'',authMethod:'oauth-sso'}),[aiIntegrationSaving,setAiIntegrationSaving]=useState(false),[aiIntegrationNotice,setAiIntegrationNotice]=useState('');
  const [unions,setUnions]=useState([{id:'local-demo',name:'Local Credit Union'}]),[activeCU,setActiveCU]=useState('local-demo'),[serverVersion,setServerVersion]=useState(null),[cuName,setCUName]=useState('Local Credit Union'),[nameSaving,setNameSaving]=useState(false);
  const [savedCUName,setSavedCUName]=useState('');
  const folderScope=account.role==='guest'?`local-browser:${activeCU}`:`user:${account.id}:${activeCU}`;
@@ -87,6 +88,16 @@ function App({account,onLogout}){
    setSettingsStatus(error);
   }finally{setAiSaving(false);}
  }
+ async function saveAiIntegration(){
+  if(aiIntegrationSaving||!settingsReady)return;
+  const baseUrl=aiIntegration.baseUrl.trim();
+  if(baseUrl){try{const url=new URL(baseUrl);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error();}catch{setAiIntegrationNotice('Enter a valid HTTPS API base URL without credentials, query parameters or fragments.');return;}}
+  const next={provider:aiIntegration.provider,baseUrl,model:aiIntegration.model.trim(),authMethod:aiIntegration.authMethod};
+  setAiIntegrationSaving(true);setAiIntegrationNotice('Saving AI integration settings…');
+  try{await persistPreference('ai-integration',next);setAiIntegration(next);setAiIntegrationNotice('AI integration settings saved for this credit union. No external AI connection is active.');}
+  catch(e){setAiIntegrationNotice('Unable to save AI integration settings: '+e.message);}
+  finally{setAiIntegrationSaving(false);}
+ }
  async function persistPreference(key,value){
   if(!centralTenant){await saveSetting(folderScope,key,value);return;}
   const version=tenantVersions[key]??0;
@@ -94,7 +105,7 @@ function App({account,onLogout}){
   setTenantVersions(prev=>({...prev,[key]:response.version}));
  }
 
- useEffect(()=>{let active=true;setSettingsReady(false);setAiEnabled(false);setAiNotice('');setBackendFolderName('');
+ useEffect(()=>{let active=true;setSettingsReady(false);setAiEnabled(false);setAiNotice('');setAiIntegration({provider:'united-openai',baseUrl:'',model:'',authMethod:'oauth-sso'});setAiIntegrationNotice('');setBackendFolderName('');
   (async()=>{
    try {
     if(centralTenant){
@@ -106,6 +117,7 @@ function App({account,onLogout}){
       const system=getCoreSystem(selected['core-system']||'xp2');
       setCoreSystem(system);
       setAiEnabled(selected['ai-enabled']===true);
+      if(selected['ai-integration']&&typeof selected['ai-integration']==='object')setAiIntegration({provider:'united-openai',baseUrl:'',model:'',authMethod:'oauth-sso',...selected['ai-integration']});
       setBackendFolderName(typeof selected['folder-name']==='string'?selected['folder-name']:'');
       const savedMapping=await tenantAPI('mapping',{tenantId:activeCU,coreSystem:system});
       if(!active)return;
@@ -119,6 +131,8 @@ function App({account,onLogout}){
       if(active){const system=getCoreSystem(selected||'xp2');setCoreSystem(system);setMaster(getCoreMapping(system));}
       const savedAI=await getSetting(folderScope,'ai-enabled');
       if(active)setAiEnabled(savedAI===true);
+      const savedIntegration=await getSetting(folderScope,'ai-integration');
+      if(active&&savedIntegration&&typeof savedIntegration==='object')setAiIntegration({provider:'united-openai',baseUrl:'',model:'',authMethod:'oauth-sso',...savedIntegration});
       const convention=await getSetting(folderScope,'sign-convention');
       if(active)setSign(Object.hasOwn(GL_SIGN_CONVENTIONS,convention)?convention:'credit-negative');
     }
@@ -220,6 +234,7 @@ function App({account,onLogout}){
  ].map(k=><div className="abacus-exec-tile" key={k.label}><span>{k.label}</span><strong>{k.value}</strong><small>{k.hint}</small></div>)}</div><p>This is verified session activity only; historical trends, exception aging, account certification and durable audit history require the planned persistent run store.</p></section>}{page==='overview'&&<section className="dashboard-quicklinks" aria-label="Dashboard detail views"><button type="button" onClick={()=>setPage('exceptions')}>Exceptions <span aria-hidden="true">→</span></button><button type="button" onClick={()=>setPage('history')}>Balancing History <span aria-hidden="true">→</span></button></section>}{['exceptions','history'].includes(page)&&<div className="dashboard-back"><button type="button" onClick={()=>setPage('overview')}>← Back to Dashboard</button></div>}{page==='settings'&&<section className="folder-settings" aria-label="GL sign convention settings"><h2>GL balance sign convention</h2><label htmlFor="gl-sign-convention">How should ABACUS interpret signed trial balance amounts?</label><select id="gl-sign-convention" value={sign} disabled={!settingsReady||busy} onChange={e=>setConvention(e.target.value)}>{Object.entries(GL_SIGN_CONVENTIONS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><p>{sign==='natural'?'Use the balances exactly as supplied. Select this for the original synthetic demo GL trial balance, where all amounts are positive.':sign==='credit-negative'?'Reverse only share and certificate liability GL balances (90x accounts). Use when these liabilities are exported as credits/negative while assets remain positive.':'Reverse every GL balance, including loans and cash. Use only when the entire trial balance is exported with the opposite sign convention.'}</p><p>Variance = core report balance − normalized GL balance. ABACUS keeps the original trial balance file unchanged and never applies absolute-value matching. Changing this selection recalculates the currently displayed result immediately as a preview. Click Run Balancing to save a new verified run with this convention.</p></section>}
  {page==='settings'&&<section className="folder-settings"><h2>Core system</h2><label htmlFor="core-system-selection">Select core processing system</label><select id="core-system-selection" aria-label="Core system" value={coreSystem} disabled={busy} onChange={e=>changeCoreSystem(e.target.value)}><option value="xp2">XP2</option><option value="datasafe">DataSafe</option></select><p>{CORE_SYSTEMS[coreSystem].validation}. DataSafe starts with an independent copy of the current XP2 mapping and processing rules; DataSafe-specific file formats are not yet verified.</p><p>{centralTenant?'Core system saved centrally for this credit union.':'The selected system is saved on this browser.'} No source files or member details are uploaded.</p></section>}{page==='settings'&&<GLMappingImport tenantId={activeCU} coreSystem={coreSystem} master={master} version={mappingVersion} canSave={centralTenant&&settingsReady&&!busy} onSaved={(mapping,nextVersion)=>{setMaster(mapping);setMappingVersion(nextVersion);setResult(null);setReview(null);setApproved(false);setMappingOK(false);setSettingsStatus('New GL mapping saved. Prior balancing results cleared; run reconciliation again.');}}/>}
  {page==='settings'&&<section className="folder-settings" aria-label="AI settings"><h2>AI investigation assistant</h2><p><strong>Current setting: {aiEnabled?'On':'Off'}</strong>{aiSaving?' (saving…)':''}</p><button type="button" className={aiEnabled?'':'primary'} style={{padding:'13px 20px',fontSize:15,minWidth:230}} aria-pressed={aiEnabled} disabled={aiSaving} onClick={()=>changeAiEnabled(!aiEnabled)}>{aiSaving?'Saving…':aiEnabled?'Disable AI investigation assistant':'Enable AI investigation assistant'}</button><p>Off by default. This setting is saved per credit union. When enabled, a local rules-based ATM investigation summary appears. United Solutions private AI integration is not connected, and no financial files are sent to an external AI provider.</p>{!settingsReady&&<p role="status">Settings are still loading; a save attempt will report this status.</p>}{aiNotice&&<p role={aiNotice.includes('could not be saved')?'alert':'status'} style={{fontWeight:650,color:aiNotice.includes('could not be saved')?'#a33331':'#246251'}}>{aiNotice}</p>}</section>}
+ {page==='settings'&&<section className="folder-settings" aria-label="AI integration settings"><h2>AI Integration Settings</h2><p>Configure the private enterprise AI endpoint for this credit union. External AI connectivity is not yet active.</p><fieldset style={{border:0,padding:0,margin:'0 0 14px'}}><legend><strong>AI Provider</strong></legend>{[['united-openai','United Solutions — OpenAI-compatible API'],['united-ollama','United Solutions — Ollama API'],['custom','Custom enterprise API']].map(([value,label])=><label key={value} style={{display:'block',margin:'10px 0'}}><input type="radio" name="ai-provider" checked={aiIntegration.provider===value} onChange={()=>setAiIntegration(p=>({...p,provider:value}))} disabled={!settingsReady||aiIntegrationSaving}/> {label}</label>)}</fieldset><label htmlFor="ai-base-url">API Base URL</label><input id="ai-base-url" type="url" placeholder="https://ai.internal.example.com/v1" value={aiIntegration.baseUrl} onChange={e=>setAiIntegration(p=>({...p,baseUrl:e.target.value}))} disabled={!settingsReady||aiIntegrationSaving} autoComplete="off"/><label htmlFor="ai-model-id">Model Identifier</label><input id="ai-model-id" type="text" placeholder="Provided by United Solutions IT" value={aiIntegration.model} onChange={e=>setAiIntegration(p=>({...p,model:e.target.value}))} disabled={!settingsReady||aiIntegrationSaving} autoComplete="off"/><label htmlFor="ai-auth-method">Authentication Method</label><select id="ai-auth-method" value={aiIntegration.authMethod} onChange={e=>setAiIntegration(p=>({...p,authMethod:e.target.value}))} disabled={!settingsReady||aiIntegrationSaving}><option value="oauth-sso">OAuth / Single Sign-On</option><option value="server-token">Server-managed API token</option><option value="mtls">Mutual TLS (server-managed)</option></select><button type="button" className="primary" style={{marginTop:15}} disabled={!settingsReady||aiIntegrationSaving} onClick={saveAiIntegration}>{aiIntegrationSaving?'Saving…':'Save AI integration settings'}</button>{aiIntegrationNotice&&<p role="status">{aiIntegrationNotice}</p>}<p><small>Do not enter API keys, passwords, tokens or member information here. Authentication secrets belong on the private application server. Saving these fields does not send financial data to any provider.</small></p></section>}
  {page==='settings'&&<section className="folder-settings"><h2>Local workspace</h2><p>Reconciliation files, results and notes remain in browser memory. {centralTenant?'XP2/DataSafe and balancing preferences are saved centrally; folder handles remain local.':'Settings are saved on this browser only until a credit union login and tenant are selected.'} Closing or refreshing this page clears financial data.</p><p>Workspace: {cuName}</p><p>Settings storage: {centralTenant?'Central PostgreSQL (core system, GL sign, AI, folder name) + separate backend GL mapping and user tables; local browser directory permission only':'Local IndexedDB only until an authenticated credit union is selected'}.</p>{settingsStatus&&<p role="status">{settingsStatus}</p>}</section>}
  {progress&&<div role="status" className="progress">{progress}</div>}{error&&<div role="alert" className="error">{error}</div>}
 
