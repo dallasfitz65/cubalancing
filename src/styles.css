@@ -367,3 +367,23 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .module-welcome .source-section-card h3{font-size:19px;font-weight:650}
 .module-welcome .source-section-card li{padding:13px 0}
 @media(max-width:720px){.module-welcome{padding:26px 0 20px}.module-welcome>p{font-size:15px}.module-welcome .source-section-card{padding:18px}}
+
+/* ATM-only Ask the System: CU-Analytics-style floating conversation */
+.atm-assistant-dock{position:fixed;right:24px;bottom:22px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.atm-chat-launcher{border:0;border-radius:999px;background:#174d73;color:white;font:700 14px inherit;padding:13px 20px;box-shadow:0 8px 24px rgba(7,32,56,.25);cursor:pointer}
+.atm-chat-launcher:hover{background:#103d5e}
+.atm-chat-window{box-sizing:border-box;width:min(420px,calc(100vw - 32px));max-height:min(650px,calc(100dvh - 115px));overflow:auto;display:flex;flex-direction:column;padding:0 18px 18px;background:#fff;border:1px solid #bed7e8;border-radius:14px;box-shadow:0 18px 55px rgba(7,32,56,.24);color:#17324b}
+.atm-chat-header{position:sticky;top:0;z-index:1;background:#174d73;color:#fff;display:flex;align-items:center;justify-content:space-between;margin:0 -18px;padding:14px 18px;border-radius:13px 13px 0 0}
+.atm-chat-header h3{margin:0;color:#fff;font-size:17px}
+.atm-chat-header button{background:transparent;border:0;color:white;font-size:18px;cursor:pointer}
+.atm-chat-subtitle{font-size:12px;font-weight:650;color:#315b77;margin:14px 0 7px}
+.atm-chat-disclosure{font-size:12px;line-height:1.45;color:#576b7e;margin:0 0 15px}
+.atm-chat-suggestions{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.atm-chat-suggestions button{border:1px solid #cbd9e5;border-radius:16px;background:#f4f8fc;color:#173b5b;padding:7px 10px;font-size:12px;cursor:pointer}
+.atm-chat-history{min-height:75px;max-height:230px;overflow-y:auto;margin-bottom:14px}
+.atm-chat-history>div{background:#f4f8fb;padding:9px 12px;border-radius:9px;margin-bottom:10px}
+.atm-chat-history p{margin:4px 0;overflow-wrap:anywhere;font-size:13px;line-height:1.5}
+.atm-chat-compose{display:flex;gap:7px;margin-top:auto}
+.atm-chat-compose input{min-width:0;flex:1;padding:10px;border:1px solid #cbd9e5;border-radius:8px}
+.atm-chat-compose button{padding:10px 13px}
+@media(max-width:600px){.atm-assistant-dock{right:12px;bottom:12px;left:12px}.atm-chat-window{width:100%;max-height:calc(100dvh - 95px)}.atm-chat-launcher{align-self:flex-end}}
