@@ -283,3 +283,22 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .tenant-add-form input,.tenant-add-form select{height:40px;border:1px solid #c7d5e0;border-radius:7px;padding:7px 10px}
 .tenant-add-form p{color:#516779;line-height:1.5}
 .tenant-add-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+
+
+/* NCUA lookup selector within Platform / Add Credit Union dialog */
+.tenant-ncua-search{display:flex;flex-direction:column;gap:7px;margin:18px 0 10px}
+.tenant-ncua-search>label{font-weight:650}
+.tenant-ncua-query-row{display:flex;gap:8px}
+.tenant-ncua-query-row input{flex:1;min-width:0;height:41px;border:1px solid #c7d5e0;border-radius:7px;padding:8px 10px}
+.tenant-ncua-results{margin:8px 0 12px;border:1px solid #d9e3eb;border-radius:9px;max-height:245px;overflow-y:auto;padding:10px}
+.tenant-ncua-results legend{font-size:12px;font-weight:700;color:#48627a;padding:0 5px}
+.tenant-ncua-result{display:flex;align-items:flex-start;gap:10px;padding:9px;cursor:pointer;border-radius:7px}
+.tenant-ncua-result:hover,.tenant-ncua-result.selected{background:#eaf3fa}
+.tenant-ncua-result input{margin-top:4px;flex-shrink:0}
+.tenant-ncua-result span{display:flex;flex-direction:column;gap:3px}
+.tenant-ncua-result small{color:#5e7488}
+.tenant-ncua-confirmed{font-size:12px;font-weight:650;color:#176954}
+.tenant-manual-toggle{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;margin-top:10px}
+.tenant-manual-toggle input{width:15px;height:15px;flex-shrink:0}
+.tenant-add-dialog{width:min(620px,calc(100vw - 32px))}
+@media(max-width:600px){.tenant-ncua-query-row{flex-wrap:wrap}.tenant-ncua-query-row input{flex-basis:100%}}
