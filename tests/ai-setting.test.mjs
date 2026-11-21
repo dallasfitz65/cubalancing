@@ -11,7 +11,7 @@ test('AI feature defaults off and Settings allows credit-union scoped changes',(
  assert.match(main,/persistPreference\('ai-enabled',enabled\)/);
  assert.match(main,/setAiEnabled\(selected\['ai-enabled'\]===true\)/);
  assert.match(main,/getSetting\(folderScope,'ai-enabled'\)/);
- assert.match(main,/aria-pressed=\{aiEnabled\}/);
+ assert.match(main,/checked=\{aiEnabled\}/);
  assert.match(main,/aiEnabled=\{aiEnabled\}/);
 });
 test('server only accepts boolean AI settings, not URLs or tokens',()=>{
