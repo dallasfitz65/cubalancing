@@ -3,14 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
-test('AI setting has an explicit large Enable/Disable button with current state',()=>{
- assert.match(ui,/Current setting: \{aiEnabled\?'On':'Off'\}/);
- assert.match(ui,/aria-pressed=\{aiEnabled\}/);
- assert.match(ui,/onClick=\{\(\)=>changeAiEnabled\(!aiEnabled\)\}/);
- assert.match(ui,/Enable AI investigation assistant/);
- assert.match(ui,/Disable AI investigation assistant/);
- assert.doesNotMatch(ui,/type="checkbox" checked=\{aiEnabled\}/);
+test('AI setting exposes a labeled On/Off switch',()=>{
+ assert.match(ui,/id="ai-investigation-switch"/);
+ assert.match(ui,/checked=\{aiEnabled\}/);
+ assert.match(ui,/onChange=\{changeAiEnabled\}/);
+ assert.match(ui,/<SettingsSwitch/);
 });
+
 test('AI state changes before server save and restores if it fails',()=>{
  const fn=ui.slice(ui.indexOf('async function changeAiEnabled('),ui.indexOf('async function persistPreference('));
  assert.ok(fn.indexOf('setAiEnabled(enabled)')<fn.indexOf("await persistPreference('ai-enabled',enabled)"));
