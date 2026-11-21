@@ -5,8 +5,8 @@ import {normalizeGL} from '../src/gl-sign-convention.mjs';
 const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
 test('Shares, Loans and Cash exposes sign selection directly beside Run Balancing',()=>{
  assert.match(ui,/id="balancing-gl-sign"/);
- assert.match(ui,/value=\{sign\} disabled=\{busy\|\|!settingsReady\}/);
- assert.match(ui,/For the supplied positive synthetic GL trial balance choose/);
+ assert.match(ui,/checked=\{sign==='reverse-all'\} disabled=\{busy\|\|!settingsReady\}/);
+ assert.match(ui,/GL Balance Sign Swap/);
  assert.match(ui,/normalizeGL\(runReview,sign\)/);
 });
 test('selected balance sign is traceable on report without hiding source values',()=>{

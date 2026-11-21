@@ -243,3 +243,26 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .folder-secondary-action{margin-top:8px}
 .folder-inline-status{font-size:12px;color:#47617a;margin:8px 0}
 @media(max-width:670px){.folder-config-controls{flex-wrap:wrap}.folder-config-controls input{flex-basis:100%}}
+
+
+/* Binary switches and compact folder / mapping selectors */
+.settings-switch-row{display:flex;align-items:center;gap:11px;margin:12px 0;flex-wrap:wrap}
+.settings-switch{position:relative;width:54px;height:30px;flex-shrink:0;padding:0;border-radius:20px;background:#bac6d1;border:1px solid #9eabb7;transition:background .16s ease}
+.settings-switch:hover{background:#a9b8c5}
+.settings-switch-on,.settings-switch-on:hover{background:#156752;border-color:#156752}
+.settings-switch-thumb{position:absolute;top:3px;left:3px;height:22px;width:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003;transition:transform .16s ease}
+.settings-switch-on .settings-switch-thumb{transform:translateX(24px)}
+.settings-switch-state{font-size:13px;font-weight:700;min-width:27px}
+.settings-switch-description{font-size:12px;color:#47617a}
+.settings-legacy-sign{font-size:12px;color:#825d1e}
+.folder-config-grid{display:flex;flex-direction:column;gap:22px;max-width:680px}
+.folder-config-field{width:100%}
+.folder-config-controls .folder-icon-picker{width:42px;min-width:42px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#234c70}
+.folder-icon-picker:hover{background:#e5eef7}
+.mapping-file-selector{display:flex;align-items:center;gap:7px;max-width:590px;margin-top:7px}
+.mapping-filename{flex:1;min-width:0;border:1px solid #c9d5e2;background:#f7f9fb;border-radius:7px;padding:10px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#47617a}
+.mapping-file-icon{width:42px;height:40px;border:1px solid #c9d5e2;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:white;color:#234c70}
+.mapping-file-icon:hover{background:#e5eef7}
+.mapping-file-icon:focus-visible{outline:3px solid #69b4ed;outline-offset:2px}
+.mapping-file-disabled{opacity:.45;cursor:not-allowed}
+.visually-hidden-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
