@@ -397,3 +397,8 @@ aside nav .nav-files .file .file-status{font-size:12px}
  .app>aside .side-label{letter-spacing:1px}
  .app>aside .nav-files{margin-left:0;padding-left:5px}
 }
+
+/* Keep AI provider connection fields readable rather than crowding labels inline. */
+.ai-provider-connection-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:16px 0 0}
+.ai-provider-connection-fields label{display:flex;flex-direction:column;gap:6px;min-width:0;font-weight:600}
+.ai-provider-connection-fields input,.ai-provider-connection-fields select{width:100%;box-sizing:border-box;padding:10px;min-width:0;font-weight:400}
