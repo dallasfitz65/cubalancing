@@ -30,6 +30,34 @@ export async function createHandler(req,{database=getDatabase}={}){
   // Transaction-local context prevents setting leakage between pooled connections.
   await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
   await client.query("SELECT set_config('abacus.platform_admin',$1,true)",[user.role==='admin'?'true':'false']);
+  if(op==='platform-settings'&&req.method==='GET'){
+   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   const r=await client.query("SELECT setting_value,version FROM abacus_platform_settings WHERE setting_key='ai-integration'");
+   await client.query('COMMIT');inTransaction=false;
+   return reply(r.rows.length?{setting:r.rows[0].setting_value,version:Number(r.rows[0].version)}:{setting:null,version:0});
+  }
+  if(op==='save-platform-settings'&&req.method==='POST'){
+   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   const input=await body(req);
+   const value=input?.value,version=input?.version;
+   if(!value||typeof value!=='object'||Array.isArray(value)||!['united-openai','united-ollama','custom'].includes(value.provider)
+    ||typeof value.baseUrl!=='string'||value.baseUrl.length>2048
+    ||typeof value.model!=='string'||value.model.length>200
+    ||!['oauth-sso','server-token','mtls'].includes(value.authMethod)
+    ||Object.keys(value).some(k=>!['provider','baseUrl','model','authMethod'].includes(k))
+    ||!Number.isSafeInteger(version)||version<0)return reply({error:'Invalid platform AI configuration'},400);
+   if(value.baseUrl){
+    let u;try{u=new URL(value.baseUrl);}catch{return reply({error:'Invalid HTTPS base URL'},400);}
+    if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)return reply({error:'Valid HTTPS URL without credentials or query parameters required'},400);
+   }
+   let r;
+   if(version===0)r=await client.query("INSERT INTO abacus_platform_settings(setting_key,setting_value,updated_by) VALUES('ai-integration',$1::jsonb,$2) ON CONFLICT DO NOTHING RETURNING version",[JSON.stringify(value),user.id]);
+   else r=await client.query("UPDATE abacus_platform_settings SET setting_value=$1::jsonb,updated_by=$2,updated_at=now(),version=version+1 WHERE setting_key='ai-integration' AND version=$3 RETURNING version",[JSON.stringify(value),user.id,version]);
+   if(!r.rows.length)return reply({error:'Platform settings changed elsewhere; reload and retry'},409);
+   await insertActivity(client,user.id,'setting_saved',null,null,'platform_ai_integration');
+   await client.query('COMMIT');inTransaction=false;
+   return reply({ok:true,version:Number(r.rows[0].version)});
+  }
   if(req.method==='GET'&&op==='tenants'){
    const found=await client.query('SELECT c.id,c.name,c.active,m.role AS membership_role FROM abacus_credit_unions c LEFT JOIN abacus_user_credit_unions m ON m.credit_union_id=c.id AND m.user_id=$1 WHERE m.active=true OR $2::boolean=true ORDER BY c.name',[user.id,user.role==='admin']);
    await client.query('COMMIT');inTransaction=false;

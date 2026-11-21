@@ -9,7 +9,7 @@
 ## Central credit-union setup
 
 1. Sign in through the authenticated portal.
-2. Open **Settings → Credit union management** and add a credit union.
+2. Open **Platform → Credit union management** (platform administrator only) and add a credit union.
 3. Select it using the header selector.
 4. Assign users to that credit union as admin, reconciler or reviewer.
 5. Use **Import existing local settings** if appropriate. Existing shared settings are never overwritten by this import. Selected directory handles remain on the current browser/device.
@@ -51,3 +51,11 @@ The historical SQL migrations must remain checked in even if superseded; deletin
 ## Administrator recovery key rotation
 
 The application supports one-time administrator recovery through **Recover administrator access** on the production sign-in page. A new 64-character recovery key can be provisioned by setting the production secret `ABACUS_RECOVERY_TOKEN_HASH` to the lowercase SHA-256 hex digest of the new key and deploying again. Never commit or display the raw recovery key or the new password in source control. Each recovery hash can be consumed once; recovery updates a selected administrator's salted password and revokes that account's sessions without deleting existing credit unions or financial history.
+
+## Platform administration (proposed PR)
+
+The **Platform** navigation item is visible to platform administrators. It consolidates credit union management, user management, the platform activity log shortcut (still restricted to Admin99), and global AI Integration Settings. Tenant-level **Settings** retains core selection, GL sign convention, GL mapping, AI assistant enable/disable, and local balancing folder controls.
+
+A separate `abacus_platform_settings` table stores the platform-wide AI provider, HTTPS base URL, model identifier and authentication method with optimistic versioning and platform-admin-only PostgreSQL RLS. The migration `20261121002000_platform_settings.sql` must run successfully before saving configuration. No API key or credential is stored in this table. This does not yet connect an AI service or send reconciliation information to AI.
+
+**Deployment dependency:** the currently deployed backend is Netlify-based. Platform configuration persistence needs its corresponding authenticated API and database migration deployed together. The requested Windows-server migration is a separate task; these server routes must be ported before Netlify is retired.
