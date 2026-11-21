@@ -387,3 +387,13 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .atm-chat-compose input{min-width:0;flex:1;padding:10px;border:1px solid #cbd9e5;border-radius:8px}
 .atm-chat-compose button{padding:10px 13px}
 @media(max-width:600px){.atm-assistant-dock{right:12px;bottom:12px;left:12px}.atm-chat-window{width:100%;max-height:calc(100dvh - 95px)}.atm-chat-launcher{align-self:flex-end}}
+
+/* Narrow desktop navigation to prioritize reconciliation workspace. */
+@media screen and (min-width:761px){
+ .app>aside{box-sizing:border-box;width:240px;flex:0 0 240px;padding-left:12px;padding-right:12px}
+ .app>aside .abacus-brand-logo{max-width:205px;width:100%;height:auto}
+ .app>aside>nav .nav-item{font-size:14px;padding:10px 9px}
+ .app>aside>nav{scrollbar-gutter:auto;padding-right:3px}
+ .app>aside .side-label{letter-spacing:1px}
+ .app>aside .nav-files{margin-left:0;padding-left:5px}
+}
