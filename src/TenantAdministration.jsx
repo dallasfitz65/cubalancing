@@ -6,8 +6,14 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
  const [lookupQuery,setLookupQuery]=useState(''),[lookupResults,setLookupResults]=useState([]),[lookupBusy,setLookupBusy]=useState(false),[selectedNCUA,setSelectedNCUA]=useState(null),[manualInstitution,setManualInstitution]=useState(false);
  const addDialog=useRef(null);
  const [users,setUsers]=useState([]),[targetUser,setTargetUser]=useState(''),[role,setRole]=useState('reconciler');
+ const [coreProfile,setCoreProfile]=useState({status:'loading',core:null});
  const authorized=account.role==='admin';
  const tenant=isServerTenant(activeCU);
+ const selectedUnion=unions.find(u=>u.id===activeCU);
+ useEffect(()=>{let live=true;setCoreProfile({status:tenant?'loading':'unavailable',core:null});if(!tenant)return()=>{live=false;};
+  tenantAPI('settings',{tenantId:activeCU}).then(data=>{if(!live)return;const setting=(data.settings||[]).find(item=>item.setting_key==='core-system');const core=setting?.setting_value;setCoreProfile({status:core?'ready':'unconfigured',core:typeof core==='string'?core:null});}).catch(()=>{if(live)setCoreProfile({status:'error',core:null});});
+  return()=>{live=false;};
+ },[activeCU,tenant]);
  useEffect(()=>{if(!authorized)return;accountAPI('users').then(x=>setUsers(x.users)).catch(e=>setError(e.message));},[authorized]);
  async function lookupNCUA(e){
   e.preventDefault();if(!authorized||lookupBusy||busy)return;
@@ -99,9 +105,18 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>addDialog.current?.close()}>Cancel</button><button className="primary" type="submit" disabled={busy||lookupBusy||(!selectedNCUA&&!manualInstitution)||!name.trim()}>{busy?'Creating…':'Add Credit Union'}</button></div>
   </form>
  </dialog>
-  {tenant&&<><h3>Assign users to {unions.find(x=>x.id===activeCU)?.name||'credit union'}</h3>
+  {tenant&&<><section className="tenant-profile-panel" aria-label="Selected credit union profile">
+  <h3>Selected Credit Union</h3>
+  <div className="tenant-profile-fields">
+   <div><span>Credit Union</span><strong>{selectedUnion?.name||'Unknown'}</strong></div>
+   <div><span>NCUA Charter</span><strong>{selectedUnion?.ncua_charter||'Not linked'}</strong></div>
+   <div><span>Core System</span><strong>{coreProfile.status==='loading'?'Loading…':coreProfile.status==='error'?'Unavailable':coreProfile.status==='unconfigured'?'Not configured':({xp2:'XP2',datasafe:'DataSafe',portico:'Portico'}[coreProfile.core]||coreProfile.core||'Unknown')}</strong></div>
+   <div><span>Status</span><strong>{selectedUnion?.active===false?'Inactive':'Active'}</strong></div>
+  </div>
+ </section>
+ <h3>Assign users to {selectedUnion?.name||'credit union'}</h3>
  <form onSubmit={assign} className="abacus-user-form"><label>User<select required value={targetUser} onChange={e=>setTargetUser(e.target.value)}><option value="">Select user</option>{users.filter(x=>x.active).map(u=><option key={u.id} value={u.id}>{u.username}</option>)}</select></label><label>Institution role<select value={role} onChange={e=>setRole(e.target.value)}><option value="admin">Credit union admin</option><option value="reconciler">Reconciler</option><option value="reviewer">Reviewer</option></select></label><button disabled={busy||!targetUser} type="submit">Assign user</button></form>
- <p>Manage user access above. Central Settings Migration is a separate section at the bottom of Platform.</p></>}
+</>}
  {!tenant&&<p>Select a credit union above to configure shared settings and user access.</p>}
  </>}
  {error&&<p className="error" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
