@@ -356,3 +356,14 @@ aside nav .nav-files .file .file-status{font-size:12px}
 
 /* Sidebar section headings: BALANCING, SETUP and ADMIN */
 .side-label{color:#fff}
+
+/* Consistent readiness layout on independent reconciliation modules */
+.module-welcome{min-height:0;padding:40px 12px 30px}
+.module-welcome .run-welcome-icon{font-size:48px;margin-bottom:18px;color:#c6cbd1}
+.module-welcome h2{font-size:28px;margin-bottom:15px;color:#10263d}
+.module-welcome>p{max-width:950px;font-size:17px;line-height:1.6;margin-bottom:26px}
+.module-welcome .source-section-list{max-width:none;grid-template-columns:minmax(0,1fr)}
+.module-welcome .source-section-card{width:100%;padding:24px 28px}
+.module-welcome .source-section-card h3{font-size:19px;font-weight:650}
+.module-welcome .source-section-card li{padding:13px 0}
+@media(max-width:720px){.module-welcome{padding:26px 0 20px}.module-welcome>p{font-size:15px}.module-welcome .source-section-card{padding:18px}}
