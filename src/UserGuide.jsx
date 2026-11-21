@@ -26,7 +26,7 @@ export default function UserGuide({onNavigate}){
  const active=topics.find(t=>t.id===topic)||topics[0];
  function goTo(page){dialog.current?.close();onNavigate?.(page);}
  return <>
-  <button type="button" className="main-help-trigger" aria-label="Open Abacus User Guide" title="User Guide" onClick={()=>{setTopic('start');dialog.current?.showModal();}}>?</button>
+  <button type="button" className="main-help-trigger header-action-with-icon" aria-label="Open Abacus User Guide" title="User Guide" onClick={()=>{setTopic('start');dialog.current?.showModal();}}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 4.3 1.7c-1.2 1-1.8 1.4-1.8 3"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg><span>Help</span></button>
   <dialog ref={dialog} className="main-user-guide-dialog" aria-labelledby="main-user-guide-heading" onClick={e=>{if(e.target===dialog.current)dialog.current?.close();}}>
    <div className="dialog-head"><h2 id="main-user-guide-heading">ABACUS User Guide</h2><button type="button" aria-label="Close User Guide" onClick={()=>dialog.current?.close()}>✕</button></div>
    <div className="main-user-guide-layout">
