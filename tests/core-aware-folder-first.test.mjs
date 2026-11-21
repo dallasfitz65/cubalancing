@@ -39,7 +39,7 @@ test('sidebar is navigation-only and folder scan resets stale reconciliation sta
  assert.match(main,/Open folder import/);
  assert.doesNotMatch(main,/compact-file-picker/);
  assert.match(main,/classifyCoreFiles\(list,coreSystem\)/);
- assert.match(main,/function stageFiles\(list\)\{[^}]*setFiles\(\{\}\)/);
+ assert.match(main,/function stageFiles\(list\)\{[\s\S]*?setFiles\(\{\}\)/);
  assert.match(main,/coreSystem!=='xp2'\)\{setError\(CORE_SYSTEMS/);
  assert.match(main,/Folder import &amp; file coverage/);
  assert.match(main,/Source coverage by module/);
