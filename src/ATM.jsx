@@ -89,8 +89,8 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
       <h3>Cash proof</h3><p>Beginning {money(report.beginning)} + replenishments {money(report.loaded)} − cash removed {money(report.removed)} − approved withdrawals {money(report.dispensed)} = expected {money(report.expected)}.</p>
       <button type="button" onClick={()=>setDetail(v=>!v)}>{detail?'Hide':'Show'} transaction detail</button>
       {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}
-      {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. The exception scenario intentionally changes the GL clearing amount by $50.</p>}
-      <p><small>Files remain in this browser session. The GL demo file is a separate synthetic ATM-specific CSV, not the existing credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
+      {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. Review the ATM GL clearing account and actual network settlement source files.</p>}
+      <p><small>Files remain in this browser session. ATM reconciliation uses the ATM-specific GL CSV, not the credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
     {aiEnabled&&<div className="atm-assistant-dock">
       <button type="button" className="atm-chat-launcher" aria-expanded={chatOpen} aria-controls="atm-chat-window" onClick={()=>setChatOpen(open=>!open)}>{chatOpen?'Close chat':'Ask the System'}{chat.length>0&&!chatOpen?' · '+chat.length:''}</button>
@@ -98,7 +98,7 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
       <div className="atm-chat-header"><h3>Ask the System</h3><button type="button" aria-label="Close ATM assistant" onClick={()=>setChatOpen(false)}>✕</button></div>
       <p className="atm-chat-subtitle">ATM Balancing · Local rules-based assistant</p>
       <p className="atm-chat-disclosure">Answers use this browser's current ATM report only. Enterprise AI is not connected. No data is sent to an AI service.</p>
-      {!report&&<p role="status">No ATM report yet. Run balancing or load a demo, then ask about variances and reconciliation controls.</p>}
+      {!report&&<p role="status">No ATM report yet. Reconnect or scan the input folder under Settings → Folder Configuration. All four ATM source CSV files are required.</p>}
       <div className="atm-chat-suggestions">
        {['Why is ATM out of balance?','Explain the cash proof','Check GL balances','Explain network settlement'].map(q=><button key={q} type="button" onClick={()=>ask(q)}>{q}</button>)}
       </div>
