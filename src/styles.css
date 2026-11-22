@@ -432,3 +432,8 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .atm-chat-launcher{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;min-height:52px;padding:0;border-radius:50%}
 .atm-chat-launcher svg{display:block;flex:none}
 .atm-chat-launcher:focus-visible{outline:3px solid #69b4ed;outline-offset:3px}
+
+/* Bring ATM reconciliation results closer to the page heading. */
+.reconciliation-page-header + .atm-workspace{padding-top:12px;margin-top:0}
+.atm-workspace .draft-report-title{margin:0 0 14px}
+.atm-workspace .draft-report-title h2{margin:0;font-size:20px;line-height:1.25}

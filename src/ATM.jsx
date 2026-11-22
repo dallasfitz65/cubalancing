@@ -96,7 +96,7 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
       <button type="button" className="atm-chat-launcher" aria-label={chatOpen?'Close Ask the System':'Open Ask the System'} title={chatOpen?'Close Ask the System':'Ask the System'} aria-expanded={chatOpen} aria-controls="atm-chat-window" onClick={()=>setChatOpen(open=>!open)}><svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.1 9.1 0 0 1-4-.9L3 20l1.1-4.3A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg></button>
       {chatOpen&&<section id="atm-chat-window" className="atm-investigation atm-chat-window" aria-label="ATM investigation chat">
       <div className="atm-chat-header"><h3>Ask the System</h3><button type="button" aria-label="Close ATM assistant" onClick={()=>setChatOpen(false)}>✕</button></div>
-      <p className="atm-chat-subtitle">ATM Balancing · Local rules-based assistant</p>
+      <p className="atm-chat-subtitle">ATM Reconciliation · Local rules-based assistant</p>
       <p className="atm-chat-disclosure">Answers use this browser's current ATM report only. Enterprise AI is not connected. No data is sent to an AI service.</p>
       {!report&&<p role="status">No ATM report yet. Reconnect or scan the input folder under Settings → Folder Configuration. All four ATM source CSV files are required.</p>}
       <div className="atm-chat-suggestions">

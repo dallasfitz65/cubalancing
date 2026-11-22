@@ -38,13 +38,13 @@ const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 
-const navigation=[['','Overview','overview'],['BALANCING','Shares, Loans and Cash','shares-loans'],['','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Platform Activity Log','platform-activity']];
+const navigation=[['','Overview','overview'],['RECONCILIATION','Shares, Loans and Cash','shares-loans'],['','Share Drafts','drafts'],['','EFT','eft'],['','ATM Reconciliation','atm'],['','ACH','ach'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Platform Activity Log','platform-activity']];
 // Keep dashboard destinations registered while hiding their sidebar entries.
 const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit'].includes(id));
 const sectionWelcome={
  drafts:{title:'Share Drafts',icon:'▤',instruction:'Select Settings → Folder Configuration to scan and load SDPS, SDRE and SDRT. Available files are checked automatically; GL posting verification is not included.',roles:['sdps','sdre','sdrt','draftgl'],required:['sdps','sdre','sdrt']},
  eft:{title:'EFT',icon:'⇄',instruction:'Select Settings → Folder Configuration to scan and load all six EFT sources. Source dates, institutions and totals are reviewed automatically; full EFT settlement-to-GL reconciliation is not yet implemented.',roles:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],required:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl']},
- atm:{title:'ATM Balancing',icon:'▣',instruction:'ATM source files load from the saved input folder and are checked automatically when all four required CSV reports are available. Use Settings → Folder Configuration to reconnect or rescan the folder.',roles:['atm_transactions','atm_cash','atm_settlement','atm_gl'],required:['atm_transactions','atm_cash','atm_settlement','atm_gl']},
+ atm:{title:'ATM Reconciliation',icon:'▣',instruction:'ATM source files load from the saved input folder and are checked automatically when all four required CSV reports are available. Use Settings → Folder Configuration to reconnect or rescan the folder.',roles:['atm_transactions','atm_cash','atm_settlement','atm_gl'],required:['atm_transactions','atm_cash','atm_settlement','atm_gl']},
  ach:{title:'ACH',icon:'≋',instruction:'ACH reconciliation is not yet implemented. Source definitions, transaction matching and settlement controls still require configuration.',roles:[],required:[]}
 };
 
@@ -280,8 +280,8 @@ function App({account,onLogout}){
  const data=await extractGL(files.gl,{onProgress:(n,total)=>setProgress(`Extracting PDF page ${n} of ${total}`),requestPassword:async retry=>prompt(retry?'Incorrect password. Try again:':'Enter PDF password (used only for this session):')});
  setReview({...data,file:files.gl});setModal('review');
  }catch(e){setReview(null);setError(e.message);}finally{setBusy(false);lock.current=false;setProgress('');}}
- async function run(){if(lock.current)return;if(coreSystem!=='xp2'){setError(CORE_SYSTEMS[coreSystem].label+' balancing is not validated. Configure its file adapter and rules before running reconciliation.');return;}if(!settingsReady){setError('Local settings are loading.');return;}setError('');setUnmapped([]);const runRoles=loadedRunRoles(page,files);if(runRoles.length===1){setError('Load at least one supporting file: Shares, Loans or Cash for this workspace.');return;}if(mode==='real'){const missing=[];if(!files.gl)missing.push('Load the shared GL file beneath this workspace.');if(missing.length){setError('Before running: '+missing.join(' '));return;}}if(mode==='demo'&&Object.values(files).some(Boolean)){setError('Clear selected files before starting a synthetic demo.');return;}
- lock.current=true;setBusy(true);setNotes({});setProgress('Validating and balancing source files');
+ async function run(){if(lock.current)return;if(coreSystem!=='xp2'){setError(CORE_SYSTEMS[coreSystem].label+' reconciliation is not validated. Configure its file adapter and rules before running reconciliation.');return;}if(!settingsReady){setError('Local settings are loading.');return;}setError('');setUnmapped([]);const runRoles=loadedRunRoles(page,files);if(runRoles.length===1){setError('Load at least one supporting file: Shares, Loans or Cash for this workspace.');return;}if(mode==='real'){const missing=[];if(!files.gl)missing.push('Load the shared GL file beneath this workspace.');if(missing.length){setError('Before running: '+missing.join(' '));return;}}if(mode==='demo'&&Object.values(files).some(Boolean)){setError('Clear selected files before starting a synthetic demo.');return;}
+ lock.current=true;setBusy(true);setNotes({});setProgress('Validating and reconciling source files');
  try{let sections,meta=null;let runReview=review;let missingLinks=[];
  if(mode==='real'&&(!runReview||runReview.file!==files.gl||!approved)){
    if(/(?:^|[^a-z])svst(?:[^a-z]|$)/i.test(files.gl.name))throw Error('SVST is a share report, not a GL trial balance. Select the correct GL file.');
@@ -304,9 +304,9 @@ function App({account,onLogout}){
    try{
     const fingerprints=(run.meta?.files||[]).map(x=>({role:x.role,sha256:x.sha256}));
     await tenantAPI('save-run',{tenantId:activeCU,body:{run:{id:run.id,workspace:run.workspace,mode:run.mode,status:missingLinks.length?'partial':issues?'exceptions':'balanced',checkCount:run.checks,issueCount:issues,unmappedCount:missingLinks.length,sourceCount:fingerprints.length,sourceHashes:fingerprints,ruleVersion:run.meta?.mapping?.version||null}}});
-    setHistoryStatus('Balancing summary saved to credit union history.');
+    setHistoryStatus('Reconciliation summary saved to credit union history.');
     const history=await tenantAPI('runs',{tenantId:activeCU});setHistoricalRuns(history.runs);
-   }catch(e){setHistoryStatus('Balancing finished locally, but history was not saved: '+e.message);}
+   }catch(e){setHistoryStatus('Reconciliation finished locally, but history was not saved: '+e.message);}
   }
   await recordAction('balancing_run',issues?'exception':'completed');
  }catch(e){setError(e.message);}finally{setBusy(false);lock.current=false;setProgress('');}}
@@ -425,10 +425,10 @@ function App({account,onLogout}){
   {['atm_transactions','atm_cash','atm_settlement','atm_gl'].every(role=>files[role])&&!atmResult&&<ATM files={files} aiEnabled={false} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}} autoRun/>}
  </div>}
  {['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<div className="reconciliation-page-header">
-  <h1>{({ 'shares-loans':'Shares, Loans and Cash',cash:'Cash Balancing',drafts:'Share Draft Balancing',eft:'EFT Balancing',atm:'ATM Balancing',ach:'ACH Balancing' })[page]}</h1>
+  <h1>{({ 'shares-loans':'Shares, Loans and Cash Reconciliation',cash:'Cash Reconciliation',drafts:'Share Draft Reconciliation',eft:'EFT Reconciliation',atm:'ATM Reconciliation',ach:'ACH Reconciliation' })[page]}</h1>
   <p>{page==='ach'?'Setup pending — ACH source adapter is not yet validated.':'Reconciliation is calculated automatically when recognized source files are loaded. Review exceptions and evidence below.'}</p>
  </div>}
- {coreSystem!=='xp2'&&['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<section className="folder-settings" role="status"><h2>{CORE_SYSTEMS[coreSystem].label} source adapter pending</h2><p>File counts, report layouts, account mappings and balancing controls have not been verified for this core. XP2 parsing is not used as a substitute; reconciliation is blocked until vendor-specific evidence is validated.</p><button type="button" onClick={()=>setPage('settings')}>Review source setup</button></section>}{page==='help'&&<Help/>}{page==='platform-activity'&&account.role==='admin'&&account.username.toLowerCase()==='admin99'&&<PlatformActivity/>}{page==='overview'&&folderConnection!=='checking'&&folderConnection!=='ready'&&<section className="folder-settings" role="status" aria-label="Reconciliation folder setup needed" style={{marginBottom:16,borderLeft:'4px solid #b37b24'}}>
+ {coreSystem!=='xp2'&&['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<section className="folder-settings" role="status"><h2>{CORE_SYSTEMS[coreSystem].label} source adapter pending</h2><p>File counts, report layouts, account mappings and reconciliation controls have not been verified for this core. XP2 parsing is not used as a substitute; reconciliation is blocked until vendor-specific evidence is validated.</p><button type="button" onClick={()=>setPage('settings')}>Review source setup</button></section>}{page==='help'&&<Help/>}{page==='platform-activity'&&account.role==='admin'&&account.username.toLowerCase()==='admin99'&&<PlatformActivity/>}{page==='overview'&&folderConnection!=='checking'&&folderConnection!=='ready'&&<section className="folder-settings" role="status" aria-label="Reconciliation folder setup needed" style={{marginBottom:16,borderLeft:'4px solid #b37b24'}}>
   <h2>{folderConnection==='reconnect'?'Reconciliation folder needs access':'Reconciliation folder not set up'}</h2>
   <p>{folderConnection==='reconnect'?'Your saved folder is not currently authorized on this browser. Reconnect it before importing new reports.':'No reconciliation folder is connected for this credit union on this browser. Set up the folder to scan and identify source files.'}</p>
   <button className="primary" type="button" onClick={()=>{setJumpToFolder(true);setPage('settings');}}>Set up reconciliation folder</button>
