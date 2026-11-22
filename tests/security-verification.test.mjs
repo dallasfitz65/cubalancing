@@ -3,7 +3,7 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import test from 'node:test';
 
-const root=resolve(import.meta.dirname,'../..');
+const root=resolve(import.meta.dirname,'..');
 const read=p=>readFileSync(join(root,p),'utf8');
 const tenant=read('netlify/functions/tenants.mjs');
 const auth=read('netlify/functions/auth.mjs');
