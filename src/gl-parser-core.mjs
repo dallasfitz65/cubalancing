@@ -30,7 +30,7 @@ export function parseGLRows(pages, {requireHeader=true}={}) {
    if(pending){
     const amounts=[...pending.tail.matchAll(moneyRE)];
     const last=amounts.at(-1);
-    const zeroDash=amounts.length>0 && /(?:^|\s)[—–-]\s*$/.test(pending.tail);
+    const zeroDash=amounts.length>0 && /(?:^|\s)[—–-]\s*$/.test(pending.tail) && !(last&&/[+-]\s*$/.test(last[0]));
     if(last || zeroDash){
      if(!zeroDash && pending.tail.slice(last.index+last[0].length).trim()) throw new Error(`Unreadable ending-balance column for GL ${pending.account} on page ${page.number}.`);
      const raw=zeroDash ? '0.00' : last[0].trim();
