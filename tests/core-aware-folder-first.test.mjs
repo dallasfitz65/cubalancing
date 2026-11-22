@@ -53,5 +53,6 @@ test('unverified adapters cannot start XP2 reconciliation or publish provisional
 test('folder sweep is bounded and rejects partial import',()=>{
  assert.match(main,/async function sweep\(directory,depth\)/);
  assert.match(main,/if\(list.length>200\)throw Error/);
- assert.match(main,/Folder nesting exceeds three levels/);
+ assert.match(main,/if\(depth>=3\)skippedDeepFolders\+\+/);
+ assert.match(main,/deeper subfolder\(s\) were skipped/);
 });

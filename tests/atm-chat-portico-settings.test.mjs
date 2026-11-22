@@ -28,9 +28,9 @@ test('Portico can be selected and persisted but is declared provisional',()=>{
  assert.match(api,/\['xp2','datasafe','portico'\]\.includes\(system\)/);
 });
 test('ATM chat is visible with assistant enabled and only provides grounded local answers',()=>{
- assert.match(atm,/\{aiEnabled&&<section className="atm-investigation"/);
- assert.match(atm,/Ask the System — ATM investigation/);
- assert.match(atm,/United Solutions enterprise AI is not connected/);
+ assert.match(atm,/\{aiEnabled&&<div className="atm-assistant-dock"/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
+ assert.match(atm,/Enterprise AI is not connected/);
  assert.match(answerAtmQuestion('Why is ATM out of balance?',report),/\$50\.00/);
  assert.match(answerAtmQuestion('Explain cash proof',report),/beginning/);
  assert.match(answerAtmQuestion('Why is ATM out of balance?',null),/Run ATM Balancing/);

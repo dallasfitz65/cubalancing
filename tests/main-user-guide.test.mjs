@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 const ui=readFileSync(new URL('../src/UserGuide.jsx',import.meta.url),'utf8');
 const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
 const css=readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
-test('main header exposes accessible question mark user guide without removing existing Help & Rules',()=>{
+test('main header groups icon-labeled Help beside Log out without removing Help & Rules',()=>{
  assert.match(main,/import UserGuide from '\.\/UserGuide\.jsx'/);
- assert.match(main,/<div className="header-actions"><UserGuide onNavigate=\{setPage\}/);
+ assert.match(main,/className="header-account-actions"><UserGuide onNavigate=\{setPage\}/);
  assert.match(main,/page==='help'&&<Help\/>/);
  assert.match(ui,/aria-label="Open Abacus User Guide"/);
  assert.match(ui,/dialog\.current\?\.showModal\(\)/);

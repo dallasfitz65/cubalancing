@@ -19,8 +19,8 @@ test('server only accepts boolean AI settings, not URLs or tokens',()=>{
 });
 test('ATM assistant is rules-based and opt-in, not falsely connected to external AI',()=>{
  assert.match(atm,/aiEnabled=false/);
- assert.match(atm,/\{aiEnabled&&<section/);
- assert.match(atm,/United Solutions enterprise AI is not connected/);
+ assert.match(atm,/\{aiEnabled&&<div className="atm-assistant-dock"/);
+ assert.match(atm,/Enterprise AI is not connected/);
  assert.match(atm,/answerAtmQuestion\(q,report\)/);
- assert.match(atm,/Ask the System — ATM investigation/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
 });
