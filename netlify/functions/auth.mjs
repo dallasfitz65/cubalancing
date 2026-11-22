@@ -97,6 +97,33 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     throw e;
    }
   }
+  // Platform role changes require the explicitly configured owner ID and fresh password.
+  // Ordinary platform administrators cannot elevate another user.
+  if(op==='set-platform-role'){
+   const ownerId=process.env.ABACUS_PLATFORM_OWNER_USER_ID;
+   if(!ownerId||String(actor.id)!==ownerId||actor.role!=='admin')return reply({error:'Configured platform owner required'},403);
+   if(typeof body.password!=='string'||!passwordValid(body.password)||!['admin','user'].includes(body.role)||!/^[0-9]{1,20}$/.test(String(body.id||''))||String(body.id)===String(actor.id))
+    return reply({error:'Invalid platform role request'},400);
+   const current=await client.query('SELECT password_hash FROM abacus_users WHERE id=$1 AND active=true AND deleted_at IS NULL',[actor.id]);
+   if(current.rows.length!==1||!await checkPassword(body.password,current.rows[0].password_hash))return reply({error:'Owner password verification failed'},403);
+   let tx=false;
+   try{
+    await client.query('BEGIN');tx=true;
+    await client.query('SELECT pg_advisory_xact_lock(18499174)');
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(actor.id)]);
+    await client.query("SELECT set_config('abacus.platform_admin','true',true)");
+    const target=await client.query('SELECT id,role FROM abacus_users WHERE id=$1 AND active=true AND deleted_at IS NULL FOR UPDATE',[body.id]);
+    if(target.rows.length!==1){await client.query('ROLLBACK');tx=false;return reply({error:'Active target user not found'},404);}
+    if(target.rows[0].role==='admin'&&body.role==='user'){
+     const count=await client.query("SELECT count(*)::integer AS total FROM abacus_users WHERE role='admin' AND active=true AND deleted_at IS NULL");
+     if(Number(count.rows[0].total)<=1){await client.query('ROLLBACK');tx=false;return reply({error:'Cannot demote last administrator'},409);}
+    }
+    await client.query('UPDATE abacus_users SET role=$1,updated_at=now() WHERE id=$2 AND deleted_at IS NULL',[body.role,body.id]);
+    await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[body.id]);
+    await insertActivity(client,actor.id,'platform_role_changed',null,body.id,body.role);
+    await client.query('COMMIT');tx=false;return reply({ok:true});
+   }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
+  }
   if(op==='delete-user'&&actor.role==='admin'){
    const id=String(body.id||'');
    if(!/^[0-9]{1,20}$/.test(id)||id===String(actor.id))return reply({error:'Cannot delete your own administrator account'},400);
