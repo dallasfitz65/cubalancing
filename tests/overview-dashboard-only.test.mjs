@@ -16,5 +16,5 @@ test('GL details and account sections are restricted to detail pages',()=>{
 });
 test('automatic reconciliation still runs from Overview without showing detailed reports',()=>{
  assert.match(main,/page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">/);
- assert.match(main,/if\(!startupRunPending\|\|!settingsReady\|\|coreSystem!=='xp2'\|\|page!=='overview'\)return/);
+ assert.match(main,/if\(!settingsReady\|\|coreSystem!=='xp2'\|\|page!=='overview'\|\|mode!=='real'\)return/);
 });
