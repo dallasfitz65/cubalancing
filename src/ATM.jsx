@@ -1,5 +1,6 @@
 import React,{useState,useEffect,useRef} from 'react';
 import {answerAtmQuestion} from './atm-assistant.mjs';
+import ReportViewSwitch from './ReportViewSwitch.jsx';
 
 const SOURCES=[
   {key:'transactions',name:'ATM transaction journal',file:'atm-transactions.csv'},
@@ -44,7 +45,7 @@ function evaluate(source){
   return {date:[...dates][0],terminal:[...terminals][0],tx,approvedCount:approved.length,dispensed,beginning,loaded,removed,expected,counted,settled,glCash,glClearing,checks};
 }
 export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,initialReport=null}){
-  const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
+  const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false),[reportView,setReportView]=useState('summary');
   const [question,setQuestion]=useState(''),[chat,setChat]=useState([]),[chatOpen,setChatOpen]=useState(false);
   const ready=SOURCES.every(source=>Boolean(files['atm_'+source.key]));
   function invalidateReport(){
@@ -79,16 +80,16 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
     {report&&<p className="atm-source-readiness">ATM reconciliation based on the four source files loaded through Folder Configuration. Processor integration and production accounting controls require separate validation.</p>}
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
-      <div className="draft-report-title"><h2>ATM Reconciliation — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
+      <div className="module-report-toolbar"><strong>ATM reconciliation — {report.terminal}</strong><div className="html-section-actions"><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span><ReportViewSwitch value={reportView} onChange={setReportView} label="ATM report view"/></div></div>
       <p>Business date: {report.date} · {report.approvedCount} approved withdrawals · Cash dispensed: <strong>{money(report.dispensed)}</strong></p>
       <div className="atm-stats">
         {[['Expected ATM cash',report.expected],['Physical cash',report.counted],['GL ATM cash',report.glCash],['Net settlement',report.settled]].map(([label,value])=><div className="atm-stat" key={label}><small>{label}</small><strong>{money(value)}</strong></div>)}
       </div>
       <h3>Reconciliation controls</h3>
       <div className="table-scroll"><table><thead><tr><th>CONTROL</th><th>EXPECTED</th><th>ACTUAL</th><th>VARIANCE</th><th>STATUS</th></tr></thead><tbody>{report.checks.map(check=><tr key={check.name} className={check.ok?'':'exception'}><td>{check.name}</td><td>{money(check.source)}</td><td>{money(check.actual)}</td><td>{money(check.variance)}</td><td>{check.ok?'Balanced':'Exception'}</td></tr>)}</tbody></table></div>
-      <h3>Cash proof</h3><p>Beginning {money(report.beginning)} + replenishments {money(report.loaded)} − cash removed {money(report.removed)} − approved withdrawals {money(report.dispensed)} = expected {money(report.expected)}.</p>
+      {reportView==='detail'&&<><h3>Cash proof</h3><p>Beginning {money(report.beginning)} + replenishments {money(report.loaded)} − cash removed {money(report.removed)} − approved withdrawals {money(report.dispensed)} = expected {money(report.expected)}.</p>
       <button type="button" onClick={()=>setDetail(v=>!v)}>{detail?'Hide':'Show'} transaction detail</button>
-      {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}
+      {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}</>}
       {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. Review the ATM GL clearing account and actual network settlement source files.</p>}
       <p><small>Files remain in this browser session. ATM reconciliation uses the ATM-specific GL CSV, not the credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
