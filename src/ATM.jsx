@@ -75,7 +75,7 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
-    {!report&&!error&&<p className="atm-source-readiness" role="status">{ready?(busy?'Validating ATM source files…':'ATM sources loaded. Validating reconciliation controls.':'Waiting for ATM source files from the saved input folder. Configure or scan the folder under Settings → Folder Configuration. All four ATM CSV reports are required.'}</p>}
+    {!report&&!error&&<p className="atm-source-readiness" role="status">{ready?(busy?'Validating ATM source files…':'ATM sources loaded. Validating reconciliation controls.'):'Waiting for ATM source files from the saved input folder. Configure or scan the folder under Settings → Folder Configuration. All four ATM CSV reports are required.'}</p>}
     {report&&<p className="atm-source-readiness">ATM reconciliation based on the four source files loaded through Folder Configuration. Processor integration and production accounting controls require separate validation.</p>}
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
