@@ -86,6 +86,8 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     await client.query("SELECT set_config('abacus.platform_admin','true',true)");
     const union=await client.query('SELECT id,name FROM abacus_credit_unions WHERE id=$1 AND active=true',[body.creditUnionId]);
     if(!union.rows.length){await client.query('ROLLBACK');creating=false;return reply({error:'Credit union not found or inactive'},404);}
+    const grantor=await client.query("SELECT role FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND role='admin' AND active=true",[actor.id,body.creditUnionId]);
+    if(grantor.rows.length!==1){await client.query('ROLLBACK');creating=false;return reply({error:'Existing credit union administrator membership required to create users'},403);}
     const created=await client.query('INSERT INTO abacus_users(username,password_hash,role) VALUES($1,$2,$3) RETURNING id,username,role,active',[body.username.trim(),pw,body.role]);
     await client.query('INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role,active) VALUES($1,$2,$3,true)',[created.rows[0].id,body.creditUnionId,body.institutionRole]);
     await insertActivity(client,actor.id,'user_created',body.creditUnionId,created.rows[0].id,body.institutionRole);
