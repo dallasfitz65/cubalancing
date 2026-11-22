@@ -175,7 +175,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    const changed=await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2 AND deleted_at IS NULL RETURNING id',[body.active,id]);if(!changed.rows.length)return reply({error:'User account not found'},404);if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);await insertActivityStandalone(client,actor.id,body.active?'user_enabled':'user_disabled',null,id);return reply({ok:true});
   }
   return reply({error:'Forbidden'},403);
- }catch(error){return reply({error:'Authentication service unavailable or request invalid'},503);}finally{client?.release();}
+ }catch(error){const invalid=error instanceof SyntaxError||['JSON required','Request too large','Invalid origin','Cross-site request denied'].includes(error?.message);return reply({error:invalid?'Invalid request':'Authentication service unavailable'},invalid?400:503);}finally{client?.release();}
 }
 export default req=>createHandler(req);
 export const config={path:'/api/auth',rateLimit:{action:'rate_limit',windowLimit:30,windowSize:60,aggregateBy:['ip','domain']}};
