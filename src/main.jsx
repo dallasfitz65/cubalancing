@@ -70,6 +70,7 @@ function App({account,onLogout}){
  const [folder,setFolder]=useState(null),[outputFolder,setOutputFolder]=useState(null),[outputFolderStatus,setOutputFolderStatus]=useState(''),[folderConnection,setFolderConnection]=useState('checking'),[jumpToFolder,setJumpToFolder]=useState(false),[candidates,setCandidates]=useState([]),[folderStatus,setFolderStatus]=useState(''),[datesConfirmed,setDatesConfirmed]=useState(false);
  const folderInput=useRef(null);
  const [folderPreferenceStatus,setFolderPreferenceStatus]=useState('');
+ const [sessionFolderName,setSessionFolderName]=useState('');
  const [backendFolderName,setBackendFolderName]=useState('');
  const [files,setFiles]=useState({}),[mode,setMode]=useState('real'),[sign,setSign]=useState('credit-negative');
  const [startupLoaded,setStartupLoaded]=useState(false),[startupRunPending,setStartupRunPending]=useState(false),[startupNotice,setStartupNotice]=useState('');
@@ -341,7 +342,7 @@ function App({account,onLogout}){
   const eft=selected.eftday?' EFT Core Day Totals: '+selected.eftday.name+'.':'';
   setFolderStatus(loaded+' of '+found.length+' recognized reports loaded automatically.'+eft+(duplicates.size?' Duplicate roles withheld: '+[...duplicates].join(', ')+'.':'')+(ignored.length?' Optional ATM variant ignored: '+ignored.join(', ')+'.':'')+' Verify dates and report contents before relying on results. Files are retained only for this browser session; reconnect the folder for future startups.');
  }
- async function chooseFolder(){startupScanRef.current=null;if(!window.showDirectoryPicker){folderInput.current?.click();return;}try{const handle=await window.showDirectoryPicker({mode:'read'});setFolder(handle);setFolderConnection('ready');try{await rememberFolder(handle,folderScope);setFolderPreferenceStatus('Folder access saved on this browser and device.');}catch(error){setFolderPreferenceStatus('Folder connected for this session, but browser permission could not be remembered: '+error.message);}if(centralTenant){try{await persistPreference('folder-name',handle.name);setBackendFolderName(handle.name);setFolderPreferenceStatus('Folder name saved in credit union database; permission saved locally on this device.');}catch(e){setFolderPreferenceStatus(e.message?.includes('Credit union administrator required')?'Folder connected on this device. Saving its display name for the credit union requires a credit union administrator; scanning and local imports still work.':'Folder connected locally; the optional server folder name could not be saved: '+e.message);}}await checkFolder(handle);}catch(e){if(e.name!=='AbortError')setFolderStatus(e.message);}}
+ async function chooseFolder(){startupScanRef.current=null;if(!window.showDirectoryPicker){setFolderPreferenceStatus('This browser uses a one-session folder picker. Select the folder to load its source files; reselect it after refreshing or signing in again. For remembered folder access use current Chrome or Edge on macOS.');folderInput.current?.click();return;}try{const handle=await window.showDirectoryPicker({mode:'read'});setFolder(handle);setSessionFolderName('');setFolderConnection('ready');try{await rememberFolder(handle,folderScope);setFolderPreferenceStatus('Folder access saved on this browser and device.');}catch(error){setFolderPreferenceStatus('Folder connected for this session, but browser permission could not be remembered: '+error.message);}if(centralTenant){try{await persistPreference('folder-name',handle.name);setBackendFolderName(handle.name);setFolderPreferenceStatus('Folder name saved in credit union database; permission saved locally on this device.');}catch(e){setFolderPreferenceStatus(e.message?.includes('Credit union administrator required')?'Folder connected on this device. Saving its display name for the credit union requires a credit union administrator; scanning and local imports still work.':'Folder connected locally; the optional server folder name could not be saved: '+e.message);}}await checkFolder(handle);}catch(e){if(e.name!=='AbortError')setFolderStatus(e.message);}}
  async function chooseOutputFolder(){
   if(!window.showDirectoryPicker){setOutputFolderStatus('Persistent output folder selection requires a browser supporting directory access, such as current Chrome or Edge.');return;}
   try{
@@ -359,17 +360,17 @@ function App({account,onLogout}){
  async function clearInputFolder(){
   try{
    await forgetFolder(folderScope);
-   setFolder(null);setFolderConnection('missing');setCandidates([]);setFiles({});setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
+   setFolder(null);setSessionFolderName('');setFolderConnection('missing');setCandidates([]);setFiles({});setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
    setFolderPreferenceStatus('Input folder selection cleared. No files were deleted.');setFolderStatus('');
    if(centralTenant){try{await persistPreference('folder-name','');setBackendFolderName('');}catch(e){setFolderPreferenceStatus('Input folder cleared locally, but the server folder label could not be cleared: '+e.message);}}
   }catch(e){setFolderPreferenceStatus('Could not clear input folder: '+e.message);}
  }
  async function checkFolder(handle=folder){
-  if(!handle)return;
+  if(!handle){setFolderStatus('No persistent folder handle is available. Select the input folder again.');return;}
   try{
     if(handle.queryPermission&&await handle.queryPermission({mode:'read'})!=='granted'){
       if(!handle.requestPermission||await handle.requestPermission({mode:'read'})!=='granted'){
-        setFolderConnection('reconnect');setFolderStatus('Folder permission was not granted. Click Check folder to retry or choose another folder.');return;
+        setFolderConnection('reconnect');setFolderStatus('The browser did not grant access to the saved folder. Click Choose input folder to select it again. On macOS Safari, select the folder for this session; for saved access use Chrome or Edge.');return;
       }
     }
     setFolderConnection('ready');
@@ -386,7 +387,7 @@ function App({account,onLogout}){
     }
     await sweep(handle,0);stageFiles(list);
     if(skippedDeepFolders)setFolderStatus(previous=>previous+' '+skippedDeepFolders+' deeper subfolder(s) were skipped (scan limit: three levels). If a needed report is in one of those folders, choose its parent folder directly.');
-  }catch(e){setCandidates([]);setFolderStatus('Folder scan stopped: '+e.message);}
+  }catch(e){setCandidates([]);setFolderStatus((e?.name==='NotAllowedError'||e?.name==='SecurityError'?'Browser blocked folder access. Click Choose input folder and select it again. If you use Safari, folder access must be selected again each session. ':'Folder scan stopped: ')+e.message);}
  }
  function importCandidates(){if(coreSystem!=='xp2'){setFolderStatus(CORE_SYSTEMS[coreSystem].label+' report adapters are not validated. Import is disabled until source specifications and parsers are approved.');return;}const chosen=candidates.filter(c=>c.role);if(candidates.some(c=>c.status==='ambiguous'&&!c.role)){setFolderStatus('Some file names match multiple roles. Review them before importing.');return;}if(!chosen.length){setFolderStatus('No recognized report files selected.');return;}const roles=chosen.map(c=>c.role);if(new Set(roles).size!==roles.length){setFolderStatus('Choose only one file per role. Duplicate roles must be resolved.');return;}if(chosen.some(c=>!c.file.size||c.file.size>10*1024*1024||!(c.role==='gl'?/\.(pdf|txt)$/i:c.role==='account'||c.role.startsWith('atm_')?/\.csv$/i:['draftgl','eftgl'].includes(c.role)?/\.pdf$/i:/\.txt$/i).test(c.file.name))){setFolderStatus('Unsupported file type or size. Files must be nonempty and under 10 MB.');return;}for(const c of chosen)changeFile(c.role,c.file);setFolderStatus('Selected files loaded. Review the shared GL and run the selected workspace.');}
  async function viewGL(){
@@ -474,7 +475,7 @@ function App({account,onLogout}){
   <div className="folder-config-field">
    <label htmlFor="abacus-input-folder">Input Folder</label>
    <div className="folder-config-controls">
-    <input id="abacus-input-folder" type="text" value={folder?.name||''} placeholder="Not selected" readOnly aria-label="Input folder name"/>
+    <input id="abacus-input-folder" type="text" value={folder?.name||sessionFolderName||''} placeholder="Not selected" readOnly aria-label="Input folder name"/>
     <button className="folder-icon-picker" type="button" aria-label="Choose input folder" title="Choose input folder" disabled={busy} onClick={chooseFolder}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7.5h7l2 2H21v10H3z"/><path d="M3 7.5V5h8l2 2"/><path d="M12 14h6m-3-3v6"/></svg></button>
     <button type="button" className="folder-clear-button" aria-label="Clear input folder selection" title="Clear input folder selection" disabled={busy||(!folder&&!backendFolderName)} onClick={clearInputFolder}>✕</button>
    </div>
@@ -491,7 +492,17 @@ function App({account,onLogout}){
    {outputFolderStatus&&<p className="folder-inline-status" role="status">{outputFolderStatus}</p>}
   </div>
  </div>
- <input ref={folderInput} type="file" webkitdirectory="" multiple hidden onChange={e=>{stageFiles(e.target.files);e.target.value='';}}/>
+ <input ref={folderInput} type="file" webkitdirectory="" multiple hidden onChange={e=>{
+  const selected=Array.from(e.target.files||[]);
+  e.target.value='';
+  if(!selected.length)return;
+  const first=selected[0].webkitRelativePath||'';
+  setSessionFolderName(first.split('/')[0]||'Selected folder');
+  setFolder(null);
+  setFolderConnection('ready');
+  setFolderPreferenceStatus('Folder selected for this browser session. Files are loaded locally. This browser cannot preserve folder access across logins; choose this folder again next session, or use Chrome/Edge on macOS for remembered access.');
+  stageFiles(selected);
+}}/>
  {folderStatus&&<p role="status" className="folder-inline-status">{folderStatus}</p>}
  {coreIngestion(coreSystem).adapter&&candidates.length>0&&<section aria-label="Module file readiness" style={{padding:'12px 0'}}>
   <details className="source-coverage-details"><summary><strong>View File Details</strong> <span className="source-coverage-summary">· {candidates.filter(c=>c.role).length} / {candidates.length} files assigned · {candidates.filter(c=>!c.role).length} need review</span></summary>
