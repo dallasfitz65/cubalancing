@@ -5,7 +5,7 @@ import {normalizeGL} from '../src/gl-sign-convention.mjs';
 const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
 test('Shares, Loans and Cash exposes sign selection directly beside Run Balancing',()=>{
  assert.match(ui,/id="gl-sign-swap"/);
- assert.match(ui,/checked=\{sign==='reverse-all'\} disabled=\{!settingsReady\|\|busy\}/);
+ assert.match(ui,/checked=\{sign==='reverse-all'\} disabled=\{!settingsReady\|\|busy\|\|signSaving\}/);
  assert.match(ui,/GL Balance Sign Swap/);
  assert.match(ui,/normalizeGL\(runReview,sign\)/);
 });
@@ -30,4 +30,14 @@ test('reconciliation still validates and parses source files even without approv
  assert.match(ui,/parseCoreCodes\(sv,'shares'\)/);
  assert.match(ui,/parseCoreCodes\(ln,'loans'\)/);
  assert.match(ui,/parseCOBD\(cb\)/);
+});
+
+test('GL sign swap confirms a persisted change and restores the previous value when denied',()=>{
+ assert.match(ui,/await persistPreference\('sign-convention',value\)/);
+ assert.match(ui,/setSign\(previous\)/);
+ assert.match(ui,/Credit union administrator required/);
+ assert.match(ui,/GL Balance Sign Swap was NOT saved/);
+ assert.match(ui,/setSignSaving\(true\)/);
+ assert.match(ui,/setSignSaving\(false\)/);
+ assert.match(ui,/signNotice&&<p role=/);
 });
