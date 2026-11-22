@@ -432,3 +432,10 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .atm-chat-launcher{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;min-height:52px;padding:0;border-radius:50%}
 .atm-chat-launcher svg{display:block;flex:none}
 .atm-chat-launcher:focus-visible{outline:3px solid #69b4ed;outline-offset:3px}
+
+/* Use the Shares/Loans/Cash Summary–Detail pattern on all completed balancing reports. */
+.module-report-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 20px;padding:0 0 12px;border-bottom:1px solid #dce5ed}
+.module-report-toolbar>strong{font-size:18px;font-weight:700;color:#17324b}
+.module-report-toolbar .html-section-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.module-report-switch button{min-width:72px}
+@media(max-width:680px){.module-report-toolbar{align-items:flex-start;flex-direction:column}}
