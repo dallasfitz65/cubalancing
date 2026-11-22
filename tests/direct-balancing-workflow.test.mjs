@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {normalizeGL} from '../src/gl-sign-convention.mjs';
 const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
 test('Shares, Loans and Cash exposes sign selection directly beside Run Balancing',()=>{
- assert.match(ui,/id="balancing-gl-sign"/);
+ assert.match(ui,/id="gl-sign-swap"/);
  assert.match(ui,/checked=\{sign==='reverse-all'\} disabled=\{busy\|\|!settingsReady\}/);
  assert.match(ui,/GL Balance Sign Swap/);
  assert.match(ui,/normalizeGL\(runReview,sign\)/);
