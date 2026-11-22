@@ -12,7 +12,7 @@ export default function UserManagement(){
  async function refresh(){
   try{
    const [accounts,tenants,current]=await Promise.all([accountAPI('users'),tenantAPI('tenants'),accountAPI('me')]);
-   setOwner(current?.user?.role==='admin'&&current?.user?.username?.toLowerCase()==='admin99');
+   setOwner(current?.user?.isPlatformOwner===true);
    setUsers(accounts.users);setCreditUnions(tenants.tenants.filter(t=>t.active));
    setCreditUnionId(old=>tenants.tenants.some(t=>t.id===old&&t.active)?old:'');
   }catch(e){setError(e.message);}
