@@ -134,7 +134,9 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(member.rows[0].role!=='admin')return reply({error:'Credit union administrator required'},403);
    const system=incoming?.coreSystem,raw=incoming?.mapping,expected=incoming?.version;
    if(!['xp2','datasafe'].includes(system)||!Number.isSafeInteger(expected)||expected<0||!raw||typeof raw.name!=='string'||raw.name.length>255||!Array.isArray(raw.entries)||raw.entries.length<1||raw.entries.length>2000)return reply({error:'Invalid mapping upload'},400);
-   const entries=validateMaster(raw.entries.map(e=>[e.gl,e.description,'','',e.category,e.code]));
+   let entries;
+   try{entries=validateMaster(raw.entries.map(e=>[e.gl,e.description,'','',e.category,e.code]));}
+   catch{return reply({error:'Invalid GL mapping entries'},400);}
    const mapping={name:raw.name,entries,version:'sha256:'+createHash('sha256').update(JSON.stringify(entries)).digest('hex')};
    let result;
    if(expected===0){
