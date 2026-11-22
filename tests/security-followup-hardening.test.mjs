@@ -35,3 +35,15 @@ test('expired session cleanup attempted at login without disabling login on clea
  assert.match(auth,/DELETE FROM abacus_sessions WHERE expires_at<=now\(\)/);
  assert.match(auth,/\.catch\(\(\)=>\{\}\)/);
 });
+
+test('scheduled session cleanup removes expired rows without user-facing route',()=>{
+ const cleanup=source('netlify/functions/session-cleanup.mjs');
+ assert.match(cleanup,/DELETE FROM abacus_sessions WHERE expires_at<=now\(\)/);
+ assert.match(cleanup,/schedule:'0 3 \* \* \*'/);
+ assert.doesNotMatch(cleanup,/path:\s*['"]\/api\//);
+});
+test('invalid requests and database failures use distinct status codes',()=>{
+ const tenant=source('netlify/functions/tenants.mjs');
+ assert.match(auth,/invalid\?400:503/);
+ assert.match(tenant,/invalid\?400:503/);
+});
