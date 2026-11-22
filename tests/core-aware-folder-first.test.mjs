@@ -46,7 +46,8 @@ test('sidebar is navigation-only and folder scan resets stale reconciliation sta
 });
 
 test('unverified adapters cannot start XP2 reconciliation or publish provisional mapping',()=>{
- assert.match(main,/disabled=\{busy\|\|coreSystem!=='xp2'\} onClick=\{run\}/);
+ assert.match(main,/if\(!startupRunPending\|\|!settingsReady\|\|coreSystem!=='xp2'\|\|page!=='overview'\)return/);
+ assert.doesNotMatch(main,/>Run Balancing<\/button>/);
  assert.match(main,/canSave=\{centralTenant&&settingsReady&&!busy&&coreSystem==='xp2'\}/);
  assert.match(main,/const displaySections=coreSystem==='xp2'\?/);
 });
