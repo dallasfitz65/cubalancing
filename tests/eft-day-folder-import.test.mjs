@@ -12,7 +12,7 @@ test('common XP2 Core Day Totals filenames are identified as EFT day totals',()=
 });
 test('folder scan stages recognized files and excludes duplicate EFT Core Day Totals',()=>{
  assert.match(ui,/function stageFiles\(list\)/);
- assert.match(ui,/for\(const role of duplicates\)delete selected\[role\]/);
+ assert.match(ui,/selectUniqueSourceFiles\(found\)/);
  assert.match(ui,/setFiles\(selected\);setReview\(null\)/);
  assert.match(ui,/selected\.eftday\?' EFT Core Day Totals:/);
  const candidates=classifyCoreFiles([{name:'Core_Day_Totals.txt',size:250},{name:'EFT_Day_Totals.txt',size:250}]);
