@@ -1,17 +1,10 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {tenantAPI,isServerTenant} from './tenant-api.mjs';
+import React,{useRef,useState} from 'react';
+import {tenantAPI} from './tenant-api.mjs';
 export default function TenantAdministration({account,activeCU,unions,onReload,onSelect}){
  const [name,setName]=useState(''),[newCore,setNewCore]=useState('xp2'),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const [lookupQuery,setLookupQuery]=useState(''),[lookupResults,setLookupResults]=useState([]),[lookupBusy,setLookupBusy]=useState(false),[selectedNCUA,setSelectedNCUA]=useState(null),[manualInstitution,setManualInstitution]=useState(false);
  const addDialog=useRef(null);
- const [coreProfile,setCoreProfile]=useState({status:'loading',core:null});
  const authorized=account.role==='admin';
- const tenant=isServerTenant(activeCU);
- const selectedUnion=unions.find(u=>u.id===activeCU);
- useEffect(()=>{let live=true;setCoreProfile({status:tenant?'loading':'unavailable',core:null});if(!tenant)return()=>{live=false;};
-  tenantAPI('settings',{tenantId:activeCU}).then(data=>{if(!live)return;const setting=(data.settings||[]).find(item=>item.setting_key==='core-system');const core=setting?.setting_value;setCoreProfile({status:core?'ready':'unconfigured',core:typeof core==='string'?core:null});}).catch(()=>{if(live)setCoreProfile({status:'error',core:null});});
-  return()=>{live=false;};
- },[activeCU,tenant]);
  async function lookupNCUA(e){
   e.preventDefault();if(!authorized||lookupBusy||busy)return;
   setError('');setLookupResults([]);setSelectedNCUA(null);setLookupBusy(true);
@@ -98,17 +91,6 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
    <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>addDialog.current?.close()}>Cancel</button><button className="primary" type="submit" disabled={busy||lookupBusy||(!selectedNCUA&&!manualInstitution)||!name.trim()}>{busy?'Creating…':'Add Credit Union'}</button></div>
   </form>
  </dialog>
-  {tenant&&<><section className="tenant-profile-panel" aria-label="Selected credit union profile">
-  <h3>Selected Credit Union</h3>
-  <div className="tenant-profile-fields">
-   <div><span>Credit Union</span><strong>{selectedUnion?.name||'Unknown'}</strong></div>
-   <div><span>NCUA Charter</span><strong>{selectedUnion?.ncua_charter||'Not linked'}</strong></div>
-   <div><span>Core System</span><strong>{coreProfile.status==='loading'?'Loading…':coreProfile.status==='error'?'Unavailable':coreProfile.status==='unconfigured'?'Not configured':({xp2:'XP2',datasafe:'DataSafe',portico:'Portico'}[coreProfile.core]||coreProfile.core||'Unknown')}</strong></div>
-   <div><span>Status</span><strong>{selectedUnion?.active===false?'Inactive':'Active'}</strong></div>
-  </div>
- </section>
-</>}
- {!tenant&&<p>Select a credit union above to configure shared settings and user access.</p>}
  </>}
  {error&&<p className="error" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
  </section>;
