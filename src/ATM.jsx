@@ -43,36 +43,15 @@ function evaluate(source){
   ].map(x=>({...x,variance:x.actual-x.source,ok:x.actual===x.source}));
   return {date:[...dates][0],terminal:[...terminals][0],tx,approvedCount:approved.length,dispensed,beginning,loaded,removed,expected,counted,settled,glCash,glClearing,checks};
 }
-const BASE='/demo/atm/';
-async function demoFiles(exception=false){
-  const entries=await Promise.all(SOURCES.map(async source=>{
-    const filename=exception&&source.key==='gl'?'atm-gl-exception.csv':source.file;
-    const response=await fetch(BASE+filename,{cache:'no-store'});
-    if(!response.ok)throw Error('Could not load demo file '+filename);
-    const csv=await response.text();
-    return [source.key,new File([csv],filename,{type:'text/csv'})];
-  }));
-  return Object.fromEntries(entries);
-}
-export default function ATM({files={},setFiles,onReview,aiEnabled=false,autoRun=false,initialReport=null}){
+export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,initialReport=null}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
   const [question,setQuestion]=useState(''),[chat,setChat]=useState([]),[chatOpen,setChatOpen]=useState(false);
-  const [demoStatus,setDemoStatus]=useState('');
   const ready=SOURCES.every(source=>Boolean(files['atm_'+source.key]));
   function invalidateReport(){
     setReport(null);setDetail(false);setChat([]);onReview?.(null);
   }
-  async function loadDemo(exception=false){
-    setBusy(true);setError('');setDemoStatus('');
-    try{
-      const chosen=await demoFiles(exception);
-      invalidateReport();
-      setFiles(current=>({...current,...Object.fromEntries(SOURCES.map(source=>['atm_'+source.key,chosen[source.key]]))}));
-      setDemoStatus(exception?'Running the $50 exception test scenario automatically.':'Running the balanced test scenario automatically.');
-    }catch(e){setError(e.message);}finally{setBusy(false);}
-  }
   async function run(){
-    setError('');setBusy(true);setDemoStatus('');
+    setError('');setBusy(true);
     try{
       const missing=SOURCES.filter(source=>!files['atm_'+source.key]).map(source=>source.name);
       if(missing.length)throw Error('Missing sources: '+missing.join(', '));
@@ -96,17 +75,8 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false,autoRun=
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
-    <p><strong>Demonstration only.</strong> The included test data is fictional. Real processor integration, multi-terminal balancing and production accounting controls require additional validation.</p>
-    <section className="atm-source-setup" aria-label="ATM test files and source checks">
-      <div className="atm-source-setup-head"><h3>ATM Source Checks</h3><p>Load a test scenario or import ATM source files through Settings → Folder Configuration. Reconciliation checks start automatically when all four sources are available.</p></div>
-      <div className="atm-actions">
-        <button type="button" disabled={busy} onClick={()=>loadDemo(false)}>Load balanced test files</button>
-        <button type="button" disabled={busy} onClick={()=>loadDemo(true)}>Load exception test files ($50)</button>
-        <button type="button" disabled={!report||busy} onClick={()=>window.print()}>Print / PDF</button>
-      </div>
-      {demoStatus&&<p className="atm-test-status" role="status">{demoStatus}</p>}
-      <p className="atm-source-readiness" role="status">{ready?'4 of 4 ATM sources ready for validation.':'Import all four required ATM files from Folder Configuration, or load a test scenario to calculate automatically.'} Filename selection does not verify amounts, dates or GL reconciliation.</p>
-    </section>
+    {!report&&!error&&<p className="atm-source-readiness" role="status">{ready?(busy?'Validating ATM source files…':'ATM sources loaded. Validating reconciliation controls.':'Waiting for ATM source files from the saved input folder. Configure or scan the folder under Settings → Folder Configuration. All four ATM CSV reports are required.'}</p>}
+    {report&&<p className="atm-source-readiness">ATM reconciliation based on the four source files loaded through Folder Configuration. Processor integration and production accounting controls require separate validation.</p>}
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
       <div className="draft-report-title"><h2>ATM Reconciliation — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
