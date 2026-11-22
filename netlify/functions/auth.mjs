@@ -9,13 +9,15 @@ const secureEqual=(a,b)=>{const aa=Buffer.from(String(a||'')),bb=Buffer.from(Str
 const cookie=(value,maxAge)=>`${COOKIE}=${value}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${maxAge}`;
 function tokenFrom(req){const parts=(req.headers.get('cookie')||'').split(';').map(x=>x.trim());const kv=parts.find(x=>x.startsWith(COOKIE+'='));return kv?.slice(COOKIE.length+1)||'';}
 async function encodePassword(password){const salt=randomBytes(16).toString('hex');const digest=await scrypt(password,salt,64);return 'scrypt:'+salt+':'+digest.toString('hex');}
+// Perform the same password derivation even when the username is absent.
+const UNKNOWN_USER_HASH='scrypt:'+'0'.repeat(32)+':'+'0'.repeat(128);
 async function checkPassword(password,encoded){const [method,salt,value]=String(encoded||'').split(':');if(method!=='scrypt'||!/^[a-f0-9]{32}$/.test(salt||'')||!/^[a-f0-9]{128}$/.test(value||''))return false;const attempt=await scrypt(password,salt,64);return timingSafeEqual(attempt,Buffer.from(value,'hex'));}
 function usernameValid(v){return typeof v==='string'&&/^[a-zA-Z0-9@._+-]{3,100}$/.test(v);}
 function passwordValid(v){return typeof v==='string'&&v.length>=12&&v.length<=256;}
 function assertOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw Error('Invalid origin');if(req.headers.get('sec-fetch-site')==='cross-site')throw Error('Cross-site request denied');}
 async function readBody(req){if(req.headers.get('content-type')?.split(';')[0]!=='application/json')throw Error('JSON required');const raw=await req.text();if(raw.length>4096)throw Error('Request too large');return JSON.parse(raw);}
 async function currentUser(client,req){const token=tokenFrom(req);if(!/^[a-f0-9]{64}$/.test(token))return null;const {rows}=await client.query(`SELECT u.id,u.username,u.role,u.active FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true AND u.deleted_at IS NULL`,[hash(token)]);return rows[0]||null;}
-function publicUser(user){return {id:String(user.id),username:user.username,role:user.role};}
+function publicUser(user){return {id:String(user.id),username:user.username,role:user.role,isPlatformOwner:Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID&&String(user.id)===process.env.ABACUS_PLATFORM_OWNER_USER_ID&&user.role==='admin')};}
 async function startSession(client,user){const token=randomBytes(32).toString('hex');await client.query('INSERT INTO abacus_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'12 hours\')',[hash(token),user.id]);await insertActivityStandalone(client,user.id,'login');return reply({user:publicUser(user)},200,{'Set-Cookie':cookie(token,HOURS*3600)});}
 export async function createHandler(req,{database=getDatabase,setupToken=process.env.ABACUS_SETUP_TOKEN}={}){
  let client;
@@ -60,13 +62,15 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    return startSession(client,result.rows[0]);
   }
   if(op==='login'){
+   // Expired-session cleanup must not block authentication when maintenance permissions are absent.
+   await client.query('DELETE FROM abacus_sessions WHERE expires_at<=now()').catch(()=>{});
    const name=typeof body.username==='string'?body.username.trim():'';
    const password=typeof body.password==='string'?body.password:'';
    if(!usernameValid(name)||password.length>256)return reply({error:'Invalid credentials'},401);
    const found=await client.query('SELECT id,username,password_hash,role,active,failed_attempts,locked_until FROM abacus_users WHERE lower(username)=lower($1) AND deleted_at IS NULL',[name]);
    const user=found.rows[0];
+   const valid=await checkPassword(password,user?.password_hash||UNKNOWN_USER_HASH);
    if(!user||!user.active)return reply({error:'Invalid credentials'},401);
-   const valid=await checkPassword(password,user.password_hash);
    if(!valid){await client.query('UPDATE abacus_users SET failed_attempts=failed_attempts+1,locked_until=NULL WHERE id=$1',[user.id]);return reply({error:'Invalid credentials'},401);}
    await client.query('UPDATE abacus_users SET failed_attempts=0,locked_until=NULL WHERE id=$1',[user.id]);
    return startSession(client,user);
@@ -74,6 +78,23 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   const actor=await currentUser(client,req);
   if(!actor)return reply({error:'Not signed in'},401);
   if(op==='logout'){const token=tokenFrom(req);await client.query('DELETE FROM abacus_sessions WHERE token_hash=$1',[hash(token)]);await insertActivityStandalone(client,actor.id,'logout');return reply({ok:true},200,{'Set-Cookie':cookie('',0)});}
+  if(op==='change-password'){
+   if(typeof body.currentPassword!=='string'||typeof body.newPassword!=='string'||!passwordValid(body.newPassword))return reply({error:'Current password and new password (12–256 characters) required'},400);
+   const existing=await client.query('SELECT password_hash FROM abacus_users WHERE id=$1 AND active=true AND deleted_at IS NULL',[actor.id]);
+   if(existing.rows.length!==1||!await checkPassword(body.currentPassword,existing.rows[0].password_hash))return reply({error:'Current password is incorrect'},403);
+   if(await checkPassword(body.newPassword,existing.rows[0].password_hash))return reply({error:'New password must differ from current password'},400);
+   const encoded=await encodePassword(body.newPassword);
+   let tx=false;
+   try{
+    await client.query('BEGIN');tx=true;
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(actor.id)]);
+    await client.query('UPDATE abacus_users SET password_hash=$1,failed_attempts=0,locked_until=NULL,updated_at=now() WHERE id=$2 AND active=true AND deleted_at IS NULL',[encoded,actor.id]);
+    await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[actor.id]);
+    await insertActivity(client,actor.id,'password_changed');
+    await client.query('COMMIT');tx=false;
+    return reply({ok:true,reauthenticationRequired:true},200,{'Set-Cookie':cookie('',0)});
+   }catch(error){if(tx)await client.query('ROLLBACK').catch(()=>{});throw error;}
+  }
   if(op==='create-user'&&actor.role==='admin'){
    if(!usernameValid(body.username)||!passwordValid(body.password)||body.role!=='user'||!['admin','reconciler','reviewer'].includes(body.institutionRole)||typeof body.creditUnionId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.creditUnionId))
     return reply({error:'A valid credit union, institution role, username and password (12+ characters) are required'},400);
