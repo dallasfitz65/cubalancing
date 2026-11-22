@@ -1,8 +1,8 @@
 export const PARSER_VERSION = 'abacus-gl-2/pdfjs-6.4.299';
 const accountRE = /\b\d{3}-\d{4}\b/g;
-const moneyRE = /(?:\(\s*[-+]?\s*\$?\s*(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}\s*\)|[-+]?\s*\$?\s*(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?:\s*(?:CR|DR)|[+-])?)(?!\d)/gi;
+const moneyRE = /(?:\(\s*[-+]?\s*\$?\s*(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}\s*\)|[-+]?\s*\$?\s*(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?:\s*(?:CR|DR|[+-]))?)(?!\d)/gi;
 export function moneyToCents(raw) {
- const negative = /\(|^-|-$|CR$/i.test(raw.trim());
+ const negative = /\(|^\s*-|-\s*$|CR\s*$/i.test(raw.trim().replace(/\u2212/g,'-'));
  const digits = raw.replace(/[^\d.]/g,'');
  if(!/^\d+\.\d{2}$/.test(digits)) throw new Error('Invalid monetary value.');
  const [whole, cents] = digits.split('.');
@@ -30,7 +30,7 @@ export function parseGLRows(pages, {requireHeader=true}={}) {
    if(pending){
     const amounts=[...pending.tail.matchAll(moneyRE)];
     const last=amounts.at(-1);
-    const zeroDash=amounts.length>0 && /(?:^|\s)[—–-]\s*$/.test(pending.tail);
+    const zeroDash=amounts.length>0 && /(?:^|\s)[—–-]\s*$/.test(pending.tail) && !(last&&/[+-]\s*$/.test(last[0]));
     if(last || zeroDash){
      if(!zeroDash && pending.tail.slice(last.index+last[0].length).trim()) throw new Error(`Unreadable ending-balance column for GL ${pending.account} on page ${page.number}.`);
      const raw=zeroDash ? '0.00' : last[0].trim();
