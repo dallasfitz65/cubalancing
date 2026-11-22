@@ -319,7 +319,27 @@ function App({account,onLogout}){
  function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
  function exportEvidence(){if(!result)return;recordAction('evidence_export','completed');if(confirm('This export contains financial balances and notes. Save only in an approved location.'))download('abacus-run-evidence.json',JSON.stringify({build:'ABACUS React 0.3.0',warning:'Unsigned session evidence; not an immutable audit ledger or verified user identity.',run:result,notes},null,2),'application/json');}
 
- function stageFiles(list){if(list.length>200){setFolderStatus('More than 200 files detected. Narrow the export folder before scanning; no partial import was staged.');setCandidates([]);return;}const found=classifyCoreFiles(list,coreSystem);setFiles({});setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setCandidates(found);setDatesConfirmed(false);const identified=found.filter(item=>item.role).length;setFolderStatus(coreIngestion(coreSystem).adapter?identified+' of '+found.length+' candidate files recognized by XP2 filename rules. Resolve ambiguous or duplicate roles; verify report dates, then click Load selected files. This scan alone does not validate file contents.':'Found '+found.length+' files. '+CORE_SYSTEMS[coreSystem].label+' source definitions are not verified; no automatic role assignment or reconciliation is permitted.');}
+ function stageFiles(list){
+  if(list.length>200){setFolderStatus('More than 200 files detected. Narrow the export folder before scanning; no partial import was staged.');setCandidates([]);return;}
+  const found=classifyCoreFiles(list,coreSystem);
+  setCandidates(found);setDatesConfirmed(false);
+  if(!coreIngestion(coreSystem).adapter){
+   setFolderStatus('Found '+found.length+' files. '+CORE_SYSTEMS[coreSystem].label+' source definitions are not verified; no automatic role assignment or reconciliation is permitted.');
+   return;
+  }
+  const selected={},duplicates=new Set();
+  for(const item of found){
+   if(item.status!=='identified'||!item.file?.size||item.file.size>10*1024*1024)continue;
+   if(selected[item.role])duplicates.add(item.role);
+   else selected[item.role]=item.file;
+  }
+  for(const role of duplicates)delete selected[role];
+  setFiles(selected);setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
+  setStartupLoaded(true);setStartupRunPending(true);
+  const loaded=Object.keys(selected).length;
+  const eft=selected.eftday?' EFT Core Day Totals: '+selected.eftday.name+'.':'';
+  setFolderStatus(loaded+' of '+found.length+' recognized reports loaded automatically.'+eft+(duplicates.size?' Duplicate roles withheld: '+[...duplicates].join(', ')+'.':'')+' Verify dates and report contents before relying on results. Files are retained only for this browser session; reconnect the folder for future startups.');
+ }
  async function chooseFolder(){startupScanRef.current=null;if(!window.showDirectoryPicker){folderInput.current?.click();return;}try{const handle=await window.showDirectoryPicker({mode:'read'});setFolder(handle);setFolderConnection('ready');try{await rememberFolder(handle,folderScope);setFolderPreferenceStatus('Folder access saved on this browser and device.');}catch(error){setFolderPreferenceStatus('Folder connected for this session, but browser permission could not be remembered: '+error.message);}if(centralTenant){try{await persistPreference('folder-name',handle.name);setBackendFolderName(handle.name);setFolderPreferenceStatus('Folder name saved in credit union database; permission saved locally on this device.');}catch(e){setFolderPreferenceStatus(e.message?.includes('Credit union administrator required')?'Folder connected on this device. Saving its display name for the credit union requires a credit union administrator; scanning and local imports still work.':'Folder connected locally; the optional server folder name could not be saved: '+e.message);}}await checkFolder(handle);}catch(e){if(e.name!=='AbortError')setFolderStatus(e.message);}}
  async function chooseOutputFolder(){
   if(!window.showDirectoryPicker){setOutputFolderStatus('Persistent output folder selection requires a browser supporting directory access, such as current Chrome or Edge.');return;}
