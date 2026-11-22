@@ -19,11 +19,12 @@ test('run buttons removed while validated automation and printing remain',()=>{
  assert.doesNotMatch(drafts,/>Run Share Draft Checks<\/button>/);
  for(const component of [atm,eft,drafts])assert.match(component,/autoRun/);
  assert.match(main,/page==='overview'&&startupLoaded&&coreSystem==='xp2'/);
- assert.match(atm,/onClick=\{\(\)=>loadDemo\(true\)\}/);
+ assert.doesNotMatch(atm,/loadDemo\(/);
+ assert.doesNotMatch(atm,/Load balanced test files|Load exception test files/);
 });
 
-test('ATM demo selection schedules automatic reconciliation and no empty source is marked balanced',()=>{
- assert.match(atm,/setFiles\(current=>\(\{\.\.\.current,\.\.\.Object\.fromEntries/);
+test('ATM folder imports schedule automatic reconciliation and missing source files never pass',()=>{
+ assert.match(main,/page==='overview'&&startupLoaded&&coreSystem==='xp2'/);
  assert.match(atm,/if\(!autoRun\|\|!ready\|\|initialReport\)return/);
  assert.match(atm,/const missing=SOURCES.filter/);
  assert.match(atm,/setError\(e.message\)/);

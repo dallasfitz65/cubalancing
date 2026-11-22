@@ -16,6 +16,7 @@ import {parseCoreCodes,buildMappedSections,normalizeSVSTAccountTypes} from './ma
 import ShareDrafts from './ShareDrafts.jsx';
 import EFT from './EFT.jsx';
 import ATM from './ATM.jsx';
+import ProcessAssistant from './ProcessAssistant.jsx';
 import {sourceRoles,selectSections,requiredRoles,suggestRole,loadedRunRoles} from './workspaces.mjs';
 import {coreIngestion,classifyCoreFiles,sourceCoverage} from './core-ingestion-profiles.mjs';
 import {getSetting,saveSetting,deleteSetting} from './settings-table.mjs';
@@ -42,7 +43,7 @@ const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','a
 const sectionWelcome={
  drafts:{title:'Share Drafts',icon:'▤',instruction:'Select Settings → Folder Configuration to scan and load SDPS, SDRE and SDRT. Available files are checked automatically; GL posting verification is not included.',roles:['sdps','sdre','sdrt','draftgl'],required:['sdps','sdre','sdrt']},
  eft:{title:'EFT',icon:'⇄',instruction:'Select Settings → Folder Configuration to scan and load all six EFT sources. Source dates, institutions and totals are reviewed automatically; full EFT settlement-to-GL reconciliation is not yet implemented.',roles:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],required:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl']},
- atm:{title:'ATM Balancing',icon:'▣',instruction:'ATM checks run automatically from the selected input folder. The demo buttons load and immediately calculate balanced or exception scenarios; real exports can be imported through Settings → Folder Configuration.',roles:['atm_transactions','atm_cash','atm_settlement','atm_gl'],required:['atm_transactions','atm_cash','atm_settlement','atm_gl']},
+ atm:{title:'ATM Balancing',icon:'▣',instruction:'ATM source files load from the saved input folder and are checked automatically when all four required CSV reports are available. Use Settings → Folder Configuration to reconnect or rescan the folder.',roles:['atm_transactions','atm_cash','atm_settlement','atm_gl'],required:['atm_transactions','atm_cash','atm_settlement','atm_gl']},
  ach:{title:'ACH',icon:'≋',instruction:'ACH reconciliation is not yet implemented. Source definitions, transaction matching and settlement controls still require configuration.',roles:[],required:[]}
 };
 
@@ -432,7 +433,7 @@ function App({account,onLogout}){
  {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
   {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
   {['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'].every(role=>files[role])&&!eftResult&&<EFT files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}} autoRun readOnly/>}
-  {['atm_transactions','atm_cash','atm_settlement','atm_gl'].every(role=>files[role])&&!atmResult&&<ATM files={files} setFiles={setFiles} aiEnabled={false} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}} autoRun/>}
+  {['atm_transactions','atm_cash','atm_settlement','atm_gl'].every(role=>files[role])&&!atmResult&&<ATM files={files} aiEnabled={false} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}} autoRun/>}
  </div>}
  {['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<div className="reconciliation-page-header">
   <h1>{({ 'shares-loans':'Shares, Loans and Cash',cash:'Cash Balancing',drafts:'Share Draft Balancing',eft:'EFT Balancing',atm:'ATM Balancing',ach:'ACH Balancing' })[page]}</h1>
@@ -473,7 +474,8 @@ function App({account,onLogout}){
  <div className="source-section-list"><section className="source-section-card"><h3>{sectionWelcome[page].title}</h3>
  {sectionWelcome[page].roles.length?<ul>{sectionWelcome[page].roles.map(role=><li key={role}><span>{defs.find(item=>item[0]===role)?.[1]||role}{role==='draftgl'?' (optional)':''}</span><span className={files[role]?'source-loaded':'source-missing'}>{files[role]?'Selected: '+files[role].name:'Not selected'}</span></li>)}</ul>:<p>Source formats and controls pending setup. No ACH balancing results are generated.</p>}
  </section></div></section>}
- {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} setFiles={setFiles} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
+ {['shares-loans','cash','drafts','eft','ach'].includes(page)&&<ProcessAssistant module={page} report={page==='drafts'?draftResult:page==='eft'?eftResult:page==='ach'?null:visibleRun} enabled={aiEnabled}/>}
+ {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
  
  {page==='drafts'&&coreSystem==='xp2'&&<ShareDrafts autoRun files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}}/>}
