@@ -18,7 +18,7 @@ const xp2Known={
  sdre:{label:'Share draft processing (SDRE)',extensions:['txt'],patterns:[/sdre/i]},
  sdrt:{label:'Share draft returns (SDRT)',extensions:['txt'],patterns:[/sdrt/i]},
  draftgl:{label:'Share draft GL detail',extensions:['pdf'],patterns:[/share.?draft.*gl/i,/draftgl/i]},
- eftday:{label:'EFT day totals',extensions:['txt'],patterns:[/eft.?day/i]},
+ eftday:{label:'EFT day totals',extensions:['txt'],patterns:[/eft[ _.-]?(?:core[ _.-]?)?day(?:[ _.-]?totals?)?/i,/(?:^|[ _.-])core[ _.-]?day[ _.-]?totals?(?:[ _.-]|$)/i,/(?:^|[ _.-])day[ _.-]?totals?(?:[ _.-]|$)/i]},
  eftstar:{label:'EFT STAR settlement',extensions:['txt'],patterns:[/eft.?star/i]},
  eftatm:{label:'EFT ATM owner activity',extensions:['txt'],patterns:[/eft.?atm/i]},
  eftrejects:{label:'EFT rejects',extensions:['txt'],patterns:[/eft.?reject/i]},
