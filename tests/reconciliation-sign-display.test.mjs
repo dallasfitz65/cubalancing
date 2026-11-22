@@ -46,7 +46,7 @@ test('UI renders convention in results and previews without wiping the report',(
  const ui=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
  assert.match(ui,/const visibleRun=displayRunForSign\(result,sign\)/);
  assert.match(ui,/GL sign convention:/);
- assert.match(ui,/Recalculated display preview from the original GL balances/);
- assert.match(ui,/Click Run Balancing to record the new result/);
+ assert.match(ui,/Recalculated display preview from original GL balances/);
+ assert.match(ui,/Reconciliation refreshes automatically on Overview/);
  assert.doesNotMatch(ui,/function setConvention\(value\)[^}]*setResult\(null\)/);
 });
