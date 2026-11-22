@@ -1,10 +1,12 @@
 import React,{useState,useEffect,useRef} from 'react';
 import {parseDraftReport,checkDraftReports,buildDraftSummary} from './draft-reports.mjs';
 const money=n=>n==null?'Not verified':(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
-export default function ShareDrafts({files,busy,data,setData,readOnly=false}){
+export default function ShareDrafts({files,busy,data,setData,readOnly=false,autoRun=false}){
  const [error,setError]=useState(''),[processing,setProcessing]=useState(false);const generation=useRef(0);
  useEffect(()=>{generation.current++;setError('');setProcessing(false);return()=>{generation.current++;};},[files]);
  async function review(){const current=generation.current;setProcessing(true);try{setError('');const reports=await Promise.all(['sdps','sdre','sdrt'].map(async role=>{if(!files[role])throw Error('Load SDPS, SDRE and SDRT beneath Share Drafts.');return parseDraftReport(await files[role].text(),role);}));const checks=checkDraftReports(...reports),summary=buildDraftSummary(...reports);if(current===generation.current)setData({reports,checks,summary,time:new Date().toISOString()});}catch(e){if(current===generation.current){setData(null);setError(e.message);}}finally{if(current===generation.current)setProcessing(false);}}
+ const autoStarted=useRef(false);
+ useEffect(()=>{if(autoRun&&!data&&!autoStarted.current&&['sdps','sdre','sdrt'].every(role=>files[role])){autoStarted.current=true;review();}},[autoRun,data,files]);
  const displayed=data;
  const v=displayed?.summary;
  const reportRows=v?[

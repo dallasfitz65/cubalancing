@@ -59,6 +59,8 @@ function App({account,onLogout}){
  const [folderPreferenceStatus,setFolderPreferenceStatus]=useState('');
  const [backendFolderName,setBackendFolderName]=useState('');
  const [files,setFiles]=useState({}),[mode,setMode]=useState('real'),[sign,setSign]=useState('credit-negative');
+ const [startupLoaded,setStartupLoaded]=useState(false),[startupRunPending,setStartupRunPending]=useState(false),[startupNotice,setStartupNotice]=useState('');
+ const startupScanRef=useRef(null);
  const [review,setReview]=useState(null),[approved,setApproved]=useState(false),[mappingOK,setMappingOK]=useState(false);
  const [result,setResult]=useState(null),[activity,setActivity]=useState([]),[notes,setNotes]=useState({}),[busy,setBusy]=useState(false),[progress,setProgress]=useState(''),[error,setError]=useState('');
  const [settingsReady,setSettingsReady]=useState(false),[settingsStatus,setSettingsStatus]=useState('');
@@ -175,10 +177,61 @@ function App({account,onLogout}){
   })();
   return()=>{active=false;};
  },[folderScope]);
+ // Startup recovery never prompts for folder permissions: browser access must already be granted.
+ useEffect(()=>{
+  if(!settingsReady||folderConnection!=='ready'||!folder||coreSystem!=='xp2'||!activeCU)return;
+  if(startupScanRef.current===folderScope)return;
+  startupScanRef.current=folderScope;
+  let cancelled=false;
+  setStartupNotice('Checking saved input folder and available reconciliation reports…');
+  (async()=>{
+   try{
+    if(typeof folder.queryPermission==='function'&&await folder.queryPermission({mode:'read'})!=='granted'){
+     if(!cancelled)setStartupNotice('Input folder permission needs renewal. Reconnect it in Settings → Folder Configuration.');
+     return;
+    }
+    const list=[];let skipped=0;
+    async function sweep(dir,depth){
+     for await(const entry of dir.values()){
+      if(cancelled)return;
+      if(entry.kind==='directory'){if(depth>=3)skipped++;else await sweep(entry,depth+1);}
+      else if(entry.kind==='file'){
+       list.push(await entry.getFile());
+       if(list.length>200)throw Error('More than 200 files found. Select a smaller export folder in Settings.');
+      }
+     }
+    }
+    await sweep(folder,0);
+    if(cancelled)return;
+    const found=classifyCoreFiles(list,coreSystem);
+    setCandidates(found);
+    const duplicateRoles=new Set();
+    const selected={};
+    for(const item of found){
+     if(item.status!=='identified'||!item.file?.size||item.file.size>10*1024*1024)continue;
+     if(selected[item.role])duplicateRoles.add(item.role);
+     else selected[item.role]=item.file;
+    }
+    for(const role of duplicateRoles)delete selected[role];
+    if(cancelled)return;
+    setFiles(selected);
+    setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
+    setStartupLoaded(true);
+    const count=Object.keys(selected).length;
+    const duplicates=duplicateRoles.size?' Duplicated report types skipped: '+[...duplicateRoles].join(', ')+'.':'';
+    const deeper=skipped?' '+skipped+' deep folder(s) skipped.':'';
+    setStartupNotice(count?count+' report(s) loaded from the saved folder. Reconciliation runs automatically for modules with complete source sets.'+duplicates+deeper:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper);
+    setStartupRunPending(true);
+   }catch(e){
+    if(!cancelled){setStartupNotice('Automatic folder import stopped: '+e.message);setStartupLoaded(false);}
+   }
+  })();
+  return()=>{cancelled=true;};
+ },[activeCU,folderScope,settingsReady,folderConnection,folder,coreSystem]);
  useEffect(()=>{let active=true;setOutputFolder(null);setOutputFolderStatus('');getSetting(folderScope,'output-folder').then(async handle=>{if(!active||!handle||handle.kind!=='directory')return;setOutputFolder(handle);const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'prompt';if(active&&permission!=='granted')setOutputFolderStatus('Output folder saved; browser write permission may need renewal.');}).catch(e=>{if(active)setOutputFolderStatus('Output folder settings unavailable: '+e.message);});return()=>{active=false;};},[folderScope]);
  useEffect(()=>{forgetLegacyMapping().catch(()=>{});},[]);
  useEffect(()=>{if(page!=='settings'||!jumpToFolder)return;document.getElementById('folder-import')?.scrollIntoView({behavior:'smooth',block:'start'});setJumpToFolder(false);},[page,jumpToFolder]);
- useEffect(()=>{setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
+ useEffect(()=>{setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
  function changeCoreSystem(value){
   const selected=getCoreSystem(value);
   if(selected===coreSystem||busy||lock.current)return;
@@ -231,11 +284,16 @@ function App({account,onLogout}){
   }
   await recordAction('balancing_run',issues?'exception':'completed');
  }catch(e){setError(e.message);}finally{setBusy(false);lock.current=false;setProgress('');}}
+ useEffect(()=>{
+  if(!startupRunPending||!settingsReady||coreSystem!=='xp2'||page!=='overview')return;
+  setStartupRunPending(false);
+  if(files.gl&&(files.svst||files.lnst||files.cobd))run();
+ },[startupRunPending,settingsReady,coreSystem,page,files]);
  function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
  function exportEvidence(){if(!result)return;recordAction('evidence_export','completed');if(confirm('This export contains financial balances and notes. Save only in an approved location.'))download('abacus-run-evidence.json',JSON.stringify({build:'ABACUS React 0.3.0',warning:'Unsigned session evidence; not an immutable audit ledger or verified user identity.',run:result,notes},null,2),'application/json');}
 
  function stageFiles(list){if(list.length>200){setFolderStatus('More than 200 files detected. Narrow the export folder before scanning; no partial import was staged.');setCandidates([]);return;}const found=classifyCoreFiles(list,coreSystem);setFiles({});setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setCandidates(found);setDatesConfirmed(false);const identified=found.filter(item=>item.role).length;setFolderStatus(coreIngestion(coreSystem).adapter?identified+' of '+found.length+' candidate files recognized by XP2 filename rules. Resolve ambiguous or duplicate roles; verify report dates, then click Load selected files. This scan alone does not validate file contents.':'Found '+found.length+' files. '+CORE_SYSTEMS[coreSystem].label+' source definitions are not verified; no automatic role assignment or reconciliation is permitted.');}
- async function chooseFolder(){if(!window.showDirectoryPicker){folderInput.current?.click();return;}try{const handle=await window.showDirectoryPicker({mode:'read'});setFolder(handle);setFolderConnection('ready');try{await rememberFolder(handle,folderScope);setFolderPreferenceStatus('Folder access saved on this browser and device.');}catch(error){setFolderPreferenceStatus('Folder connected for this session, but browser permission could not be remembered: '+error.message);}if(centralTenant){try{await persistPreference('folder-name',handle.name);setBackendFolderName(handle.name);setFolderPreferenceStatus('Folder name saved in credit union database; permission saved locally on this device.');}catch(e){setFolderPreferenceStatus(e.message?.includes('Credit union administrator required')?'Folder connected on this device. Saving its display name for the credit union requires a credit union administrator; scanning and local imports still work.':'Folder connected locally; the optional server folder name could not be saved: '+e.message);}}await checkFolder(handle);}catch(e){if(e.name!=='AbortError')setFolderStatus(e.message);}}
+ async function chooseFolder(){startupScanRef.current=null;if(!window.showDirectoryPicker){folderInput.current?.click();return;}try{const handle=await window.showDirectoryPicker({mode:'read'});setFolder(handle);setFolderConnection('ready');try{await rememberFolder(handle,folderScope);setFolderPreferenceStatus('Folder access saved on this browser and device.');}catch(error){setFolderPreferenceStatus('Folder connected for this session, but browser permission could not be remembered: '+error.message);}if(centralTenant){try{await persistPreference('folder-name',handle.name);setBackendFolderName(handle.name);setFolderPreferenceStatus('Folder name saved in credit union database; permission saved locally on this device.');}catch(e){setFolderPreferenceStatus(e.message?.includes('Credit union administrator required')?'Folder connected on this device. Saving its display name for the credit union requires a credit union administrator; scanning and local imports still work.':'Folder connected locally; the optional server folder name could not be saved: '+e.message);}}await checkFolder(handle);}catch(e){if(e.name!=='AbortError')setFolderStatus(e.message);}}
  async function chooseOutputFolder(){
   if(!window.showDirectoryPicker){setOutputFolderStatus('Persistent output folder selection requires a browser supporting directory access, such as current Chrome or Edge.');return;}
   try{
@@ -311,7 +369,13 @@ function App({account,onLogout}){
  <p>{sourceCoverage(coreSystem,id,files,candidates).matched.length} identified source role(s){sourceCoverage(coreSystem,id,files,candidates).required.length?' / '+sourceCoverage(coreSystem,id,files,candidates).required.length+' expected':''}</p>
  </div>}</React.Fragment>)}</nav><div className="side-foot">LOCAL PROCESSING<br/><span>Files remain in browser memory.<br/>No financial-data upload service.</span></div></aside>
  <div className="workspace"><header><span>{unions.find(u=>u.id===activeCU)?.name||cuName||"Credit union"} / {CORE_SYSTEMS[coreSystem].label} / {title}</span>{account.role!=='guest'&&<select aria-label="Active credit union" value={activeCU} onChange={e=>{setActiveCU(e.target.value);setHistoryStatus('');}} disabled={busy}><option value="local-demo">Select credit union</option>{unions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>}<div className="header-actions">{balancing&&page!=='overview'&&page!=='shares-loans'&&page!=='cash'&&<button className="primary" disabled={busy||coreSystem!=='xp2'} onClick={run}>{busy?'Processing…':'Run balancing →'}</button>}<span className="privacy-dot" title="Files processed locally">{account.username} · Local session</span><div className="header-account-actions"><UserGuide onNavigate={setPage}/>{account.role!=='guest'&&<button type="button" className="header-action-with-icon" onClick={onLogout}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg><span>Log out</span></button>}</div><button disabled={!result||busy} onClick={exportEvidence}>Export evidence</button>{page!=='shares-loans'&&page!=='cash'&&<button disabled={!result||busy} onClick={()=>window.print()}>Print / PDF</button>}</div></header>
- <main>{coreSystem!=='xp2'&&['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<section className="folder-settings" role="status"><h2>{CORE_SYSTEMS[coreSystem].label} source adapter pending</h2><p>File counts, report layouts, account mappings and balancing controls have not been verified for this core. XP2 parsing is not used as a substitute; reconciliation is blocked until vendor-specific evidence is validated.</p><button type="button" onClick={()=>setPage('settings')}>Review source setup</button></section>}{page==='help'&&<Help/>}{page==='platform-activity'&&account.role==='admin'&&account.username.toLowerCase()==='admin99'&&<PlatformActivity/>}{page==='overview'&&folderConnection!=='checking'&&folderConnection!=='ready'&&<section className="folder-settings" role="status" aria-label="Reconciliation folder setup needed" style={{marginBottom:16,borderLeft:'4px solid #b37b24'}}>
+ <main>{page==='overview'&&startupNotice&&<p className="folder-inline-status" role="status">{startupNotice}</p>}
+ {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
+  {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
+  {['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'].every(role=>files[role])&&!eftResult&&<EFT files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}} autoRun readOnly/>}
+  {['atm_transactions','atm_cash','atm_settlement','atm_gl'].every(role=>files[role])&&!atmResult&&<ATM files={files} setFiles={setFiles} aiEnabled={false} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}} autoRun/>}
+ </div>}
+ {coreSystem!=='xp2'&&['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<section className="folder-settings" role="status"><h2>{CORE_SYSTEMS[coreSystem].label} source adapter pending</h2><p>File counts, report layouts, account mappings and balancing controls have not been verified for this core. XP2 parsing is not used as a substitute; reconciliation is blocked until vendor-specific evidence is validated.</p><button type="button" onClick={()=>setPage('settings')}>Review source setup</button></section>}{page==='help'&&<Help/>}{page==='platform-activity'&&account.role==='admin'&&account.username.toLowerCase()==='admin99'&&<PlatformActivity/>}{page==='overview'&&folderConnection!=='checking'&&folderConnection!=='ready'&&<section className="folder-settings" role="status" aria-label="Reconciliation folder setup needed" style={{marginBottom:16,borderLeft:'4px solid #b37b24'}}>
   <h2>{folderConnection==='reconnect'?'Reconciliation folder needs access':'Reconciliation folder not set up'}</h2>
   <p>{folderConnection==='reconnect'?'Your saved folder is not currently authorized on this browser. Reconnect it before importing new reports.':'No reconciliation folder is connected for this credit union on this browser. Set up the folder to scan and identify source files.'}</p>
   <button className="primary" type="button" onClick={()=>{setJumpToFolder(true);setPage('settings');}}>Set up reconciliation folder</button>
@@ -346,7 +410,7 @@ function App({account,onLogout}){
  <div className="source-section-list"><section className="source-section-card"><h3>{sectionWelcome[page].title}</h3>
  {sectionWelcome[page].roles.length?<ul>{sectionWelcome[page].roles.map(role=><li key={role}><span>{defs.find(item=>item[0]===role)?.[1]||role}{role==='draftgl'?' (optional)':''}</span><span className={files[role]?'source-loaded':'source-missing'}>{files[role]?'Selected: '+files[role].name:'Not selected'}</span></li>)}</ul>:<p>Source formats and controls pending setup. No ACH balancing results are generated.</p>}
  </section></div></section>}
- {page==='atm'&&coreSystem==='xp2'&&<ATM aiEnabled={aiEnabled} files={files} setFiles={setFiles} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
+ {page==='atm'&&coreSystem==='xp2'&&<ATM aiEnabled={aiEnabled} files={files} setFiles={setFiles} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
  {page==='overview'&&eftResult&&<div className="overview-drafts"><h2>EFT — latest review</h2><EFT files={files} data={eftResult} setData={setEftResult} readOnly/></div>}
  {page==='drafts'&&coreSystem==='xp2'&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}}/>}

@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useState,useEffect,useRef} from 'react';
 import {answerAtmQuestion} from './atm-assistant.mjs';
 
 const SOURCES=[
@@ -54,7 +54,7 @@ async function demoFiles(exception=false){
   }));
   return Object.fromEntries(entries);
 }
-export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
+export default function ATM({files={},setFiles,onReview,aiEnabled=false,autoRun=false,initialReport=null}){
   const [report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(false);
   const [question,setQuestion]=useState(''),[chat,setChat]=useState([]),[chatOpen,setChatOpen]=useState(false);
   const [demoStatus,setDemoStatus]=useState('');
@@ -84,6 +84,9 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false}){
       const result=evaluate(data);setReport(result);onReview?.(result);
     }catch(e){invalidateReport();setError(e.message);}finally{setBusy(false);}
   }
+  const autoStarted=useRef(false);
+  useEffect(()=>{if(initialReport)setReport(initialReport);},[initialReport]);
+  useEffect(()=>{if(autoRun&&!initialReport&&!autoStarted.current&&ready){autoStarted.current=true;run();}},[autoRun,initialReport,ready]);
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
