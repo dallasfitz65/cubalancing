@@ -48,6 +48,17 @@ const sectionWelcome={
 
 function App({account,onLogout}){
  const [page,setPage]=useState('overview');
+ // Navigation should reset only the content position, never the sidebar's independently scrolled menu.
+ const workspaceRef=useRef(null);
+ function navigateSection(nextPage){
+  setPage(nextPage);
+  if(typeof window!=='undefined')window.scrollTo(0,0);
+  if(workspaceRef.current)workspaceRef.current.scrollTop=0;
+ }
+ useEffect(()=>{
+  window.scrollTo(0,0);
+  if(workspaceRef.current)workspaceRef.current.scrollTop=0;
+ },[page]);
  const [coreSystem,setCoreSystem]=useState('xp2');
  const [eftResult,setEftResult]=useState(null);
  const [atmResult,setAtmResult]=useState(null);
@@ -411,12 +422,12 @@ function App({account,onLogout}){
  const balancing=['shares-loans','cash','exceptions'].includes(page);
  const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult);
  const rows=sections.flatMap(s=>s.rows).filter(r=>!r.branchOnly&&r.executed);
- return <div className="app"><aside><a className="brand" href="#overview" onClick={e=>{e.preventDefault();setPage('overview');}}><img src="/cu-abacus-logo.png" alt="CU | ABACUS" className="abacus-brand-logo" /></a><div className="abacus-sidebar-subtitle">RECONCILIATION</div><nav aria-label="Main navigation">{sidebarNavigation.filter(([, ,id])=>id!=='platform'&&id!=='platform-activity'||(account.role==='admin'&&(id==='platform'||account.username.toLowerCase()==='admin99'))).map(([group,label,id])=><React.Fragment key={id}>{group&&<div className="side-label">{group}</div>}<button aria-current={page===id?'page':undefined} className={page===id?'nav-item nav-current':'nav-item'} onClick={()=>setPage(id)}>{label}</button>{page===id&&sourceRoles[id]&&<div className="nav-files">
+ return <div className="app"><aside><a className="brand" href="#overview" onClick={e=>{e.preventDefault();navigateSection('overview');}}><img src="/cu-abacus-logo.png" alt="CU | ABACUS" className="abacus-brand-logo" /></a><div className="abacus-sidebar-subtitle">RECONCILIATION</div><nav aria-label="Main navigation">{sidebarNavigation.filter(([, ,id])=>id!=='platform'&&id!=='platform-activity'||(account.role==='admin'&&(id==='platform'||account.username.toLowerCase()==='admin99'))).map(([group,label,id])=><React.Fragment key={id}>{group&&<div className="side-label">{group}</div>}<button aria-current={page===id?'page':undefined} className={page===id?'nav-item nav-current':'nav-item'} onClick={()=>navigateSection(id)}>{label}</button>{page===id&&sourceRoles[id]&&<div className="nav-files">
  <p>{coreIngestion(coreSystem).adapter?'Folder-first import • file requirements vary by module.':'Source adapter pending for '+CORE_SYSTEMS[coreSystem].label+'.'}</p>
  <button type="button" onClick={()=>setPage('settings')} style={{width:'100%',fontSize:12}}>Open folder import</button>
  <p>{sourceCoverage(coreSystem,id,files,candidates).matched.length} identified source role(s){sourceCoverage(coreSystem,id,files,candidates).required.length?' / '+sourceCoverage(coreSystem,id,files,candidates).required.length+' expected':''}</p>
  </div>}</React.Fragment>)}</nav><div className="side-foot">LOCAL PROCESSING<br/><span>Files remain in browser memory.<br/>No financial-data upload service.</span></div></aside>
- <div className="workspace"><header><span>{unions.find(u=>u.id===activeCU)?.name||cuName||"Credit union"} / {CORE_SYSTEMS[coreSystem].label} / {title}</span>{account.role!=='guest'&&<select aria-label="Active credit union" value={activeCU} onChange={e=>{setActiveCU(e.target.value);setHistoryStatus('');}} disabled={busy}><option value="local-demo">Select credit union</option>{unions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>}<div className="header-actions"><span className="privacy-dot" title="Files processed locally">{account.username} · Local session</span><div className="header-account-actions"><UserGuide onNavigate={setPage}/>{account.role!=='guest'&&<button type="button" className="header-action-with-icon" onClick={onLogout}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg><span>Log out</span></button>}</div><button disabled={!result||busy} onClick={exportEvidence}>Export evidence</button>{page!=='shares-loans'&&page!=='cash'&&<button disabled={!result||busy} onClick={()=>window.print()}>Print / PDF</button>}</div></header>
+ <div className="workspace" ref={workspaceRef}><header><span>{unions.find(u=>u.id===activeCU)?.name||cuName||"Credit union"} / {CORE_SYSTEMS[coreSystem].label} / {title}</span>{account.role!=='guest'&&<select aria-label="Active credit union" value={activeCU} onChange={e=>{setActiveCU(e.target.value);setHistoryStatus('');}} disabled={busy}><option value="local-demo">Select credit union</option>{unions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>}<div className="header-actions"><span className="privacy-dot" title="Files processed locally">{account.username} · Local session</span><div className="header-account-actions"><UserGuide onNavigate={setPage}/>{account.role!=='guest'&&<button type="button" className="header-action-with-icon" onClick={onLogout}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg><span>Log out</span></button>}</div><button disabled={!result||busy} onClick={exportEvidence}>Export evidence</button>{page!=='shares-loans'&&page!=='cash'&&<button disabled={!result||busy} onClick={()=>window.print()}>Print / PDF</button>}</div></header>
  <main>{page==='overview'&&startupNotice&&<p className="folder-inline-status" role="status">{startupNotice}</p>}
  {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
   {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
