@@ -26,7 +26,11 @@ test('missing source control is never called balanced',()=>{
 test('EFT UI is explicit about partial checks and pending GL settlement',()=>{
  const jsx=readFileSync(new URL('../src/EFT.jsx',import.meta.url),'utf8');
  assert.match(jsx,/checkEFTSourceControls\(reports\)/);
- assert.match(jsx,/EFT-to-GL settlement matching is not yet implemented/);
+ assert.match(jsx,/They do not verify ATM owner transactions/);
+ assert.match(jsx,/settlement adjustments require confirmed balancing rules/);
+ assert.doesNotMatch(jsx,/EFT Balancing — Source Review/);
+ assert.doesNotMatch(jsx,/Print \/ PDF/);
+ assert.doesNotMatch(jsx,/Source review completed\. Cross-source controls shown below/);
  assert.match(jsx,/Cross-source reconciliation checks/);
  assert.match(jsx,/They do not verify ATM owner transactions/);
 });
