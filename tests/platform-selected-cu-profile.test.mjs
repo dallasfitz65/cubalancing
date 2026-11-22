@@ -7,7 +7,7 @@ const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
 test('active credit union remains selected from the header without a duplicate details panel',()=>{
  assert.doesNotMatch(ui,/aria-label="Selected credit union profile"/);
  assert.doesNotMatch(ui,/tenant-profile-panel/);
- assert.match(main,/onChange=\{e=>setActiveCU\(e.target.value\)\}/);
+ assert.match(main,/aria-label="Active credit union" value=\{activeCU\} onChange=\{e=>\{setActiveCU\(e.target.value\)/);
 });
 
 test('credit union management retains institution selection and plus-icon add dialog',()=>{
