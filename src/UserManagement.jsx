@@ -3,25 +3,27 @@ import {accountAPI} from './Login.jsx';
 import {tenantAPI} from './tenant-api.mjs';
 
 export default function UserManagement(){
- const addDialog=useRef(null),accessDialog=useRef(null);
+ const addDialog=useRef(null),accessDialog=useRef(null),platformDialog=useRef(null);
  const [users,setUsers]=useState([]),[creditUnions,setCreditUnions]=useState([]),[username,setUsername]=useState(''),[password,setPassword]=useState('');
- const [role,setRole]=useState('user'),[institutionRole,setInstitutionRole]=useState('reconciler'),[creditUnionId,setCreditUnionId]=useState('');
+ const [institutionRole,setInstitutionRole]=useState('reconciler'),[creditUnionId,setCreditUnionId]=useState('');
  const [error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[showPassword,setShowPassword]=useState(false);
  const [accessUser,setAccessUser]=useState(null),[accessCU,setAccessCU]=useState(''),[accessRole,setAccessRole]=useState('reconciler');
+ const [owner,setOwner]=useState(false),[platformUser,setPlatformUser]=useState(null),[platformRole,setPlatformRole]=useState('user'),[ownerPassword,setOwnerPassword]=useState('');
  async function refresh(){
   try{
-   const [accounts,tenants]=await Promise.all([accountAPI('users'),tenantAPI('tenants')]);
+   const [accounts,tenants,current]=await Promise.all([accountAPI('users'),tenantAPI('tenants'),accountAPI('me')]);
+   setOwner(current?.user?.role==='admin'&&current?.user?.username?.toLowerCase()==='admin99');
    setUsers(accounts.users);setCreditUnions(tenants.tenants.filter(t=>t.active));
    setCreditUnionId(old=>tenants.tenants.some(t=>t.id===old&&t.active)?old:'');
   }catch(e){setError(e.message);}
  }
  useEffect(()=>{refresh();},[]);
- function openAdd(){setUsername('');setPassword('');setRole('user');setInstitutionRole('reconciler');setCreditUnionId('');setError('');setShowPassword(false);addDialog.current?.showModal();}
+ function openAdd(){setUsername('');setPassword('');setInstitutionRole('reconciler');setCreditUnionId('');setError('');setShowPassword(false);addDialog.current?.showModal();}
  async function add(e){
   e.preventDefault();if(busy)return;if(!creditUnionId){setError('Select a credit union before creating a user.');return;}
   setBusy(true);setError('');setMessage('');
   try{
-   await accountAPI('create-user',{username:username.trim(),password,role,creditUnionId,institutionRole});
+   await accountAPI('create-user',{username:username.trim(),password,role:'user',creditUnionId,institutionRole});
    setPassword('');setUsername('');setShowPassword(false);addDialog.current?.close();setMessage('User account created and assigned to the selected credit union.');
    await refresh();
   }catch(e){setError(e.message);}finally{setBusy(false);}
@@ -45,6 +47,19 @@ export default function UserManagement(){
    await refresh();
   }catch(e){setError('Institution access was NOT saved: '+e.message);}
   finally{setBusy(false);}
+ }
+ function openPlatformRole(user){
+  if(!owner||!user.active)return;
+  setPlatformUser(user);setPlatformRole(user.role==='admin'?'user':'admin');setOwnerPassword('');setError('');platformDialog.current?.showModal();
+ }
+ async function savePlatformRole(e){
+  e.preventDefault();if(busy||!platformUser||!ownerPassword)return;
+  setBusy(true);setError('');
+  try{
+   await accountAPI('set-platform-role',{id:platformUser.id,role:platformRole,password:ownerPassword});
+   setOwnerPassword('');platformDialog.current?.close();
+   setMessage('Platform role changed. The affected user must sign in again.');await refresh();
+  }catch(e){setError('Platform role change rejected: '+e.message);}finally{setBusy(false);}
  }
  async function remove(user){
   if(busy)return;
@@ -73,7 +88,7 @@ export default function UserManagement(){
  <div className="table-scroll"><table><thead><tr><th>USERNAME</th><th>PLATFORM ROLE</th><th>ASSIGNED CREDIT UNIONS</th><th>STATUS</th><th>ACTION</th></tr></thead>
  <tbody>{users.map(u=><tr key={u.id}><td>{u.username}</td><td>{u.role}</td>
  <td>{u.credit_unions?.length?u.credit_unions.map(c=>c.name+' ('+c.role+')').join(', '):<strong>Not assigned — administrator setup required</strong>}</td>
- <td>{u.active?'Active':'Disabled'}</td><td><div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" disabled={busy||!u.active||!creditUnions.length} onClick={()=>editAccess(u)}>Edit institution access</button><button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button><button type="button" disabled={busy||u.role==='admin'} title={u.role==='admin'?'Administrators must be deactivated or transferred before removal':'Remove user access without deleting reconciliation history'} onClick={()=>remove(u)} aria-label={'Delete user '+u.username}>Delete user</button></div></td></tr>)}</tbody></table></div>
+ <td>{u.active?'Active':'Disabled'}</td><td><div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" disabled={busy||!u.active||!creditUnions.length} onClick={()=>editAccess(u)}>Edit institution access</button>{owner&&u.username.toLowerCase()!=='admin99'&&<button type="button" disabled={busy||!u.active} onClick={()=>openPlatformRole(u)}>Platform role</button>}<button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button><button type="button" disabled={busy||u.role==='admin'} title={u.role==='admin'?'Administrators must be deactivated or transferred before removal':'Remove user access without deleting reconciliation history'} onClick={()=>remove(u)} aria-label={'Delete user '+u.username}>Delete user</button></div></td></tr>)}</tbody></table></div>
  <dialog ref={addDialog} className="tenant-add-dialog" aria-labelledby="add-user-title" onCancel={e=>{if(busy)e.preventDefault();}}>
   <div className="dialog-head"><h2 id="add-user-title">Add User</h2><button type="button" aria-label="Close add user dialog" disabled={busy} onClick={()=>addDialog.current?.close()}>✕</button></div>
   <form className="tenant-add-form" onSubmit={add}>
@@ -87,8 +102,6 @@ export default function UserManagement(){
    <select id="new-user-credit-union" required value={creditUnionId} onChange={e=>setCreditUnionId(e.target.value)}><option value="">Select credit union</option>{creditUnions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
    <label htmlFor="new-user-institution-role">Institution Role</label>
    <select id="new-user-institution-role" value={institutionRole} onChange={e=>setInstitutionRole(e.target.value)}><option value="reconciler">Reconciler</option><option value="reviewer">Reviewer</option><option value="admin">Credit union admin</option></select>
-   <label htmlFor="new-user-platform-role">Platform Role</label>
-   <select id="new-user-platform-role" value={role} onChange={e=>setRole(e.target.value)}><option value="user">User</option><option value="admin">Platform administrator</option></select>
    <p className="user-dialog-note">The user will be assigned to the selected credit union. Their password is not displayed in the user list.</p>
    {error&&<p role="alert" className="error">{error}</p>}
    <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>addDialog.current?.close()}>Cancel</button><button className="primary" type="submit" disabled={busy||!creditUnions.length||!creditUnionId||!username.trim()||password.length<12}>{busy?'Creating…':'Create User'}</button></div>
@@ -111,6 +124,18 @@ export default function UserManagement(){
    <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>accessDialog.current?.close()}>Cancel</button><button type="submit" className="primary" disabled={busy||!accessCU}>{busy?'Saving…':'Save institution access'}</button></div>
   </form>
  </dialog>
+ <dialog ref={platformDialog} className="tenant-add-dialog" aria-labelledby="platform-role-title">
+ <div className="dialog-head"><h2 id="platform-role-title">Owner-only platform role change</h2><button type="button" disabled={busy} aria-label="Close platform role dialog" onClick={()=>platformDialog.current?.close()}>✕</button></div>
+ <form className="tenant-add-form" onSubmit={savePlatformRole}>
+  <p>User: <strong>{platformUser?.username}</strong></p>
+  <label htmlFor="platform-target-role">New platform role</label>
+  <select id="platform-target-role" value={platformRole} onChange={e=>setPlatformRole(e.target.value)}><option value="user">User</option><option value="admin">Platform administrator</option></select>
+  <label htmlFor="platform-owner-password">Confirm owner password</label>
+  <input id="platform-owner-password" type="password" autoComplete="current-password" value={ownerPassword} onChange={e=>setOwnerPassword(e.target.value)} required/>
+  <p className="user-dialog-note">A configured platform owner ID and password reauthentication are required on the server. This grants global administration and revokes the affected user's sessions.</p>
+  {error&&<p role="alert" className="error">{error}</p>}
+  <div className="tenant-add-actions"><button type="button" disabled={busy} onClick={()=>platformDialog.current?.close()}>Cancel</button><button className="primary" type="submit" disabled={busy||!ownerPassword}>Confirm platform role</button></div>
+ </form></dialog>
  {error&&<p role="alert" className="error">{error}</p>}{message&&<p role="status">{message}</p>}
  </section>;
 }
