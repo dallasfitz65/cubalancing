@@ -427,3 +427,8 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .reconciliation-page-header p{margin:8px auto 0;max-width:880px;color:#597289;font-size:14px;line-height:1.55}
 @media(max-width:760px){.reconciliation-page-header{padding:17px 14px}.reconciliation-page-header h1{font-size:22px}}
 @media print{.reconciliation-page-header{border:0;padding:0 0 12px;margin-bottom:12px}}
+
+/* Compact icon-only launcher for the process-specific Ask the System assistant. */
+.atm-chat-launcher{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;min-height:52px;padding:0;border-radius:50%}
+.atm-chat-launcher svg{display:block;flex:none}
+.atm-chat-launcher:focus-visible{outline:3px solid #69b4ed;outline-offset:3px}
