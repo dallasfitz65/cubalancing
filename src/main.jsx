@@ -61,6 +61,7 @@ function App({account,onLogout}){
  const [files,setFiles]=useState({}),[mode,setMode]=useState('real'),[sign,setSign]=useState('credit-negative');
  const [startupLoaded,setStartupLoaded]=useState(false),[startupRunPending,setStartupRunPending]=useState(false),[startupNotice,setStartupNotice]=useState('');
  const startupScanRef=useRef(null);
+ const lastAutoGLInputs=useRef(null);
  const [review,setReview]=useState(null),[approved,setApproved]=useState(false),[mappingOK,setMappingOK]=useState(false);
  const [signSaving,setSignSaving]=useState(false),[signNotice,setSignNotice]=useState('');
  const [result,setResult]=useState(null),[activity,setActivity]=useState([]),[notes,setNotes]=useState({}),[busy,setBusy]=useState(false),[progress,setProgress]=useState(''),[error,setError]=useState('');
@@ -233,7 +234,7 @@ function App({account,onLogout}){
  useEffect(()=>{let active=true;setOutputFolder(null);setOutputFolderStatus('');getSetting(folderScope,'output-folder').then(async handle=>{if(!active||!handle||handle.kind!=='directory')return;setOutputFolder(handle);const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'prompt';if(active&&permission!=='granted')setOutputFolderStatus('Output folder saved; browser write permission may need renewal.');}).catch(e=>{if(active)setOutputFolderStatus('Output folder settings unavailable: '+e.message);});return()=>{active=false;};},[folderScope]);
  useEffect(()=>{forgetLegacyMapping().catch(()=>{});},[]);
  useEffect(()=>{if(page!=='settings'||!jumpToFolder)return;document.getElementById('folder-import')?.scrollIntoView({behavior:'smooth',block:'start'});setJumpToFolder(false);},[page,jumpToFolder]);
- useEffect(()=>{setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
+ useEffect(()=>{lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
  function changeCoreSystem(value){
   const selected=getCoreSystem(value);
   if(selected===coreSystem||busy||lock.current)return;
@@ -303,10 +304,18 @@ function App({account,onLogout}){
   await recordAction('balancing_run',issues?'exception':'completed');
  }catch(e){setError(e.message);}finally{setBusy(false);lock.current=false;setProgress('');}}
  useEffect(()=>{
-  if(!startupRunPending||!settingsReady||coreSystem!=='xp2'||page!=='overview')return;
-  setStartupRunPending(false);
-  if(files.gl&&(files.svst||files.lnst||files.cobd))run();
- },[startupRunPending,settingsReady,coreSystem,page,files]);
+  if(!settingsReady||coreSystem!=='xp2'||page!=='overview'||mode!=='real')return;
+  if(!files.gl||!(files.svst||files.lnst||files.cobd)){if(startupRunPending)setStartupRunPending(false);return;}
+  if(lock.current||busy)return;
+  const signature=[activeCU,sign,files.gl,files.svst,files.lnst,files.cobd];
+  if(lastAutoGLInputs.current?.every((item,i)=>item===signature[i])){
+   if(startupRunPending)setStartupRunPending(false);
+   return;
+  }
+  lastAutoGLInputs.current=signature;
+  if(startupRunPending)setStartupRunPending(false);
+  run();
+ },[startupRunPending,settingsReady,coreSystem,page,files,sign,activeCU,mode,busy]);
  function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
  function exportEvidence(){if(!result)return;recordAction('evidence_export','completed');if(confirm('This export contains financial balances and notes. Save only in an approved location.'))download('abacus-run-evidence.json',JSON.stringify({build:'ABACUS React 0.3.0',warning:'Unsigned session evidence; not an immutable audit ledger or verified user identity.',run:result,notes},null,2),'application/json');}
 
