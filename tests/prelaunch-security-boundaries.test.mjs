@@ -12,6 +12,8 @@ test('cross-tenant grants require prior administrator membership and cannot targ
 });
 test('ordinary creation can never mint a platform administrator',()=>{
  assert.match(auth,/body\.role!=='user'/);
+ assert.match(auth,/Existing credit union administrator membership required to create users/);
+ assert.match(auth,/credit_union_id=\$2 AND role='admin' AND active=true/);
  assert.match(ui,/role:'user',creditUnionId,institutionRole/);
  assert.doesNotMatch(ui,/id="new-user-platform-role"/);
  assert.match(auth,/ABACUS_PLATFORM_OWNER_USER_ID/);
