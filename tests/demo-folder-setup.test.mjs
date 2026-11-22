@@ -27,7 +27,7 @@ test('Overview shows setup prompt until current browser has access to selected C
  assert.match(ui,/\},\[folderScope\]\)/);
 });
 test('selecting and forgetting folder updates readiness',()=>{
- assert.match(ui,/setFolder\(handle\);setFolderConnection\('ready'\)/);
- assert.match(ui,/setFolder\(null\);setFolderConnection\('missing'\)/);
+ assert.match(ui,/setFolder\(handle\);setSessionFolderName\(''\);setFolderConnection\('ready'\)/);
+ assert.match(ui,/setFolder\(null\);setSessionFolderName\(''\);setFolderConnection\('missing'\)/);
  assert.match(ui,/setFolderConnection\('reconnect'\)/);
 });
