@@ -17,8 +17,9 @@ export async function createHandler(req,{database=getDatabase}={}){
   client=await database().pool.connect();
   const user=await session(client,req);
   if(!user)return response({error:'Authentication required'},401);
-  // Admin99 gets this global scope; neither regular admins nor tenant admins do.
-  if(user.role!=='admin'||user.username.toLowerCase()!=='admin99')return response({error:'Admin99 only'},403);
+  // Global audit access requires the configured immutable owner user ID, not an editable username.
+  const ownerId=process.env.ABACUS_PLATFORM_OWNER_USER_ID;
+  if(!ownerId||user.role!=='admin'||String(user.id)!==String(ownerId))return response({error:'Configured platform owner required'},403);
   const params=new URL(req.url).searchParams;
   const tenantId=params.get('tenantId')||'',userId=params.get('userId')||'',kind=params.get('kind')||'',after=params.get('after')||'';
   if(tenantId&&!uuid.test(tenantId))return response({error:'Invalid credit union filter'},400);
