@@ -186,7 +186,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    await client.query('COMMIT');inTransaction=false;return reply({ok:true,version:Number(r.rows[0].version)});
   }
   return reply({error:'Unknown operation'},404);
- }catch(e){return reply({error:'Unable to complete tenant request'},400);}
+ }catch(e){const invalid=e instanceof SyntaxError||['JSON required','Payload too large','Unrecognized setting value','Invalid origin','Cross-site request denied'].includes(e?.message);return reply({error:invalid?'Invalid request':'Tenant service unavailable'},invalid?400:503);}
  finally{if(client){if(inTransaction)await client.query('ROLLBACK').catch(()=>{});client.release();}}
 }
 export default req=>createHandler(req);
