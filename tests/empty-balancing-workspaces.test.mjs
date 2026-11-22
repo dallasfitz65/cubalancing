@@ -8,7 +8,7 @@ test('EFT begins empty and requires real uploaded source files',()=>{
  const eft=source('EFT.jsx');
  assert.doesNotMatch(eft,/EFT_PREVIEW|showPreview|prepopulated historical controls/);
  assert.match(eft,/!data\?<p>Import core day totals/);
- assert.match(eft,/disabled=\{!data\|\|busy\}/);
+ assert.doesNotMatch(eft,/Print \/ PDF/);
  assert.match(eft,/if\(!autoRun\|\|data\|\|!roles.every\(role=>files\[role\]\)\)return/);
  assert.doesNotMatch(eft,/>Run EFT Review<\/button>/);
 });
