@@ -8,9 +8,9 @@ export const PROCESS_ASSISTANT_PROMPTS={
  cash:['Why is cash out of balance?','Show cash variances','Explain GL sign convention','What was verified?'],
  drafts:['Why are Share Drafts out of balance?','Explain source totals','What about GL postings?','What was verified?'],
  eft:['Why is EFT out of balance?','Check source dates','Explain settlement controls','What was verified?'],
- ach:['What is needed for ACH balancing?','What was verified?']
+ ach:['What is needed for ACH reconciliation?','What was verified?']
 };
-export const PROCESS_TITLES={'shares-loans':'Shares, Loans and Cash',cash:'Cash Balancing',drafts:'Share Draft Balancing',eft:'EFT Balancing',ach:'ACH Balancing'};
+export const PROCESS_TITLES={'shares-loans':'Shares, Loans and Cash',cash:'Cash Reconciliation',drafts:'Share Draft Reconciliation',eft:'EFT Reconciliation',ach:'ACH Reconciliation'};
 export function answerProcessQuestion(module,question,report){
  const text=String(question||'').trim().toLowerCase();
  if(!text)return 'Ask about the selected reconciliation process or its available checks.';
