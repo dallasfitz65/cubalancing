@@ -62,6 +62,7 @@ function App({account,onLogout}){
  const [startupLoaded,setStartupLoaded]=useState(false),[startupRunPending,setStartupRunPending]=useState(false),[startupNotice,setStartupNotice]=useState('');
  const startupScanRef=useRef(null);
  const [review,setReview]=useState(null),[approved,setApproved]=useState(false),[mappingOK,setMappingOK]=useState(false);
+ const [signSaving,setSignSaving]=useState(false),[signNotice,setSignNotice]=useState('');
  const [result,setResult]=useState(null),[activity,setActivity]=useState([]),[notes,setNotes]=useState({}),[busy,setBusy]=useState(false),[progress,setProgress]=useState(''),[error,setError]=useState('');
  const [settingsReady,setSettingsReady]=useState(false),[settingsStatus,setSettingsStatus]=useState('');
  const [aiEnabled,setAiEnabled]=useState(false),[aiSaving,setAiSaving]=useState(false);
@@ -124,6 +125,7 @@ function App({account,onLogout}){
   setTenantVersions(prev=>({...prev,[key]:response.version}));
  }
 
+ useEffect(()=>{setSignNotice('');},[activeCU]);
  useEffect(()=>{let active=true;setSettingsReady(false);setAiEnabled(false);setAiNotice('');setBackendFolderName('');
   (async()=>{
    try {
@@ -249,7 +251,23 @@ function App({account,onLogout}){
  useEffect(()=>{if(modal)reviewDialog.current?.showModal();},[modal]);
  useEffect(()=>{setError('');},[page,approved,mappingOK]);
  function changeFile(key,file){if(lock.current)return;setError('');if(file&&key==='gl'&&['eftgl','draftgl'].includes(suggestRole(file.name))){setError('Wrong GL file selected: '+file.name+'. For Shares, Loans and Cash use GL_Trial_Balance_20261120.txt (or the consolidated trial balance); EFT_GL_Detail belongs under EFT, and ShareDrafts_GL_Detail belongs under Share Drafts.');return;}if(file){const ext=file.name.split('.').pop().toLowerCase();if(!file.size||file.size>10*1024*1024||!(key==='gl'?['pdf','txt']:key==='account'||key.startsWith('atm_')?['csv']:['draftgl','eftgl'].includes(key)?['pdf']:['txt']).includes(ext)){setError('Choose a nonempty supported file under 10 MB.');return;}}setFiles(p=>({...p,[key]:file||null}));if(key.startsWith('eft'))setEftResult(null);if(key.startsWith('atm_'))setAtmResult(null);if(['gl','sdps','sdre','sdrt','draftgl'].includes(key))setDraftResult(null);if(key==='gl'){setReview(null);setApproved(false);}if(['gl','svst','lnst','cobd'].includes(key)){setResult(previous=>{if(!previous||key==='gl')return null;const affected=key==='svst'?['shares','certs']:key==='lnst'?['loans']:['cash'];const sections=previous.sections.filter(s=>!affected.includes(s.id));return sections.length?{...previous,sections}:null;});setNotes({});}}
- function setConvention(value){if(!Object.hasOwn(GL_SIGN_CONVENTIONS,value)||value===sign)return;setSign(value);setApproved(false);setSettingsStatus('GL convention selected: '+GL_SIGN_CONVENTIONS[value]+'. Existing report is recalculated for display; click Run Balancing to record new verified results.');persistPreference('sign-convention',value).catch(e=>setSettingsStatus('GL sign convention selected for this browser session, but NOT SAVED for this credit union: '+e.message));}
+ async function setConvention(value){
+  if(signSaving||!settingsReady||!Object.hasOwn(GL_SIGN_CONVENTIONS,value)||value===sign)return;
+  const previous=sign;
+  setSignSaving(true);setSignNotice('Saving GL Balance Sign Swap for this credit union…');
+  try{
+   await persistPreference('sign-convention',value);
+   setSign(value);setApproved(false);
+   setSignNotice('GL Balance Sign Swap saved: '+(value==='reverse-all'?'On':'Off')+'.');
+   setSettingsStatus('GL convention saved for this credit union. Run Balancing to apply it to a new verified report.');
+  }catch(e){
+   const message=e?.message||'Unknown error';
+   const reason=message.includes('Credit union administrator required')?'Only an assigned credit union administrator can change this shared setting. Ask a credit union administrator to save it, or update your institution role.':message;
+   setSign(previous);
+   setSignNotice('GL Balance Sign Swap was NOT saved: '+reason);
+   setSettingsStatus('GL Balance Sign Swap was not saved. The previous selection is still active.');
+  }finally{setSignSaving(false);}
+ }
  async function reviewGL(){if(!files.gl){setError('Select a GL PDF or TXT file first.');return;}if(/(?:^|[^a-z])svst(?:[^a-z]|$)/i.test(files.gl.name)){setError('SVST is a share report, not a GL trial balance. Load it under Shares (SVST), and choose a separate GL Trial Balance file under GL.');return;}if(lock.current)return;lock.current=true;setBusy(true);setError('');setApproved(false);try{
  const data=await extractGL(files.gl,{onProgress:(n,total)=>setProgress(`Extracting PDF page ${n} of ${total}`),requestPassword:async retry=>prompt(retry?'Incorrect password. Try again:':'Enter PDF password (used only for this session):')});
  setReview({...data,file:files.gl});setModal('review');
@@ -389,7 +407,7 @@ function App({account,onLogout}){
  <div className="section-title-help"><h2>GL Balance Sign Swap</h2>
   <SectionHelp title="GL Balance Sign Swap"><p>Off leaves all GL balances as reported. On reverses the sign of every GL balance, without modifying the original export.</p><p>Existing credit unions using the legacy liability-only convention retain it until the switch is changed. Only enable full sign reversal when the entire trial balance requires it.</p></SectionHelp>
  </div>
- <SettingsSwitch id="gl-sign-swap" label="GL Balance Sign Swap" checked={sign==='reverse-all'} disabled={!settingsReady||busy} onChange={value=>setConvention(value?'reverse-all':'natural')}/>
+ <SettingsSwitch id="gl-sign-swap" label="GL Balance Sign Swap" checked={sign==='reverse-all'} disabled={!settingsReady||busy||signSaving} onChange={value=>setConvention(value?'reverse-all':'natural')}/>{signNotice&&<p role={signNotice.includes('NOT saved')?'alert':'status'} className={signNotice.includes('NOT saved')?'error':'folder-inline-status'}>{signNotice}</p>}
  {sign==='credit-negative'&&<p role="status" className="settings-legacy-sign">Existing liability-only GL sign convention remains active. Choose On or Off to replace it.</p>}
  </section>}
  {page==='settings'&&<section className="folder-settings"><div className="section-title-help"><h2>Core system</h2><SectionHelp title="Core system"><p>Choose XP2, DataSafe, or Portico for the selected credit union. XP2 has existing parsing support with module-specific validation limits. DataSafe and Portico adapters are pending vendor export verification.</p><p>Switching cores clears loaded file selections and results for the current session. No member source files are uploaded by changing this setting.</p></SectionHelp></div><label htmlFor="core-system-selection">Select core processing system</label><select id="core-system-selection" aria-label="Core system" value={coreSystem} disabled={busy} onChange={e=>changeCoreSystem(e.target.value)}><option value="xp2">XP2</option><option value="datasafe">DataSafe</option><option value="portico">Portico</option></select><p role="status">{CORE_SYSTEMS[coreSystem].validation}</p></section>}
