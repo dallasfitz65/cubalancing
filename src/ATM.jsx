@@ -68,7 +68,7 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false,autoRun=
       const chosen=await demoFiles(exception);
       invalidateReport();
       setFiles(current=>({...current,...Object.fromEntries(SOURCES.map(source=>['atm_'+source.key,chosen[source.key]]))}));
-      setDemoStatus(exception?'Exception test files loaded ($50 GL clearing difference). Click Run ATM Balancing to calculate results.':'Balanced test files loaded. Click Run ATM Balancing to calculate results.');
+      setDemoStatus(exception?'Running the $50 exception test scenario automatically.':'Running the balanced test scenario automatically.');
     }catch(e){setError(e.message);}finally{setBusy(false);}
   }
   async function run(){
@@ -84,24 +84,28 @@ export default function ATM({files={},setFiles,onReview,aiEnabled=false,autoRun=
       const result=evaluate(data);setReport(result);onReview?.(result);
     }catch(e){invalidateReport();setError(e.message);}finally{setBusy(false);}
   }
-  const autoStarted=useRef(false);
+  const lastAutoFiles=useRef(null);
   useEffect(()=>{if(initialReport)setReport(initialReport);},[initialReport]);
-  useEffect(()=>{if(autoRun&&!initialReport&&!autoStarted.current&&ready){autoStarted.current=true;run();}},[autoRun,initialReport,ready]);
+  useEffect(()=>{
+    if(!autoRun||!ready||initialReport)return;
+    const selected=SOURCES.map(source=>files['atm_'+source.key]);
+    if(lastAutoFiles.current?.every((file,i)=>file===selected[i]))return;
+    lastAutoFiles.current=selected;
+    run();
+  },[autoRun,initialReport,files,ready]);
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
-    <div className="draft-report-title"><h2>ATM Balancing</h2></div>
     <p><strong>Demonstration only.</strong> The included test data is fictional. Real processor integration, multi-terminal balancing and production accounting controls require additional validation.</p>
     <section className="atm-source-setup" aria-label="ATM test files and source checks">
-      <div className="atm-source-setup-head"><h3>ATM Source Checks</h3><p>Load a test scenario or import ATM source files through Settings → Folder Configuration. Then run the reconciliation controls.</p></div>
+      <div className="atm-source-setup-head"><h3>ATM Source Checks</h3><p>Load a test scenario or import ATM source files through Settings → Folder Configuration. Reconciliation checks start automatically when all four sources are available.</p></div>
       <div className="atm-actions">
         <button type="button" disabled={busy} onClick={()=>loadDemo(false)}>Load balanced test files</button>
         <button type="button" disabled={busy} onClick={()=>loadDemo(true)}>Load exception test files ($50)</button>
-        <button type="button" className="primary" disabled={busy||!ready} onClick={run}>{busy?'Processing…':'Run ATM Balancing'}</button>
         <button type="button" disabled={!report||busy} onClick={()=>window.print()}>Print / PDF</button>
       </div>
       {demoStatus&&<p className="atm-test-status" role="status">{demoStatus}</p>}
-      <p className="atm-source-readiness" role="status">{ready?'4 of 4 ATM sources ready for validation.':'Import all four required ATM files from Folder Configuration, or load a test scenario before running.'} Filename selection does not verify amounts, dates or GL reconciliation.</p>
+      <p className="atm-source-readiness" role="status">{ready?'4 of 4 ATM sources ready for validation.':'Import all four required ATM files from Folder Configuration, or load a test scenario to calculate automatically.'} Filename selection does not verify amounts, dates or GL reconciliation.</p>
     </section>
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
