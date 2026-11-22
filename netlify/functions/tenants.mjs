@@ -16,7 +16,7 @@ function validateSetting(key,value){
  if(key==='folder-name'&&typeof value==='string'&&value.length<=255&&!/[\\/\x00-\x1f\x7f]/.test(value))return value.trim();
  throw Error('Unrecognized setting value');
 }
-async function session(client,req){const raw=token(req);if(!/^[a-f0-9]{64}$/.test(raw))return null;const hash=createHash('sha256').update(raw).digest('hex');const r=await client.query('SELECT u.id,u.username,u.role FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);return r.rows[0]||null;}
+async function session(client,req){const raw=token(req);if(!/^[a-f0-9]{64}$/.test(raw))return null;const hash=createHash('sha256').update(raw).digest('hex');const r=await client.query('SELECT u.id,u.username,u.role FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true AND u.deleted_at IS NULL',[hash]);return r.rows[0]||null;}
 async function body(req,maxBytes=8192){if(req.headers.get('content-type')?.split(';')[0]!=='application/json')throw Error('JSON required');const raw=await req.text();if(raw.length>maxBytes)throw Error('Payload too large');return JSON.parse(raw);}
 export async function createHandler(req,{database=getDatabase}={}){
  let client,inTransaction=false;
@@ -102,8 +102,11 @@ export async function createHandler(req,{database=getDatabase}={}){
   if(req.method==='POST'&&op==='assign-user'){
    if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
    const input=await body(req);
+   if(String(input.userId||'')===String(user.id))return reply({error:'Self-assignment is prohibited. Ask another authorized institution administrator to approve access.'},403);
    if(!uuid.test(String(input.tenantId||''))||!/^[0-9]+$/.test(String(input.userId||''))||!['admin','reconciler','reviewer'].includes(input.role))return reply({error:'Invalid user assignment'},400);
-   const target=await client.query('SELECT id FROM abacus_users WHERE id=$1 AND active=true',[input.userId]);
+   const grantor=await client.query("SELECT role FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND role='admin' AND active=true",[user.id,input.tenantId]);
+   if(grantor.rows.length!==1)return reply({error:'Existing credit union administrator membership required to assign users'},403);
+   const target=await client.query('SELECT id FROM abacus_users WHERE id=$1 AND active=true AND deleted_at IS NULL',[input.userId]);
    const tenant=await client.query('SELECT id FROM abacus_credit_unions WHERE id=$1 AND active=true',[input.tenantId]);
    if(!target.rows.length||!tenant.rows.length)return reply({error:'User or credit union not found'},404);
    await client.query(`INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role,active) VALUES($1,$2,$3,true)
@@ -116,7 +119,7 @@ export async function createHandler(req,{database=getDatabase}={}){
   const incoming=req.method==='GET'?null:tenantId;
   const id=req.method==='GET'?tenantId:incoming?.tenantId;
   if(!uuid.test(String(id||'')))return reply({error:'Valid credit union required'},400);
-  // A platform owner does not automatically gain access to every CU's settings.
+  // Even platform administrators require explicit active CU membership. Membership grants need preexisting institution-admin authorization and cannot self-grant.
   const member=await client.query('SELECT role FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND active=true',[user.id,id]);
   if(member.rows.length!==1)return reply({error:'Credit union access denied'},403);
   await client.query("SELECT set_config('abacus.tenant_id',$1,true)",[id]);
