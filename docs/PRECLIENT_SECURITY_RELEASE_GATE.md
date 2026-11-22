@@ -53,3 +53,14 @@ A missing fixture, failed check, or insufficient permission means **not certifie
 - Implement an explicit approval workflow and independent audit review for institution-admin role changes if credit unions require dual control.
 - Review the legacy database tables and confirm no unauthenticated public artifacts disclose credentials or member data.
 - Run a scoped cross-tenant penetration test with two test credit unions.
+
+## Follow-up security operations
+
+- [ ] Configure `ABACUS_PLATFORM_OWNER_USER_ID` on the production Netlify site using the intended immutable DB user ID. Until configured, global audit access and platform role promotion intentionally fail closed. Do **not** use a username string.
+- [ ] Test **Change password** for normal users and admins: verify current password required, different new password, all sessions revoked, login with new password. Forgotten passwords for non-admin users still need a verified reset/identity-proofing workflow; do not use delete-and-recreate as a workaround.
+- [ ] Verify the scheduled `session-cleanup` function is deployed and its daily run succeeds with production DB permissions. A best-effort cleanup on login is not proof expired sessions have been purged.
+- [ ] Run `npm run security:exposure` with `ABACUS_VERIFY_SITE_URL` set to the actual production URL from a network-enabled trusted operator shell; archive the complete results. Do not infer public safety from build exclusions alone.
+- [ ] Before deleting legacy `users`, `activity_log`, `credit_union_settings` tables or the `sales@sales.com` seeded row, inventory actual production rows, foreign keys, active function references, backup/restore procedures, and migration rollback strategy. Delete only after documented approval and a tested backup.
+- [ ] Remove the stale source ZIP from the repository **after confirming its exact path and contents**. Add CI guards that reject archives or secrets at the repository root.
+- [ ] Review PDF/admin screen lazy-loading and first-load bundle budgets after security release blockers are closed.
+- [ ] Check that client errors yield 400 and database/service outages yield 503 in `auth` and `tenants`.
