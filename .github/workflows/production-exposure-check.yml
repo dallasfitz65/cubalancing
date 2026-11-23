@@ -1,0 +1,23 @@
+name: ABACUS production exposure check
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-exposure-check.yml'
+      - 'scripts/security/check-public-exposure.mjs'
+permissions:
+  contents: read
+jobs:
+  public-exposure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ABACUS_VERIFY_SITE_URL: https://cu-abacus.netlify.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify production migration and environment files are not exposed
+        run: npm run security:exposure
