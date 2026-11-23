@@ -84,16 +84,26 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(!name||name.length>150||/[\x00-\x1f\x7f]/.test(name)||charter&&!/^\d{1,12}$/.test(charter))
     return reply({error:'Invalid credit union name or NCUA charter'},400);
    if(charter){
+    // Do not hold an open transaction or DB connection during external NCUA requests.
+    await client.query('COMMIT');inTransaction=false;client.release();client=null;
     let lookup;
     try{lookup=await searchNCUA(charter);}catch{return reply({error:'NCUA identity validation unavailable; retry later'},502);}
     const match=lookup.results.find(row=>row.charter===charter);
     if(!match)return reply({error:'NCUA charter not found among active institutions'},400);
     name=match.name;
     if(name.length>150)return reply({error:'NCUA institution name is too long'},400);
+    client=await database().pool.connect();
+    const again=await session(client,req);
+    if(!again||again.role!=='admin'||String(again.id)!==String(user.id))return reply({error:'Administrator required'},403);
+    await client.query('BEGIN');inTransaction=true;
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
+    await client.query("SELECT set_config('abacus.platform_admin','true',true)");
    }
    const existing=charter?await client.query('SELECT id,name FROM abacus_credit_unions WHERE ncua_charter=$1',[charter]):{rows:[]};
    if(existing.rows.length)return reply({error:'This NCUA charter is already registered in Abacus'},409);
-   const created=await client.query('INSERT INTO abacus_credit_unions(name,ncua_charter) VALUES($1,$2) RETURNING id,name,ncua_charter',[name,charter||null]);
+   let created;
+   try{created=await client.query('INSERT INTO abacus_credit_unions(name,ncua_charter) VALUES($1,$2) RETURNING id,name,ncua_charter',[name,charter||null]);}
+   catch(e){if(e.code==='23505')return reply({error:'This NCUA charter is already registered in Abacus'},409);throw e;}
    await client.query("INSERT INTO abacus_user_credit_unions(user_id,credit_union_id,role) VALUES($1,$2,'admin')",[user.id,created.rows[0].id]);
    await insertActivity(client,user.id,'tenant_created',created.rows[0].id);
    await client.query('COMMIT');inTransaction=false;

@@ -17,6 +17,7 @@ function passwordValid(v){return typeof v==='string'&&v.length>=12&&v.length<=25
 function assertOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw Error('Invalid origin');if(req.headers.get('sec-fetch-site')==='cross-site')throw Error('Cross-site request denied');}
 async function readBody(req){if(req.headers.get('content-type')?.split(';')[0]!=='application/json')throw Error('JSON required');const raw=await req.text();if(raw.length>4096)throw Error('Request too large');return JSON.parse(raw);}
 async function currentUser(client,req){const token=tokenFrom(req);if(!/^[a-f0-9]{64}$/.test(token))return null;const {rows}=await client.query(`SELECT u.id,u.username,u.role,u.active FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true AND u.deleted_at IS NULL`,[hash(token)]);return rows[0]||null;}
+const isOwnerId=id=>Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID)&&String(id)===String(process.env.ABACUS_PLATFORM_OWNER_USER_ID);
 function publicUser(user){return {id:String(user.id),username:user.username,role:user.role,isPlatformOwner:Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID&&String(user.id)===process.env.ABACUS_PLATFORM_OWNER_USER_ID&&user.role==='admin')};}
 async function startSession(client,user){const token=randomBytes(32).toString('hex');await client.query('INSERT INTO abacus_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'12 hours\')',[hash(token),user.id]);await insertActivityStandalone(client,user.id,'login');return reply({user:publicUser(user)},200,{'Set-Cookie':cookie(token,HOURS*3600)});}
 export async function createHandler(req,{database=getDatabase,setupToken=process.env.ABACUS_SETUP_TOKEN}={}){
@@ -52,13 +53,16 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   if(op==='bootstrap'){
    if(!setupToken||!secureEqual(body.setupToken,setupToken))return reply({error:'Invalid setup key'},403);
    if(!usernameValid(body.username)||!passwordValid(body.password))return reply({error:'Username must be valid; password must contain 12–256 characters'},400);
-   await client.query('BEGIN');
-   await client.query('SELECT pg_advisory_xact_lock(18499172)');
-   const count=await client.query('SELECT EXISTS(SELECT 1 FROM abacus_users) AS initialized');
-   if(count.rows[0].initialized){await client.query('ROLLBACK');return reply({error:'Initial account has already been created'},409);}
    const pw=await encodePassword(body.password);
-   const result=await client.query('INSERT INTO abacus_users(username,password_hash,role) VALUES($1,$2,$3) RETURNING id,username,role',[body.username.trim(),pw,'admin']);
-   await client.query('COMMIT');
+   let result,tx=false;
+   try{
+    await client.query('BEGIN');tx=true;
+    await client.query('SELECT pg_advisory_xact_lock(18499172)');
+    const count=await client.query('SELECT EXISTS(SELECT 1 FROM abacus_users) AS initialized');
+    if(count.rows[0].initialized){await client.query('ROLLBACK');tx=false;return reply({error:'Initial account has already been created'},409);}
+    result=await client.query('INSERT INTO abacus_users(username,password_hash,role) VALUES($1,$2,$3) RETURNING id,username,role',[body.username.trim(),pw,'admin']);
+    await client.query('COMMIT');tx=false;
+   }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
    return startSession(client,result.rows[0]);
   }
   if(op==='login'){
@@ -150,6 +154,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   if(op==='delete-user'&&actor.role==='admin'){
    const id=String(body.id||'');
    if(!/^[0-9]{1,20}$/.test(id)||id===String(actor.id))return reply({error:'Cannot delete your own administrator account'},400);
+   if(isOwnerId(id))return reply({error:'The configured platform owner account cannot be deleted'},403);
    let inTransaction=false;
    try{
     await client.query('BEGIN');inTransaction=true;
@@ -172,6 +177,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   }
   if(op==='set-active'&&actor.role==='admin'){
    const id=String(body.id||'');if(!/^\d+$/.test(id)||typeof body.active!=='boolean'||id===String(actor.id))return reply({error:'Invalid user change'},400);
+   if(isOwnerId(id))return reply({error:'The configured platform owner account cannot be disabled'},403);
    const changed=await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2 AND deleted_at IS NULL RETURNING id',[body.active,id]);if(!changed.rows.length)return reply({error:'User account not found'},404);if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);await insertActivityStandalone(client,actor.id,body.active?'user_enabled':'user_disabled',null,id);return reply({ok:true});
   }
   return reply({error:'Forbidden'},403);
