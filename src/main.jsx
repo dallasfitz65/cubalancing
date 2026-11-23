@@ -35,7 +35,7 @@ import Help from './Help.jsx';
 import UserGuide from './UserGuide.jsx';
 import SectionHelp from './SectionHelp.jsx';
 import SettingsSwitch from './SettingsSwitch.jsx';
-const defs=[['atm_transactions','ATM transaction journal','.csv'],['atm_cash','ATM cash count','.csv'],['atm_settlement','ATM network settlement','.csv'],['atm_gl','ATM GL balances','.csv'],['eftday','EFT core day totals','.txt'],['eftstar','STAR settlement','.txt'],['eftatm','ATM owner activity','.txt'],['eftrejects','EFT rejects','.txt'],['eftteller','Teller totals','.txt'],['eftgl','EFT GL detail','.pdf'],['gl','GL trial balance','.pdf,.txt'],['svst','Shares export','.txt'],['lnst','Loans export','.txt'],['cobd','Cash export','.txt'],['sdps','SDPS posting recap','.txt'],['sdre','SDRE processing report','.txt'],['sdrt','SDRT returns report','.txt'],['draftgl','Share Draft clearing GL detail','.pdf'],['account','Account reference (view only)','.csv']];
+const defs=[['ach_activity','ACH operator activity','.csv'],['ach_posting','ACH core postings','.csv'],['ach_settlement','ACH settlement','.csv'],['ach_gl','ACH GL movement','.csv'],['atm_transactions','ATM transaction journal','.csv'],['atm_cash','ATM cash count','.csv'],['atm_settlement','ATM network settlement','.csv'],['atm_gl','ATM GL balances','.csv'],['eftday','EFT core day totals','.txt'],['eftstar','STAR settlement','.txt'],['eftatm','ATM owner activity','.txt'],['eftrejects','EFT rejects','.txt'],['eftteller','Teller totals','.txt'],['eftgl','EFT GL detail','.pdf'],['gl','GL trial balance','.pdf,.txt'],['svst','Shares export','.txt'],['lnst','Loans export','.txt'],['cobd','Cash export','.txt'],['sdps','SDPS posting recap','.txt'],['sdre','SDRE processing report','.txt'],['sdrt','SDRT returns report','.txt'],['draftgl','Share Draft clearing GL detail','.pdf'],['account','Account reference (view only)','.csv']];
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
@@ -47,7 +47,7 @@ const sectionWelcome={
  drafts:{title:'Share Drafts',icon:'▤',instruction:'Select Settings → Folder Configuration to scan and load SDPS, SDRE and SDRT. Available files are checked automatically; GL posting verification is not included.',roles:['sdps','sdre','sdrt','draftgl'],required:['sdps','sdre','sdrt']},
  eft:{title:'EFT',icon:'⇄',instruction:'Select Settings → Folder Configuration to scan and load all six EFT sources. Source dates, institutions and totals are reviewed automatically; full EFT settlement-to-GL reconciliation is not yet implemented.',roles:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],required:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl']},
  atm:{title:'ATM Reconciliation',icon:'▣',instruction:'ATM source files load from the saved input folder and are checked automatically when all four required CSV reports are available. Use Settings → Folder Configuration to reconnect or rescan the folder.',roles:['atm_transactions','atm_cash','atm_settlement','atm_gl'],required:['atm_transactions','atm_cash','atm_settlement','atm_gl']},
- ach:{title:'ACH',icon:'≋',instruction:'ACH reconciliation is not yet implemented. Source definitions, transaction matching and settlement controls still require configuration.',roles:[],required:[]}
+ ach:{title:'ACH',icon:'≋',instruction:'Normalized ACH CSV reports are automatically detected and reconciled. Native DNA/XP2 exports are pending validation.',roles:['ach_activity','ach_posting','ach_settlement','ach_gl'],required:['ach_activity','ach_posting','ach_settlement','ach_gl']}
 };
 
 function App({account,onLogout,onPasswordChanged}){
@@ -66,6 +66,7 @@ function App({account,onLogout,onPasswordChanged}){
  const [coreSystem,setCoreSystem]=useState('xp2');
  const [eftResult,setEftResult]=useState(null);
  const [atmResult,setAtmResult]=useState(null);
+ const [achResult,setAchResult]=useState(null);
  const [unmapped,setUnmapped]=useState([]);
  const [draftResult,setDraftResult]=useState(null);
  const [master,setMaster]=useState(()=>getCoreMapping(coreSystem));
@@ -227,7 +228,7 @@ function App({account,onLogout,onPasswordChanged}){
     const {files:selected,duplicates:duplicateRoles,ignored}=selectUniqueSourceFiles(found);
     if(cancelled)return;
     setFiles(selected);
-    setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
+    setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);
     setStartupLoaded(true);
     const count=Object.keys(selected).length;
     const duplicates=duplicateRoles.size?' Duplicated report types skipped: '+[...duplicateRoles].join(', ')+'.':'';
@@ -244,14 +245,14 @@ function App({account,onLogout,onPasswordChanged}){
  useEffect(()=>{let active=true;setOutputFolder(null);setOutputFolderStatus('');getSetting(folderScope,'output-folder').then(async handle=>{if(!active||!handle||handle.kind!=='directory')return;setOutputFolder(handle);const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'prompt';if(active&&permission!=='granted')setOutputFolderStatus('Output folder saved; browser write permission may need renewal.');}).catch(e=>{if(active)setOutputFolderStatus('Output folder settings unavailable: '+e.message);});return()=>{active=false;};},[folderScope]);
  useEffect(()=>{forgetLegacyMapping().catch(()=>{});},[]);
  useEffect(()=>{if(page!=='settings'||!jumpToFolder)return;document.getElementById('folder-import')?.scrollIntoView({behavior:'smooth',block:'start'});setJumpToFolder(false);},[page,jumpToFolder]);
- useEffect(()=>{lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
+ useEffect(()=>{lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
  function changeCoreSystem(value){
   const selected=getCoreSystem(value);
   if(selected===coreSystem||busy||lock.current)return;
   if(Object.values(files).some(Boolean)||result||draftResult||eftResult||atmResult){if(!confirm('Switching core systems clears all loaded files and reconciliation results for this session. Continue?'))return;}
   setCoreSystem(selected);
   persistPreference('core-system',selected).catch(e=>setSettingsStatus('Settings save failed: '+e.message));
-  setMaster(getCoreMapping(selected));setFiles({});setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setReview(null);setApproved(false);setMappingOK(false);setNotes({});setUnmapped([]);setError('');setActivity([]);setCandidates([]);setDatesConfirmed(false);setReportView('summary');
+  setMaster(getCoreMapping(selected));setFiles({});setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);setReview(null);setApproved(false);setMappingOK(false);setNotes({});setUnmapped([]);setError('');setActivity([]);setCandidates([]);setDatesConfirmed(false);setReportView('summary');
  }
  function recordAction(action,outcome){setActivity(prev=>[{id:crypto.randomUUID(),timestamp:new Date().toISOString(),mode:'local',issues:outcome==='exception'?1:0,checks:0,action},...prev]);}
  const [modal,setModal]=useState(null),[expanded,setExpanded]=useState({}),[search,setSearch]=useState('');
@@ -261,7 +262,7 @@ function App({account,onLogout,onPasswordChanged}){
  useEffect(()=>{try{for(const storage of [localStorage,sessionStorage])for(const k of Object.keys(storage))if(k.startsWith('abacus-file-')||k.startsWith('var-note-'))storage.removeItem(k);}catch{}},[]);
  useEffect(()=>{if(modal)reviewDialog.current?.showModal();},[modal]);
  useEffect(()=>{setError('');},[page,approved,mappingOK]);
- function changeFile(key,file){if(lock.current)return;setError('');if(file&&key==='gl'&&['eftgl','draftgl'].includes(suggestRole(file.name))){setError('Wrong GL file selected: '+file.name+'. For Shares, Loans and Cash use GL_Trial_Balance_20261120.txt (or the consolidated trial balance); EFT_GL_Detail belongs under EFT, and ShareDrafts_GL_Detail belongs under Share Drafts.');return;}if(file){const ext=file.name.split('.').pop().toLowerCase();if(!file.size||file.size>10*1024*1024||!(key==='gl'?['pdf','txt']:key==='account'||key.startsWith('atm_')?['csv']:['draftgl','eftgl'].includes(key)?['pdf']:['txt']).includes(ext)){setError('Choose a nonempty supported file under 10 MB.');return;}}setFiles(p=>({...p,[key]:file||null}));if(key.startsWith('eft'))setEftResult(null);if(key.startsWith('atm_'))setAtmResult(null);if(['gl','sdps','sdre','sdrt','draftgl'].includes(key))setDraftResult(null);if(key==='gl'){setReview(null);setApproved(false);}if(['gl','svst','lnst','cobd'].includes(key)){setResult(previous=>{if(!previous||key==='gl')return null;const affected=key==='svst'?['shares','certs']:key==='lnst'?['loans']:['cash'];const sections=previous.sections.filter(s=>!affected.includes(s.id));return sections.length?{...previous,sections}:null;});setNotes({});}}
+ function changeFile(key,file){if(lock.current)return;setError('');if(file&&key==='gl'&&['eftgl','draftgl'].includes(suggestRole(file.name))){setError('Wrong GL file selected: '+file.name+'. For Shares, Loans and Cash use GL_Trial_Balance_20261120.txt (or the consolidated trial balance); EFT_GL_Detail belongs under EFT, and ShareDrafts_GL_Detail belongs under Share Drafts.');return;}if(file){const ext=file.name.split('.').pop().toLowerCase();if(!file.size||file.size>10*1024*1024||!(key==='gl'?['pdf','txt']:key==='account'||key.startsWith('atm_')?['csv']:['draftgl','eftgl'].includes(key)?['pdf']:['txt']).includes(ext)){setError('Choose a nonempty supported file under 10 MB.');return;}}setFiles(p=>({...p,[key]:file||null}));if(key.startsWith('eft'))setEftResult(null);if(key.startsWith('atm_'))setAtmResult(null);if(key.startsWith('ach_'))setAchResult(null);if(['gl','sdps','sdre','sdrt','draftgl'].includes(key))setDraftResult(null);if(key==='gl'){setReview(null);setApproved(false);}if(['gl','svst','lnst','cobd'].includes(key)){setResult(previous=>{if(!previous||key==='gl')return null;const affected=key==='svst'?['shares','certs']:key==='lnst'?['loans']:['cash'];const sections=previous.sections.filter(s=>!affected.includes(s.id));return sections.length?{...previous,sections}:null;});setNotes({});}}
  async function setConvention(value){
   if(signSaving||!settingsReady||!Object.hasOwn(GL_SIGN_CONVENTIONS,value)||value===sign)return;
   const previous=sign;
@@ -391,7 +392,7 @@ function App({account,onLogout,onPasswordChanged}){
     if(skippedDeepFolders)setFolderStatus(previous=>previous+' '+skippedDeepFolders+' deeper subfolder(s) were skipped (scan limit: three levels). If a needed report is in one of those folders, choose its parent folder directly.');
   }catch(e){setCandidates([]);setFolderStatus((e?.name==='NotAllowedError'||e?.name==='SecurityError'?'Browser blocked folder access. Click Choose input folder and select it again. If you use Safari, folder access must be selected again each session. ':'Folder scan stopped: ')+e.message);}
  }
- function importCandidates(){if(coreSystem!=='xp2'){setFolderStatus(CORE_SYSTEMS[coreSystem].label+' report adapters are not validated. Import is disabled until source specifications and parsers are approved.');return;}const chosen=candidates.filter(c=>c.role);if(candidates.some(c=>c.status==='ambiguous'&&!c.role)){setFolderStatus('Some file names match multiple roles. Review them before importing.');return;}if(!chosen.length){setFolderStatus('No recognized report files selected.');return;}const roles=chosen.map(c=>c.role);if(new Set(roles).size!==roles.length){setFolderStatus('Choose only one file per role. Duplicate roles must be resolved.');return;}if(chosen.some(c=>!c.file.size||c.file.size>10*1024*1024||!(c.role==='gl'?/\.(pdf|txt)$/i:c.role==='account'||c.role.startsWith('atm_')?/\.csv$/i:['draftgl','eftgl'].includes(c.role)?/\.pdf$/i:/\.txt$/i).test(c.file.name))){setFolderStatus('Unsupported file type or size. Files must be nonempty and under 10 MB.');return;}for(const c of chosen)changeFile(c.role,c.file);setFolderStatus('Selected files loaded. Review the shared GL and run the selected workspace.');}
+ function importCandidates(){if(coreSystem!=='xp2'){setFolderStatus(CORE_SYSTEMS[coreSystem].label+' report adapters are not validated. Import is disabled until source specifications and parsers are approved.');return;}const chosen=candidates.filter(c=>c.role);if(candidates.some(c=>c.status==='ambiguous'&&!c.role)){setFolderStatus('Some file names match multiple roles. Review them before importing.');return;}if(!chosen.length){setFolderStatus('No recognized report files selected.');return;}const roles=chosen.map(c=>c.role);if(new Set(roles).size!==roles.length){setFolderStatus('Choose only one file per role. Duplicate roles must be resolved.');return;}if(chosen.some(c=>!c.file.size||c.file.size>10*1024*1024||!(c.role==='gl'?/\.(pdf|txt)$/i:c.role==='account'||c.role.startsWith('atm_')||c.role.startsWith('ach_')?/\.csv$/i:['draftgl','eftgl'].includes(c.role)?/\.pdf$/i:/\.txt$/i).test(c.file.name))){setFolderStatus('Unsupported file type or size. Files must be nonempty and under 10 MB.');return;}for(const c of chosen)changeFile(c.role,c.file);setFolderStatus('Selected files loaded. Review the shared GL and run the selected workspace.');}
  async function viewGL(){
   if(!files.gl)return;
   if(lock.current)return;
@@ -413,7 +414,7 @@ function App({account,onLogout,onPasswordChanged}){
  const sections=selectSections(displaySections,page).map(s=>({...s,rows:page==='overview'?s.rows.filter(r=>r.executed):s.rows})).filter(s=>s.rows.length);
  const title=navigation.find(n=>n[2]===page)[1];
  const balancing=['shares-loans','cash','exceptions'].includes(page);
- const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult);
+ const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult||achResult);
  const rows=sections.flatMap(s=>s.rows).filter(r=>!r.branchOnly&&r.executed);
  return <div className="app"><aside><a className="brand" href="#overview" onClick={e=>{e.preventDefault();navigateSection('overview');}}><img src="/cu-abacus-logo.png" alt="CU | ABACUS" className="abacus-brand-logo" /></a><div className="abacus-sidebar-subtitle">RECONCILIATION</div><nav aria-label="Main navigation">{sidebarNavigation.filter(([, ,id])=>id!=='platform'&&id!=='platform-activity'||(account.role==='admin'&&(id==='platform'||account.isPlatformOwner===true))).map(([group,label,id])=><React.Fragment key={id}>{group&&<div className="side-label">{group}</div>}<button aria-current={page===id?'page':undefined} className={page===id?'nav-item nav-current':'nav-item'} onClick={()=>navigateSection(id)}>{label}</button>{page===id&&sourceRoles[id]&&(folderConnection==='missing'||folderConnection==='reconnect')&&<div className="nav-files">
  <p>{folderConnection==='reconnect'?'Saved input folder needs permission. Reconnect it in Settings.':coreIngestion(coreSystem).adapter?'No input folder configured for this credit union.':'Source adapter pending for '+CORE_SYSTEMS[coreSystem].label+'.'}</p>
@@ -425,11 +426,12 @@ function App({account,onLogout,onPasswordChanged}){
  {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
   {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
   {['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'].every(role=>files[role])&&!eftResult&&<EFT files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}} autoRun readOnly/>}
+  {['ach_activity','ach_posting','ach_settlement','ach_gl'].every(role=>files[role])&&!achResult&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
   {['atm_transactions','atm_cash','atm_settlement','atm_gl'].every(role=>files[role])&&!atmResult&&<ATM files={files} aiEnabled={false} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}} autoRun/>}
  </div>}
  {['shares-loans','cash','drafts','eft','atm','ach'].includes(page)&&<div className="reconciliation-page-header">
   <h1>{({ 'shares-loans':'Shares, Loans and Cash Reconciliation',cash:'Cash Reconciliation',drafts:'Share Draft Reconciliation',eft:'EFT Reconciliation',atm:'ATM Reconciliation',ach:'ACH Reconciliation' })[page]}</h1>
-  <p>{page==='ach'?'DNA-reference ACH prototype: load the four ABACUS-normalized CSV sources below. Native DNA and XP2 exports remain unverified.':'Reconciliation is calculated automatically when recognized source files are loaded. Review exceptions and evidence below.'}</p>
+  <p>{page==='ach'?'ACH runs automatically after the four normalized CSV sources are found in the saved input folder. Native DNA/XP2 exports remain unverified.':'Reconciliation is calculated automatically when recognized source files are loaded. Review exceptions and evidence below.'}</p>
  </div>}
  {coreSystem!=='xp2'&&['shares-loans','cash','drafts','eft','atm'].includes(page)&&<section className="folder-settings" role="status"><h2>{CORE_SYSTEMS[coreSystem].label} source adapter pending</h2><p>File counts, report layouts, account mappings and reconciliation controls have not been verified for this core. XP2 parsing is not used as a substitute; reconciliation is blocked until vendor-specific evidence is validated.</p><button type="button" onClick={()=>setPage('settings')}>Review source setup</button></section>}{page==='help'&&<Help/>}{page==='platform-activity'&&account.role==='admin'&&account.isPlatformOwner===true&&<PlatformActivity/>}{page==='overview'&&folderConnection!=='checking'&&folderConnection!=='ready'&&<section className="folder-settings" role="status" aria-label="Reconciliation folder setup needed" style={{marginBottom:16,borderLeft:'4px solid #b37b24'}}>
   <h2>{folderConnection==='reconnect'?'Reconciliation folder needs access':'Reconciliation folder not set up'}</h2>
@@ -461,13 +463,13 @@ function App({account,onLogout,onPasswordChanged}){
 
  {sectionWelcome[page]&&page!=='atm'&&(page==='ach'||coreSystem==='xp2')&&!(page==='drafts'&&draftResult)&&!(page==='eft'&&eftResult)&&<section className="run-welcome module-welcome" aria-label={sectionWelcome[page].title+' source status'}>
  <div className="run-welcome-icon" aria-hidden="true">{sectionWelcome[page].icon}</div>
- <h2>{page==='ach'?'ACH — setup pending':page==='atm'?'ATM source checks':sectionWelcome[page].required.every(role=>files[role])?'Source files selected — '+sectionWelcome[page].title:'Source files needed — '+sectionWelcome[page].title}</h2>
+ <h2>{page==='ach'?sectionWelcome[page].required.every(role=>files[role])?'ACH source files loaded':'ACH source files needed':page==='atm'?'ATM source checks':sectionWelcome[page].required.every(role=>files[role])?'Source files selected — '+sectionWelcome[page].title:'Source files needed — '+sectionWelcome[page].title}</h2>
  <p>{sectionWelcome[page].instruction}</p>
  <div className="source-section-list"><section className="source-section-card"><h3>{sectionWelcome[page].title}</h3>
  {sectionWelcome[page].roles.length?<ul>{sectionWelcome[page].roles.map(role=><li key={role}><span>{defs.find(item=>item[0]===role)?.[1]||role}{role==='draftgl'?' (optional)':''}</span><span className={files[role]?'source-loaded':'source-missing'}>{files[role]?'Selected: '+files[role].name:'Not selected'}</span></li>)}</ul>:<p>Source formats and controls pending setup. No ACH balancing results are generated.</p>}
  </section></div></section>}
  {['shares-loans','cash','drafts','eft','ach'].includes(page)&&<ProcessAssistant module={page} report={page==='drafts'?draftResult:page==='eft'?eftResult:page==='ach'?null:visibleRun} enabled={aiEnabled}/>}
- {page==='ach'&&<ACH/>}
+ {page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
   {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
  
