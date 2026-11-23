@@ -75,28 +75,28 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
   const exceptions=report?.checks.filter(c=>!c.ok).length||0;
   function ask(text){const q=String(text||'').trim();if(!q)return;setChat(prev=>[...prev,{question:q,answer:answerAtmQuestion(q,report)}]);setQuestion('');}
   return <section className="folder-settings atm-workspace">
-    {!report&&!error&&<p className="atm-source-readiness" role="status">{ready?(busy?'Validating ATM source files…':'ATM sources loaded. Validating reconciliation controls.'):'Waiting for ATM source files from the saved input folder. Configure or scan the folder under Settings → Folder Configuration. All four ATM CSV reports are required.'}</p>}
+    {!report&&!error&&<p className="atm-source-readiness" role="status">{ready?(busy?'Validating ATM source files…':'ATM sources loaded. Validating balancing controls.'):'Waiting for ATM source files from the saved input folder. Configure or scan the folder under Settings → Folder Configuration. All four ATM CSV reports are required.'}</p>}
     
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
-      <div className="draft-report-title"><h2>ATM Reconciliation — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
+      <div className="draft-report-title"><h2>ATM Balancing — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
       <p>Business date: {report.date} · {report.approvedCount} approved withdrawals · Cash dispensed: <strong>{money(report.dispensed)}</strong></p>
       <div className="atm-stats">
         {[['Expected ATM cash',report.expected],['Physical cash',report.counted],['GL ATM cash',report.glCash],['Net settlement',report.settled]].map(([label,value])=><div className="atm-stat" key={label}><small>{label}</small><strong>{money(value)}</strong></div>)}
       </div>
-      <h3>Reconciliation controls</h3>
+      <h3>Balancing controls</h3>
       <div className="table-scroll"><table><thead><tr><th>CONTROL</th><th>EXPECTED</th><th>ACTUAL</th><th>VARIANCE</th><th>STATUS</th></tr></thead><tbody>{report.checks.map(check=><tr key={check.name} className={check.ok?'':'exception'}><td>{check.name}</td><td>{money(check.source)}</td><td>{money(check.actual)}</td><td>{money(check.variance)}</td><td>{check.ok?'Balanced':'Exception'}</td></tr>)}</tbody></table></div>
       <h3>Cash proof</h3><p>Beginning {money(report.beginning)} + replenishments {money(report.loaded)} − cash removed {money(report.removed)} − approved withdrawals {money(report.dispensed)} = expected {money(report.expected)}.</p>
       <button type="button" onClick={()=>setDetail(v=>!v)}>{detail?'Hide':'Show'} transaction detail</button>
       {detail&&<div className="table-scroll"><table><thead><tr><th>TRACE</th><th>TYPE</th><th>STATUS</th><th>DISPENSED</th></tr></thead><tbody>{report.tx.map(t=><tr key={t.trace_id}><td>{t.trace_id}</td><td>{t.type}</td><td>{t.status}</td><td>{money(amount(t,'cash_dispensed'))}</td></tr>)}</tbody></table></div>}
-      {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this reconciliation. Review the ATM GL clearing account and actual network settlement source files.</p>}
-      <p><small>Files remain in this browser session. ATM reconciliation uses the ATM-specific GL CSV, not the credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
+      {exceptions>0&&<p className="error" role="status">Investigate discrepancies before posting or certifying this balancing. Review the ATM GL clearing account and actual network settlement source files.</p>}
+      <p><small>Files remain in this browser session. ATM balancing uses the ATM-specific GL CSV, not the credit union trial-balance parser. Production mappings, fees, cutoff timing, journal corrections, and multi-terminal accounting require vendor-specific validation.</small></p>
     </article>}
     {aiEnabled&&<div className="atm-assistant-dock">
       <button type="button" className="atm-chat-launcher" aria-label={chatOpen?'Close Ask the System':'Open Ask the System'} title={chatOpen?'Close Ask the System':'Ask the System'} aria-expanded={chatOpen} aria-controls="atm-chat-window" onClick={()=>setChatOpen(open=>!open)}><svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.1 9.1 0 0 1-4-.9L3 20l1.1-4.3A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg></button>
       {chatOpen&&<section id="atm-chat-window" className="atm-investigation atm-chat-window" aria-label="ATM investigation chat">
       <div className="atm-chat-header"><h3>Ask the System</h3><button type="button" aria-label="Close ATM assistant" onClick={()=>setChatOpen(false)}>✕</button></div>
-      <p className="atm-chat-subtitle">ATM Reconciliation · Local rules-based assistant</p>
+      <p className="atm-chat-subtitle">ATM Balancing · Local rules-based assistant</p>
       <p className="atm-chat-disclosure">Answers use this browser's current ATM report only. Enterprise AI is not connected. No data is sent to an AI service.</p>
       {!report&&<p role="status">No ATM report yet. Reconnect or scan the input folder under Settings → Folder Configuration. All four ATM source CSV files are required.</p>}
       <div className="atm-chat-suggestions">
