@@ -17,7 +17,7 @@ import ShareDrafts from './ShareDrafts.jsx';
 import EFT from './EFT.jsx';
 import ATM from './ATM.jsx';
 import ACH from './ACH.jsx';
-import {saveAchReportToFolder} from './ach-report-pdf.mjs';
+import {saveConsolidatedPdf,isConsolidatedReady} from './consolidated-report-pdf.mjs';
 import ProcessAssistant from './ProcessAssistant.jsx';
 import {sourceRoles,selectSections,requiredRoles,suggestRole,loadedRunRoles} from './workspaces.mjs';
 import {coreIngestion,classifyCoreFiles,sourceCoverage} from './core-ingestion-profiles.mjs';
@@ -68,8 +68,8 @@ function App({account,onLogout,onPasswordChanged}){
  const [eftResult,setEftResult]=useState(null);
  const [atmResult,setAtmResult]=useState(null);
  const [achResult,setAchResult]=useState(null);
- const [achPdfStatus,setAchPdfStatus]=useState('');
- const lastSavedAchRef=useRef(null);
+ const [consolidatedPdfStatus,setConsolidatedPdfStatus]=useState('');
+ const lastSavedConsolidatedRef=useRef(null);
  const [unmapped,setUnmapped]=useState([]);
  const [draftResult,setDraftResult]=useState(null);
  const [master,setMaster]=useState(()=>getCoreMapping(coreSystem));
@@ -248,25 +248,29 @@ function App({account,onLogout,onPasswordChanged}){
  useEffect(()=>{let active=true;setOutputFolder(null);setOutputFolderStatus('');getSetting(folderScope,'output-folder').then(async handle=>{if(!active||!handle||handle.kind!=='directory')return;setOutputFolder(handle);const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'prompt';if(active&&permission!=='granted')setOutputFolderStatus('Output folder saved; browser write permission may need renewal.');}).catch(e=>{if(active)setOutputFolderStatus('Output folder settings unavailable: '+e.message);});return()=>{active=false;};},[folderScope]);
  useEffect(()=>{
   let active=true;
-  if(!achResult){setAchPdfStatus('');return()=>{active=false;};}
-  if(achResult.tenantId!==activeCU)return()=>{active=false;};
-  if(!outputFolder){setAchPdfStatus('ACH finished; PDF not saved. Choose an output folder under Settings.');return()=>{active=false;};}
-  if(lastSavedAchRef.current===achResult)return()=>{active=false;};
-  setAchPdfStatus('Saving ACH reconciliation PDF to the selected output folder…');
+  const snapshot={files,result,draftResult,eftResult,atmResult,achResult};
+  if(!isConsolidatedReady(snapshot)||busy||!activeCU||!settingsReady){
+   if(!result&&!draftResult&&!eftResult&&!atmResult&&!achResult)setConsolidatedPdfStatus('');
+   return()=>{active=false;};
+  }
+  // A report is emitted only once per completed set of source files and module results.
+  const signature=[activeCU,coreSystem,sign,files,result,draftResult,eftResult,atmResult,achResult,outputFolder];
+  if(lastSavedConsolidatedRef.current?.every((part,i)=>part===signature[i]))return()=>{active=false;};
+  if(!outputFolder){setConsolidatedPdfStatus('Balancing finished, but PDF not saved: choose an output folder in Settings.');return()=>{active=false;};}
+  setConsolidatedPdfStatus('Saving consolidated reconciliation PDF to the output folder…');
   (async()=>{
    try{
-    const filename=await saveAchReportToFolder(outputFolder,{
-     report:achResult,
-     creditUnion:unions.find(u=>u.id===activeCU)?.name||cuName,
-     coreSystem,
-     generatedAt:new Date()
+    const filename=await saveConsolidatedPdf(outputFolder,{
+     ...snapshot,creditUnion:unions.find(u=>u.id===activeCU)?.name||cuName,
+     coreSystem,generatedAt:new Date()
     });
-    lastSavedAchRef.current=achResult;
-    if(active)setAchPdfStatus('ACH PDF saved to output folder: '+filename);
-   }catch(e){if(active)setAchPdfStatus('ACH completed but PDF was NOT saved: '+e.message);}
+    if(!active)return;
+    lastSavedConsolidatedRef.current=signature;
+    setConsolidatedPdfStatus('Consolidated PDF saved to output folder: '+filename);
+   }catch(e){if(active)setConsolidatedPdfStatus('Reconciliation completed, but PDF NOT saved: '+e.message);}
   })();
   return()=>{active=false;};
- },[achResult,outputFolder,activeCU,coreSystem]);
+ },[files,result,draftResult,eftResult,atmResult,achResult,outputFolder,activeCU,coreSystem,sign,settingsReady,busy]);
  useEffect(()=>{forgetLegacyMapping().catch(()=>{});},[]);
  useEffect(()=>{if(page!=='settings'||!jumpToFolder)return;document.getElementById('folder-import')?.scrollIntoView({behavior:'smooth',block:'start'});setJumpToFolder(false);},[page,jumpToFolder]);
  useEffect(()=>{lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
@@ -376,7 +380,7 @@ function App({account,onLogout,onPasswordChanged}){
    const handle=await window.showDirectoryPicker({mode:'readwrite'});
    if(!handle||handle.kind!=='directory')return;
    // Permission is requested by the browser and scoped to this user's device.
-   setOutputFolder(handle);setOutputFolderStatus('Output folder selected. ACH reconciliation PDFs will be saved here when write permission is granted.');
+   setOutputFolder(handle);setOutputFolderStatus('Output folder selected. Completed reconciliation runs will produce one consolidated PDF when write permission is granted.');
    try{await saveSetting(folderScope,'output-folder',handle);}catch(e){setOutputFolderStatus('Output folder selected for this session, but could not be remembered: '+e.message);}
   }catch(e){if(e.name!=='AbortError')setOutputFolderStatus('Output folder selection failed: '+e.message);}
  }
@@ -493,14 +497,14 @@ function App({account,onLogout,onPasswordChanged}){
  {sectionWelcome[page].roles.length?<ul>{sectionWelcome[page].roles.map(role=><li key={role}><span>{defs.find(item=>item[0]===role)?.[1]||role}{role==='draftgl'?' (optional)':''}</span><span className={files[role]?'source-loaded':'source-missing'}>{files[role]?'Selected: '+files[role].name:'Not selected'}</span></li>)}</ul>:<p>Source formats and controls pending setup. No ACH balancing results are generated.</p>}
  </section></div></section>}
  {['shares-loans','cash','drafts','eft','ach'].includes(page)&&<ProcessAssistant module={page} report={page==='drafts'?draftResult:page==='eft'?eftResult:page==='ach'?null:visibleRun} enabled={aiEnabled}/>}
- {page==='ach'&&achPdfStatus&&<p role="status" className="folder-inline-status">{achPdfStatus}</p>}
+ {consolidatedPdfStatus&&['overview','ach','settings'].includes(page)&&<p role="status" className="folder-inline-status">{consolidatedPdfStatus}</p>}
  {page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value?{...value,tenantId:activeCU}:null);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
   {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
  
  {page==='drafts'&&coreSystem==='xp2'&&<ShareDrafts autoRun files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}}/>}
  {page==='settings'&&<section id="folder-import" aria-label="Folder import &amp; file coverage" className="folder-settings" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)stageFiles(e.dataTransfer.files);}}>
- <div className="section-title-help"><h2>Folder Configuration</h2><SectionHelp title="Folder Configuration"><p>Input folder: Abacus scans reports from the selected folder on this browser/device. Choose a folder or use Scan to refresh file discovery.</p><p>Output folder: ACH PDF reports are automatically written here after ACH balancing finishes, provided browser write permission remains granted. Other report exports and imaging integrations remain pending.</p><p>The browser stores folder access for this user and credit union when permitted. The server stores the input folder's display name only. Folder paths, raw files and output credentials are not uploaded.</p><p>The clear icons remove stored folder selections; they never delete the underlying folders or documents.</p></SectionHelp></div>
+ <div className="section-title-help"><h2>Folder Configuration</h2><SectionHelp title="Folder Configuration"><p>Input folder: Abacus scans reports from the selected folder on this browser/device. Choose a folder or use Scan to refresh file discovery.</p><p>Output folder: one consolidated PDF covering all completed ABACUS reconciliation sections is saved after automatic processing completes, when browser write permission is granted. Incomplete modules are explicitly marked not run. Other report exports and imaging integrations remain pending.</p><p>The browser stores folder access for this user and credit union when permitted. The server stores the input folder's display name only. Folder paths, raw files and output credentials are not uploaded.</p><p>The clear icons remove stored folder selections; they never delete the underlying folders or documents.</p></SectionHelp></div>
  <div className="folder-config-grid">
   <div className="folder-config-field">
    <label htmlFor="abacus-input-folder">Input Folder</label>
