@@ -44,7 +44,7 @@ function download(name,content,type){const u=URL.createObjectURL(new Blob([conte
 
 const navigation=[['','Overview','overview'],['BALANCING','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['','Shares, Loans and Cash','shares-loans'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Activity Log','platform-activity'],['','Balancing History','history'],['','Exceptions','exceptions'],['','Cash','cash'],['','Audit','audit']];
 // Keep dashboard destinations registered while hiding their sidebar entries.
-const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit'].includes(id));
+const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit','cash'].includes(id));
 const sectionWelcome={
  drafts:{title:'Share Drafts',icon:'▤',instruction:'Select Settings → Folder Configuration to scan and load SDPS, SDRE and SDRT. Available files are checked automatically; GL posting verification is not included.',roles:['sdps','sdre','sdrt','draftgl'],required:['sdps','sdre','sdrt']},
  eft:{title:'EFT',icon:'⇄',instruction:'Select Settings → Folder Configuration to scan and load all six EFT sources. Source dates, institutions and totals are reviewed automatically; full EFT settlement-to-GL reconciliation is not yet implemented.',roles:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],required:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl']},
