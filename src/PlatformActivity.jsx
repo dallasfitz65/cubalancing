@@ -28,7 +28,7 @@ export default function PlatformActivity(){
  },[filters.tenantId,filters.userId,filters.kind,filters.after]);
  const change=(key,value)=>setFilters(old=>({...old,[key]:value}));
  return <section className="folder-settings">
- <h2>Platform Activity Log — All Credit Unions</h2>
+ <h2>Activity Log — All Credit Unions</h2>
  <p>Platform owner oversight of authenticated user actions and saved reconciliation runs across all institutions. Financial source files, member identifiers, GL balances and source-file hashes are not shown.</p>
  <div className="abacus-audit-filters">
   <label>Credit union<select value={filters.tenantId} onChange={e=>change('tenantId',e.target.value)}>
