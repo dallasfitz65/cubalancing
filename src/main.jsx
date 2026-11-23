@@ -42,7 +42,7 @@ const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 
-const navigation=[['','Overview','overview'],['BALANCING','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['','Shares, Loans and Cash','shares-loans'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Activity Log','platform-activity']];
+const navigation=[['','Overview','overview'],['BALANCING','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['','Shares, Loans and Cash','shares-loans'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Activity Log','platform-activity'],['','Balancing History','history'],['','Exceptions','exceptions'],['','Cash','cash'],['','Audit','audit']];
 // Keep dashboard destinations registered while hiding their sidebar entries.
 const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit'].includes(id));
 const sectionWelcome={
@@ -437,7 +437,7 @@ function App({account,onLogout,onPasswordChanged}){
  const glSourceAudit=result?.meta?.records?.length?Object.fromEntries(result.meta.records.map(record=>[record.account,{raw:record.rawBalance,parsed:record.cents/100,adjusted:normalizeGL({records:[record]},sign)[record.account]}])):null;
  const displaySections=coreSystem==='xp2'?buildMappedSections(master.entries,{}, {}, {}, {branches:[],total:0},'overview').map(s=>({...s,rows:s.id==='cash'&&visibleRun?.sections.some(x=>x.id==='cash')?visibleRun.sections.find(x=>x.id==='cash').rows:s.rows.map(r=>visibleRun?.sections.find(x=>x.id===s.id)?.rows.find(x=>x.gl===r.gl&&x.desc===r.desc)||r)})):[];
  const sections=selectSections(displaySections,page).map(s=>({...s,rows:page==='overview'?s.rows.filter(r=>r.executed):s.rows})).filter(s=>s.rows.length);
- const title=navigation.find(n=>n[2]===page)[1];
+ const title=navigation.find(n=>n[2]===page)?.[1]||'ABACUS Balancing';
  const balancing=['shares-loans','cash','exceptions'].includes(page);
  const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult||achResult);
  const rows=sections.flatMap(s=>s.rows).filter(r=>!r.branchOnly&&r.executed);
