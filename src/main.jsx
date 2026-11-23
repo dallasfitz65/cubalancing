@@ -41,7 +41,7 @@ const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 
-const navigation=[['','Overview','overview'],['BALANCING','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['','Shares, Loans and Cash','shares-loans'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Platform Activity Log','platform-activity']];
+const navigation=[['','Overview','overview'],['BALANCING','Share Drafts','drafts'],['','EFT','eft'],['','ATM Balancing','atm'],['','ACH','ach'],['','Shares, Loans and Cash','shares-loans'],['SETUP','Settings','settings'],['','Help & Rules','help'],['ADMIN','Platform','platform'],['','Activity Log','platform-activity']];
 // Keep dashboard destinations registered while hiding their sidebar entries.
 const sidebarNavigation=navigation.filter(([, ,id])=>!['exceptions','history','audit'].includes(id));
 const sectionWelcome={
