@@ -1,12 +1,21 @@
-import React,{useState} from 'react';
+import React,{useState,useEffect,useRef} from 'react';
 import {ACH_FILES,parseAchFile,reconcileACH} from './ach-reconciliation.mjs';
 
 const money=v=>(v/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
-export default function ACH(){
- const [files,setFiles]=useState({}),[report,setReport]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+export default function ACH({files={},report=null,onReport=()=>{},autoRun=true}){
+ const [error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const lastFiles=useRef(null);
  const names=Object.keys(ACH_FILES);
+ const ready=names.every(k=>Boolean(files[k]));
+ useEffect(()=>{
+  if(!autoRun||!ready||busy)return;
+  const current=names.map(k=>files[k]);
+  if(lastFiles.current?.every((f,i)=>f===current[i]))return;
+  lastFiles.current=current;
+  run();
+ },[autoRun,ready,files.activity,files.posting,files.settlement,files.gl]);
  async function run(){
-  setBusy(true);setError('');setReport(null);
+  setBusy(true);setError('');onReport(null);
   try{
    if(names.some(k=>!files[k]))throw Error('Load all four ACH CSV reports.');
    const inputs={};
@@ -14,22 +23,15 @@ export default function ACH(){
     if(files[k].size>10*1024*1024)throw Error(ACH_FILES[k].title+' exceeds 10 MB.');
     inputs[k]=parseAchFile(k,await files[k].text());
    }
-   setReport(reconcileACH(inputs));
+   onReport(reconcileACH(inputs));
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <section className="folder-settings" aria-label="ACH reconciliation prototype">
   <h2>ACH Balancing — Fiserv DNA reference model</h2>
   <p><strong>Prototype only:</strong> These are ABACUS-normalized CSV extracts, not confirmed native DNA or XP2 files. The processing date, trace ID, debit/credit direction and amount must be supplied using the column names below. A DNA-to-ABACUS adapter will be required after reviewing actual DNA files.</p>
   <p>Inputs and results remain in browser memory. This module does not change the selected core system or certify ACH settlement.</p>
-  <div className="source-section-list">
-  {names.map(k=><div key={k} className="source-section-card">
-   <h3>{ACH_FILES[k].title}</h3>
-   <p>CSV columns: <code>{ACH_FILES[k].columns}</code></p>
-   <input type="file" accept=".csv,text/csv" aria-label={ACH_FILES[k].title} onChange={e=>{setFiles(v=>({...v,[k]:e.target.files?.[0]||null}));setReport(null);setError('');}}/>
-   {files[k]&&<small>Selected: {files[k].name}</small>}
-  </div>)}
-  </div>
-  <button type="button" className="primary" disabled={busy||names.some(k=>!files[k])} onClick={run}>{busy?'Reconciling…':'Run ACH balancing'}</button>
+  <p role="status">{busy?'ACH reconciliation running automatically…':report?'ACH reconciliation completed automatically.':ready?'ACH files detected. Checking reconciliation…':'Waiting for the four ACH files in the saved input folder. No manual Run Balancing button is required.'}</p>
+  <p>Required source files: {names.map(k=>ACH_FILES[k].title+': '+(files[k]?.name||'Missing')).join(' · ')}</p>
   {error&&<p role="alert" className="error">{error}</p>}
   {report&&<article className="draft-report">
    <h3>ACH reconciliation results</h3>
