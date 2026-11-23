@@ -24,7 +24,7 @@ export async function createHandler(req,{database=getDatabase}={}){
   const tenantId=params.get('tenantId')||'',userId=params.get('userId')||'',kind=params.get('kind')||'',after=params.get('after')||'';
   if(tenantId&&!uuid.test(tenantId))return response({error:'Invalid credit union filter'},400);
   if(userId&&!/^[0-9]{1,20}$/.test(userId))return response({error:'Invalid user filter'},400);
-  if(kind&&!['login','logout','user_created','user_disabled','user_enabled','user_deleted','tenant_created','user_assigned','platform_role_changed','setting_saved','mapping_saved','reconciliation'].includes(kind))return response({error:'Invalid activity filter'},400);
+  if(kind&&!['login','logout','user_created','user_disabled','user_enabled','user_deleted','tenant_created','user_assigned','platform_role_changed','password_changed','setting_saved','mapping_saved','reconciliation'].includes(kind))return response({error:'Invalid activity filter'},400);
   if(after&&(!/^\d{4}-\d{2}-\d{2}$/.test(after)||!Number.isFinite(Date.parse(after))))return response({error:'Invalid date filter'},400);
   await client.query('BEGIN');tx=true;
   await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
