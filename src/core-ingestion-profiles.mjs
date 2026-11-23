@@ -7,7 +7,7 @@ const xp2Roles=frozen({
  drafts:['gl','sdps','sdre','sdrt','draftgl'],
  eft:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],
  atm:['atm_transactions','atm_cash','atm_settlement','atm_gl'],
- ach:['gl']
+ ach:['ach_activity','ach_posting','ach_settlement','ach_gl']
 });
 const xp2Known={
  gl:{label:'GL trial balance',extensions:['pdf','txt'],patterns:[/(?:^|[^a-z])gl[_ -]?(?:trial|balance)/i,/trial[_ -]?balance/i]},
@@ -28,6 +28,10 @@ const xp2Known={
  atm_cash:{label:'ATM cash count',extensions:['csv'],patterns:[/atm.?cash.?count/i]},
  atm_settlement:{label:'ATM settlement',extensions:['csv'],patterns:[/atm.?settlement/i]},
  atm_gl:{label:'ATM GL balances',extensions:['csv'],patterns:[/atm.?gl/i]},
+ ach_activity:{label:'ACH operator activity',extensions:['csv'],patterns:[/(?:^|[_. -])ach[_ .-]?activity(?:[_. -]|$)/i]},
+ ach_posting:{label:'ACH core posting',extensions:['csv'],patterns:[/(?:^|[_. -])ach[_ .-]?posting(?:[_. -]|$)/i]},
+ ach_settlement:{label:'ACH settlement',extensions:['csv'],patterns:[/(?:^|[_. -])ach[_ .-]?settlement(?:[_. -]|$)/i]},
+ ach_gl:{label:'ACH GL movement',extensions:['csv'],patterns:[/(?:^|[_. -])ach[_ .-]?gl(?:[_. -]|$)/i]},
  account:{label:'Account reference',extensions:['csv'],patterns:[/account.?reference/i]}
 };
 export const CORE_INGESTION_PROFILES=frozen({
