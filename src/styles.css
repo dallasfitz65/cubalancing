@@ -437,3 +437,12 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .reconciliation-page-header + .atm-workspace{padding-top:12px;margin-top:0}
 .atm-workspace .draft-report-title{margin:0 0 14px}
 .atm-workspace .draft-report-title h2{margin:0;font-size:20px;line-height:1.25}
+
+/* Accessible in-app password change dialog. */
+.password-change-overlay{position:fixed;inset:0;z-index:1000;background:rgba(9,26,42,.55);display:flex;align-items:center;justify-content:center;padding:18px}
+.password-change-dialog{width:min(440px,100%);max-height:90vh;overflow-y:auto;background:#fff;color:#152f46;border-radius:12px;border:1px solid #dae4ed;padding:24px;box-shadow:0 16px 48px rgba(12,31,45,.3)}
+.password-change-dialog form{display:grid;gap:10px}
+.password-change-dialog label{font-weight:600;margin-top:6px}
+.password-change-dialog input{width:100%;padding:10px;border:1px solid #a7bdcb;border-radius:7px;box-sizing:border-box}
+.password-change-dialog p{font-size:13px;line-height:1.5}
+@media(max-width:600px){.password-change-dialog{padding:18px}}

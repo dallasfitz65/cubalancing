@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createHandler} from '../netlify/functions/auth.mjs';
 const token='a'.repeat(64),cu='eeeeeeee-1111-4111-8111-111111111111';
-function fixture({missing=false,membershipFails=false}={}){
+function fixture({missing=false,membershipFails=false,authorized=true}={}){
  const queries=[];
  const client={release(){},query:async(sql,args=[])=>{
   queries.push({sql,args});
   if(sql.startsWith('SELECT u.id,u.username,u.role,u.active'))return {rows:[{id:1,username:'owner',role:'admin',active:true}]};
   if(sql.startsWith('SELECT id,name FROM abacus_credit_unions'))return {rows:missing?[]:[{id:cu,name:'Test Credit Union'}]};
+  if(sql.includes("FROM abacus_user_credit_unions WHERE user_id=$1 AND credit_union_id=$2 AND role='admin'"))return {rows:authorized?[{role:'admin'}]:[]};
   if(sql.startsWith('INSERT INTO abacus_users'))return {rows:[{id:33,username:args[0],role:args[2],active:true}]};
   if(sql.startsWith('INSERT INTO abacus_user_credit_unions')&&membershipFails)throw Error('membership failure');
   return {rows:[]};
@@ -47,4 +48,11 @@ test('admin session is derived from hash, not payload',async()=>{
  const x=fixture();await x.handler(post(valid));
  const auth=x.queries.find(q=>q.sql.startsWith('SELECT u.id,u.username,u.role,u.active'));
  assert.equal(auth.args[0],createHash('sha256').update(token).digest('hex'));
+});
+
+test('platform admin without target credit union admin membership cannot create a user for it',async()=>{
+ const x=fixture({authorized:false});const response=await x.handler(post(valid));
+ assert.equal(response.status,403);
+ assert.ok(!x.queries.some(q=>q.sql.startsWith('INSERT INTO abacus_users')));
+ assert.ok(x.queries.some(q=>q.sql==='ROLLBACK'));
 });

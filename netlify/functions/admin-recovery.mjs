@@ -29,14 +29,14 @@ export async function createHandler(req,{database=getDatabase,recoveryHash=proce
   const used=await client.query('SELECT 1 FROM abacus_admin_recovery_use WHERE token_hash=$1',[recoveryHash]);
   if(used.rows.length)return respond({error:'Recovery key has already been used'},409);
   if(operation==='list'){
-   const users=await client.query("SELECT id,username FROM abacus_users WHERE role='admin' ORDER BY id");
+   const users=await client.query("SELECT id,username FROM abacus_users WHERE role='admin' AND deleted_at IS NULL ORDER BY id");
    await client.query('COMMIT');transaction=false;
    return respond({accounts:users.rows.map(u=>({id:String(u.id),username:u.username}))});
   }
   const id=String(data.userId||''),password=data.password;
   if(!/^[0-9]{1,20}$/.test(id)||typeof password!=='string'||password.length<12||password.length>256)
    return respond({error:'Select an administrator and a password of 12–256 characters'},400);
-  const found=await client.query("SELECT id FROM abacus_users WHERE id=$1 AND role='admin' FOR UPDATE",[id]);
+  const found=await client.query("SELECT id FROM abacus_users WHERE id=$1 AND role='admin' AND deleted_at IS NULL FOR UPDATE",[id]);
   if(!found.rows.length)return respond({error:'Administrator not found'},404);
   const salt=randomBytes(16).toString('hex'),digest=await scrypt(password,salt,64);
   const encoded='scrypt:'+salt+':'+digest.toString('hex');
