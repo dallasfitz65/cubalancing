@@ -29,11 +29,15 @@ test('missing or failed GL results do not report Checks Passed',()=>{
  const failed=find(buildBalancingOverview({result:{...gl,sections:[{rows:[{executed:true,branchOnly:false,ok:false}]}]}}),'shares-loans');
  assert.equal(failed.status,'Exceptions');
 });
-test('Share Drafts never claim full GL verification from source-only checks',()=>{
- const draft={summary:{G:0},checks:[],reports:[{date:'11/24/2026'},{date:'11/24/2026'}]};
+test('Share Drafts report passed source checks without certifying GL balances',()=>{
+ const draft={summary:{G:0},checks:Array.from({length:5},()=>({ok:true})),reports:[{date:'11/24/2026'},{date:'11/24/2026'}]};
  const item=find(buildBalancingOverview({draftResult:draft}),'drafts');
- assert.equal(item.status,'Partial Verification');
- assert.match(item.detail,/GL postings not verified/);
+ assert.equal(item.status,'Checks Passed');
+ assert.match(item.detail,/source-report controls/);
+ assert.match(item.limitations[0],/does not certify General Ledger/);
+ assert.equal(find(buildBalancingOverview({draftResult:{...draft,checks:[]}}),'drafts').status,'Not Run');
+ assert.equal(find(buildBalancingOverview({draftResult:{...draft,checks:[{ok:true}]}}),'drafts').status,'Partial Verification');
+ assert.equal(find(buildBalancingOverview({draftResult:{...draft,checks:[{ok:false}]}}),'drafts').status,'Exceptions');
  assert.equal(find(buildBalancingOverview({draftResult:{...draft,summary:{G:50}}}),'drafts').status,'Exceptions');
 });
 test('EFT passing subset remains partial, differing dates are explicit',()=>{
