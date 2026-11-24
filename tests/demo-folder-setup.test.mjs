@@ -20,7 +20,7 @@ test('Overview shows setup prompt until current browser has access to selected C
  assert.match(ui,/folderConnection,setFolderConnection/);
  assert.match(ui,/folderConnection!=='checking'&&folderConnection!=='ready'/);
  assert.match(ui,/Balancing folder not set up/);
- assert.match(ui,/Set up balancing folder/);
+ assert.match(ui,/Review source files/);
  assert.match(ui,/setPage\('settings'\)/);
  assert.match(ui,/handle\.queryPermission\(\{mode:'read'\}\)/);
  assert.match(ui,/setFolderConnection\(permission==='granted'\?'ready':'reconnect'\)/);
