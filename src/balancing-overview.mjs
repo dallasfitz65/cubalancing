@@ -20,7 +20,7 @@ export function buildBalancingOverview({result=null,draftResult=null,eftResult=n
  // Do not mark checks passed when the engine reports additional issues beyond visible rows.
  const glFailed=Math.max(rowFailures,reportedIssues);
  const glStatus=!result||!glRows.length?'Not Run':glFailed?'Exceptions':mappingIssues?'Partial Verification':'Checks Passed';
- const glCard=card('shares-loans','Shares, Loans & Cash','shares',glStatus,glFailed+mappingIssues,glRows.length,dateValue(result?.timestamp),'Processed','Source-cycle date not independently established');
+ const glCard=card('shares-loans','Shares, Loans & Cash','shares',glStatus,glFailed+mappingIssues,glRows.length,dateValue(result?.timestamp),'Processed','Mapped GL and core balance controls');
  const draftChecks=draftResult?.checks||[];
  const draftFailed=draftChecks.filter(x=>x.ok===false).length;
  const draftDifference=draftResult?.summary?.G;
