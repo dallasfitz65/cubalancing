@@ -19,23 +19,23 @@ export function buildBalancingOverview({result=null,draftResult=null,eftResult=n
  const mappingIssues=Math.max((Array.isArray(unmapped)?unmapped:[]).length,(Array.isArray(result?.unmapped)?result.unmapped:[]).length);
  // Do not mark checks passed when the engine reports additional issues beyond visible rows.
  const glFailed=Math.max(rowFailures,reportedIssues);
- const glStatus=!result||!glRows.length?'Not Run':glFailed?'Exceptions':mappingIssues?'Partial Verification':'Checks Passed';
+ const glStatus=!result||!glRows.length?'NOT RUN':glFailed?'FAIL':mappingIssues?'FAIL':'PASS';
  const glCard=card('shares-loans','Shares, Loans & Cash','shares',glStatus,glFailed+mappingIssues,glRows.length,dateValue(result?.timestamp),'Processed','Mapped GL and core balance controls');
  const draftChecks=draftResult?.checks||[];
  const draftFailed=draftChecks.filter(x=>x.ok===false).length;
  const draftDifference=draftResult?.summary?.G;
  const draftIssues=draftFailed+(draftResult&&typeof draftDifference==='number'&&draftDifference!==0&&!draftFailed?1:0);
- const draftStatus=!draftResult?'Not Run':draftIssues?'Exceptions':!draftChecks.length?'Not Run':draftChecks.length===5&&draftChecks.every(x=>x.ok===true)&&draftDifference===0?'Checks Passed':'Partial Verification';
+ const draftStatus=!draftResult?'NOT RUN':draftIssues?'FAIL':!draftChecks.length?'NOT RUN':draftChecks.length===5&&draftChecks.every(x=>x.ok===true)&&draftDifference===0?'PASS':'FAIL';
  const draftCard=card('drafts','Share Drafts','drafts',draftStatus,draftIssues,draftChecks.length,uniqueDates((draftResult?.reports||[]).map(x=>x.date)),'Source date','Share Draft source-report controls');
  const eftControls=eftResult?.controls||[];
  const eftIssues=(eftResult?.issues||[]).length+eftControls.filter(x=>x.status==='exception'||x.ok===false).length;
- const eftCard=card('eft','EFT','eft',!eftResult?'Not Run':eftIssues?'Exceptions':!eftControls.length?'Not Run':eftControls.length===5&&eftControls.every(x=>x.status==='matched'||x.ok===true)?'Checks Passed':'Partial Verification',eftIssues,eftControls.length,uniqueDates((eftResult?.reports||[]).map(x=>x.date)),'Source date','Core, STAR and teller reconciliation controls');
+ const eftCard=card('eft','EFT','eft',!eftResult?'NOT RUN':eftIssues?'FAIL':!eftControls.length?'NOT RUN':eftControls.length===5&&eftControls.every(x=>x.status==='matched'||x.ok===true)?'PASS':'FAIL',eftIssues,eftControls.length,uniqueDates((eftResult?.reports||[]).map(x=>x.date)),'Source date','Core, STAR and teller reconciliation controls');
  const atmChecks=atmResult?.checks||[];
  const atmIssues=atmChecks.filter(x=>x.ok!==true).length;
- const atmCard=card('atm','ATM Balancing','atm',!atmResult||!atmChecks.length?'Not Run':atmIssues?'Exceptions':'Prototype Checks Passed',atmIssues,atmChecks.length,dateValue(atmResult?.date),'Business date','Limited ATM transaction model');
+ const atmCard=card('atm','ATM Balancing','atm',!atmResult||!atmChecks.length?'NOT RUN':atmIssues?'FAIL':'PASS',atmIssues,atmChecks.length,dateValue(atmResult?.date),'Business date','Cash, settlement and GL controls');
  const achChecks=achResult?.checks||[];
  const achIssues=Number.isSafeInteger(achResult?.issues)?achResult.issues:0;
- const achCard=card('ach','ACH','ach',!achResult||!achChecks.length?'Not Run':achIssues?'Exceptions':'Prototype Checks Passed',achIssues,achChecks.length,uniqueDates(achChecks.map(x=>x.date)),'Business date','Normalized CSV prototype; settlement not certified');
+ const achCard=card('ach','ACH','ach',!achResult||!achChecks.length?'NOT RUN':achIssues||achChecks.some(x=>x.ok!==true)?'FAIL':'PASS',achIssues,achChecks.length,uniqueDates(achChecks.map(x=>x.date)),'Business date','Operator, core, settlement and GL controls');
  // Individual control outcomes are independent of other issues (e.g. unmatched ACH items).
  const outcome=x=>x.ok===true||x.status==='matched'?'Passed':x.ok===false||x.status==='exception'?'Failed':'Unverified';
  const control=(label,x)=>({label,status:outcome(x)});
