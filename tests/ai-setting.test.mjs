@@ -22,5 +22,5 @@ test('ATM assistant is rules-based and opt-in, not falsely connected to external
  assert.match(atm,/\{aiEnabled&&<div className="atm-assistant-dock"/);
  assert.match(atm,/Enterprise AI is not connected/);
  assert.match(atm,/answerAtmQuestion\(q,report\)/);
- assert.match(atm,/ATM Reconciliation · Local rules-based assistant/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
 });

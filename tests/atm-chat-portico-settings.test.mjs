@@ -29,7 +29,7 @@ test('Portico can be selected and persisted but is declared provisional',()=>{
 });
 test('ATM chat is visible with assistant enabled and only provides grounded local answers',()=>{
  assert.match(atm,/\{aiEnabled&&<div className="atm-assistant-dock"/);
- assert.match(atm,/ATM Reconciliation · Local rules-based assistant/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
  assert.match(atm,/Enterprise AI is not connected/);
  assert.match(answerAtmQuestion('Why is ATM out of balance?',report),/\$50\.00/);
  assert.match(answerAtmQuestion('Explain cash proof',report),/beginning/);

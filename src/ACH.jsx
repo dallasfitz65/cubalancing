@@ -35,7 +35,7 @@ export default function ACH({files={},report=null,onReport=()=>{},autoRun=true})
   {error&&<p role="alert" className="error">{error}</p>}
   {report&&<article className="draft-report">
    <h3>ACH balancing results</h3>
-   <p><strong>{report.issues===0?'All prototype checks balanced':'Exceptions detected'}</strong> — {report.checks.length} date/direction controls, {report.unmatched.reduce((n,r)=>n+r.count,0)} unmatched operator/core entries.</p>
+   <p>{report.checks.length} date/direction controls and {report.unmatched.reduce((n,r)=>n+r.count,0)} unmatched operator/core entries. Overall prototype-check status appears on Overview.</p>
    <div className="table-scroll"><table><thead><tr><th>Date</th><th>Direction</th><th>Operator</th><th>Core postings</th><th>Settlement</th><th>GL movement</th><th>Posting variance</th><th>Settlement variance</th><th>GL variance</th><th>Status</th></tr></thead>
    <tbody>{report.checks.map((r,i)=><tr key={i}><td>{r.date}</td><td>{r.direction}</td><td>{money(r.activity)}</td><td>{money(r.posting)}</td><td>{money(r.settlement)}</td><td>{money(r.gl)}</td><td>{money(r.postingVariance)}</td><td>{money(r.settlementVariance)}</td><td>{money(r.glVariance)}</td><td>{r.ok?'Balanced':'Exception'}</td></tr>)}</tbody></table></div>
    <h3>Unmatched operator/core transactions</h3>

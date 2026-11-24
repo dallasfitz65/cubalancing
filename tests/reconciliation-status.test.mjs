@@ -1,17 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-
 const main=readFileSync(new URL('../src/main.jsx',import.meta.url),'utf8');
-const overview=main.match(/<h2>Reconciliation status[\s\S]*?\]\.map\(k=>/)?.[0];
-
-test('reconciliation overview has four requested module status cards',()=>{
- assert.ok(overview,'Overview status cards must exist');
- for(const label of ['Shares, Loans & Cash','Share Draft issues','EFT issues','ATM issues']){
-   assert.ok(overview.includes("label:'"+label+"'"),label+' should be a card');
- }
- for(const removed of ['Completed checks','GL variances','Session runs']){
-   assert.ok(!overview.includes("label:'"+removed+"'"),removed+' card should be absent');
- }
- assert.equal((overview.match(/label:'/g)||[]).length,4);
+test('Overview uses one shared status board for all five balancing sections',()=>{
+ assert.match(main,/page==='overview'&&<section className="abacus-exec-overview"/);
+ assert.match(main,/buildBalancingOverview\(\{result:visibleRun\|\|result,draftResult,eftResult,atmResult,achResult,unmapped\}\)/);
+ assert.match(main,/k\.status/);
+ assert.match(main,/k\.date/);
+ assert.match(main,/navigateSection\(k\.id\)/);
+ assert.doesNotMatch(main,/<div className="html-report-date">/);
 });

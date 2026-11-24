@@ -47,6 +47,6 @@ test('UI renders convention in results and previews without wiping the report',(
  assert.match(ui,/const visibleRun=displayRunForSign\(result,sign\)/);
  assert.match(ui,/GL sign convention:/);
  assert.match(ui,/Recalculated display preview from original GL balances/);
- assert.match(ui,/Reconciliation refreshes automatically on Overview/);
+ assert.match(ui,/Balancing refreshes automatically on Overview/);
  assert.doesNotMatch(ui,/function setConvention\(value\)[^}]*setResult\(null\)/);
 });
