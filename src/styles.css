@@ -502,3 +502,18 @@ aside nav .nav-files .file .file-status{font-size:12px}
   background:#f59e0b;
 }
 .atm-workspace .atm-stat strong{color:#142d45;font-variant-numeric:tabular-nums}
+
+/* eVoucher-style support intake; no financial source files accepted. */
+.abacus-support{max-width:880px;margin:0 auto 24px}
+.abacus-support h2{font-size:22px}
+.abacus-support-warning{background:#fff8e7;border:1px solid #e9d2a1;border-radius:8px;padding:12px 14px;color:#70501a}
+.abacus-support-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.abacus-support label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#1b344c}
+.abacus-support input:not([type=checkbox]),.abacus-support select,.abacus-support textarea{border:1px solid #c8d5e1;border-radius:8px;padding:10px 12px;font:inherit;background:#fff;color:#152f46;min-width:0}
+.abacus-support input[readonly]{background:#f2f5f9;color:#55677c}
+.abacus-support-block{margin:16px 0}
+.abacus-support textarea{resize:vertical;width:100%}
+.abacus-support-confirm{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:9px!important;margin:18px 0}
+.abacus-support-confirm input{margin-top:3px}
+.abacus-support-success{color:#08764c;font-weight:600}
+@media(max-width:680px){.abacus-support-fields{grid-template-columns:1fr}}
