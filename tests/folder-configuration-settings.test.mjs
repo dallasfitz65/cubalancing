@@ -12,13 +12,13 @@ test('Settings includes compact Input and Output folder controls with clear icon
  assert.match(main,/aria-label="Clear output folder selection"/);
  assert.match(main,/Scan input folder/);
 });
-test('Input folder remains scan-only, output folder is saved locally but never writes files',()=>{
+test('Input folder remains scan-only and output folder is saved locally for automatic PDF reports',()=>{
  assert.match(main,/rememberFolder\(handle,folderScope\)/);
  assert.match(main,/showDirectoryPicker\(\{mode:'readwrite'\}\)/);
  assert.match(main,/saveSetting\(folderScope,'output-folder',handle\)/);
  assert.match(main,/deleteSetting\(folderScope,'output-folder'\)/);
  assert.doesNotMatch(main,/outputFolder\.getFileHandle\(/);
- assert.match(main,/No files are written automatically/);
+ assert.match(main,/ACH reconciliation PDFs will be saved here when write permission is granted/);
  assert.match(main,/setFolderConnection\('missing'\)/);
 });
 test('Settings sections provide accessible help dialogs instead of paragraph instructions',()=>{
