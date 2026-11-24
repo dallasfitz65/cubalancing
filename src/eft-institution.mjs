@@ -4,7 +4,7 @@ export function normalizeInstitutionName(name){
 }
 export function verifyEftInstitution(reportText,configuredName){
  const expected=normalizeInstitutionName(configuredName);
- if(!expected||expected==='DEMO CREDIT UNION'&&String(configuredName).trim()===''){
+ if(!expected){
   throw Error('Credit union name is not configured. Save the institution name in Settings before EFT balancing.');
  }
  if(expected.length<4)throw Error('Credit union name in Settings is too short to verify EFT source identity.');
