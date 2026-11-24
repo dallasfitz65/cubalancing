@@ -536,3 +536,21 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .abacus-exec-tile .abacus-status-limited{color:#8a5b13}
 .abacus-exec-tile small{font-size:12px;color:#546c82}
 .abacus-exec-tile .abacus-exec-detail{font-size:11px;color:#62768d}
+
+/* One consistent, accessible report save notification, displayed on Overview only. */
+.pdf-saved-notice{display:flex;align-items:flex-start;gap:13px;background:#f5fbf8;border:1px solid #b7ddc6;border-left:4px solid #13845b;border-radius:12px;padding:16px 19px;margin:8px 0 18px;color:#163f32}
+.pdf-saved-notice-icon{display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;border-radius:50%;background:#13845b;color:white;font-weight:800}
+.pdf-saved-notice-content{min-width:0;flex:1}
+.pdf-saved-notice-content strong{font-size:15px}
+.pdf-saved-notice-content p{margin:5px 0 0;font-size:13px;overflow-wrap:anywhere}
+.pdf-saved-notice-content p span{color:#4e6a60;font-weight:600}
+.pdf-saved-notice-content .pdf-saved-filename{font-size:12px;color:#405d50;overflow-wrap:anywhere}
+.pdf-saved-actions{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px}
+.pdf-saved-link{background:none;border:0;padding:0;color:#155bcc;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font:inherit;font-size:13px;font-weight:700}
+.pdf-saved-link:hover{color:#0b3e98}
+.pdf-saved-link:focus-visible{outline:2px solid #155bcc;outline-offset:4px}
+.pdf-save-status{padding:12px 15px;border:1px solid #dfcf9d;background:#fff9eb;color:#705017;border-radius:10px;margin:8px 0 18px;overflow-wrap:anywhere}
+.pdf-report-preview{padding:15px;border:1px solid #cdd9e5;background:#fff;border-radius:12px;margin-bottom:18px}
+.pdf-report-preview-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;overflow-wrap:anywhere}
+.pdf-report-preview iframe{width:100%;height:70vh;min-height:420px;border:1px solid #ccd5de;border-radius:8px}
+@media(max-width:640px){.pdf-saved-notice{padding:12px}.pdf-report-preview iframe{min-height:300px;height:55vh}}

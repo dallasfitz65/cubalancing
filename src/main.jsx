@@ -71,6 +71,8 @@ function App({account,onLogout,onPasswordChanged}){
  const [atmResult,setAtmResult]=useState(null);
  const [achResult,setAchResult]=useState(null);
  const [consolidatedPdfStatus,setConsolidatedPdfStatus]=useState('');
+ const [savedPdf,setSavedPdf]=useState(null);
+ const [pdfPreview,setPdfPreview]=useState(null);
  const lastSavedConsolidatedRef=useRef(null);
  const [unmapped,setUnmapped]=useState([]);
  const [draftResult,setDraftResult]=useState(null);
@@ -258,7 +260,8 @@ function App({account,onLogout,onPasswordChanged}){
   }
   const signature=[activeCU,coreSystem,sign,files,result,draftResult,eftResult,atmResult,achResult,outputFolder];
   if(lastSavedConsolidatedRef.current?.every((part,i)=>part===signature[i]))return()=>{active=false;};
-  if(!outputFolder){setConsolidatedPdfStatus('Balancing finished, but PDF not saved: choose an output folder in Settings.');return()=>{active=false;};}
+  if(!outputFolder){setSavedPdf(null);setConsolidatedPdfStatus('Balancing finished, but PDF not saved: choose an output folder in Settings.');return()=>{active=false;};}
+  setSavedPdf(null);
   setConsolidatedPdfStatus('Saving consolidated balancing PDF to the output folder…');
   (async()=>{
    try{
@@ -268,14 +271,15 @@ function App({account,onLogout,onPasswordChanged}){
     });
     if(!active)return;
     lastSavedConsolidatedRef.current=signature;
-    setConsolidatedPdfStatus('Consolidated PDF saved to output folder: '+filename);
-   }catch(e){if(active)setConsolidatedPdfStatus('Balancing finished, but PDF NOT saved: '+e.message);}
+    setSavedPdf({filename,folderName:outputFolder.name,tenantId:activeCU});
+    setConsolidatedPdfStatus('');
+   }catch(e){if(active){setSavedPdf(null);setConsolidatedPdfStatus('Balancing finished, but PDF NOT saved: '+e.message);}}
   })();
   return()=>{active=false;};
  },[files,result,draftResult,eftResult,atmResult,achResult,outputFolder,activeCU,coreSystem,sign,settingsReady,busy]);
  useEffect(()=>{forgetLegacyMapping().catch(()=>{});},[]);
  useEffect(()=>{if(page!=='settings'||!jumpToFolder)return;document.getElementById('folder-import')?.scrollIntoView({behavior:'smooth',block:'start'});setJumpToFolder(false);},[page,jumpToFolder]);
- useEffect(()=>{lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
+ useEffect(()=>{setSavedPdf(null);setPdfPreview(null);lastAutoGLInputs.current=null;setStartupLoaded(false);setStartupRunPending(false);setStartupNotice('');setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);setAchResult(null);setFiles({});setReview(null);setApproved(false);setMappingOK(false);setMaster(getCoreMapping(coreSystem));},[activeCU]);
  function changeCoreSystem(value){
   const selected=getCoreSystem(value);
   if(selected===coreSystem||busy||lock.current)return;
@@ -382,12 +386,12 @@ function App({account,onLogout,onPasswordChanged}){
    const handle=await window.showDirectoryPicker({mode:'readwrite'});
    if(!handle||handle.kind!=='directory')return;
    // Permission is requested by the browser and scoped to this user's device.
-   setOutputFolder(handle);setOutputFolderStatus('Output folder selected. Consolidated balancing PDFs will be saved here when write permission is granted.');
+   setSavedPdf(null);setPdfPreview(null);setOutputFolder(handle);setOutputFolderStatus('Output folder selected. Consolidated balancing PDFs will be saved here when write permission is granted.');
    try{await saveSetting(folderScope,'output-folder',handle);}catch(e){setOutputFolderStatus('Output folder selected for this session, but could not be remembered: '+e.message);}
   }catch(e){if(e.name!=='AbortError')setOutputFolderStatus('Output folder selection failed: '+e.message);}
  }
  async function clearOutputFolder(){
-  try{await deleteSetting(folderScope,'output-folder');setOutputFolder(null);setOutputFolderStatus('Output folder selection cleared. No files were deleted.');}
+  try{await deleteSetting(folderScope,'output-folder');setOutputFolder(null);setSavedPdf(null);setPdfPreview(null);setOutputFolderStatus('Output folder selection cleared. No files were deleted.');}
   catch(e){setOutputFolderStatus('Could not clear saved output folder: '+e.message);}
  }
  async function clearInputFolder(){
@@ -444,6 +448,21 @@ function App({account,onLogout,onPasswordChanged}){
  const sections=selectSections(displaySections,page).map(s=>({...s,rows:page==='overview'?s.rows.filter(r=>r.executed):s.rows})).filter(s=>s.rows.length);
  const title=navigation.find(n=>n[2]===page)?.[1]||'ABACUS Balancing';
  const balancing=['shares-loans','cash','exceptions'].includes(page);
+ async function openSavedPdf(){
+   if(!savedPdf||savedPdf.tenantId!==activeCU||!outputFolder)return;
+   try{
+    if(typeof outputFolder.queryPermission==='function'&&await outputFolder.queryPermission({mode:'read'})!=='granted'){
+     setConsolidatedPdfStatus('Output folder access has expired. Reauthorize the folder under Settings, then reopen the report.');
+     return;
+    }
+    const handle=await outputFolder.getFileHandle(savedPdf.filename);
+    const file=await handle.getFile();
+    if(!file.name.toLowerCase().endsWith('.pdf'))throw Error('The saved file is not a PDF.');
+    const objectUrl=URL.createObjectURL(new Blob([file],{type:'application/pdf'}));
+    setPdfPreview({name:savedPdf.filename,url:objectUrl,tenantId:activeCU});
+   }catch(e){setConsolidatedPdfStatus('Could not open the saved report: '+e.message);}
+ }
+ useEffect(()=>()=>{if(pdfPreview?.url)URL.revokeObjectURL(pdfPreview.url);},[pdfPreview?.url]);
  const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult||achResult);
  const rows=sections.flatMap(s=>s.rows).filter(r=>!r.branchOnly&&r.executed);
  return <div className="app"><aside><a className="brand" href="#overview" onClick={e=>{e.preventDefault();navigateSection('overview');}}><img src="/cu-abacus-logo.png" alt="CU | ABACUS" className="abacus-brand-logo" /></a><div className="abacus-sidebar-subtitle">BALANCING</div><nav aria-label="Main navigation">{sidebarNavigation.filter(([, ,id])=>!['platform','platform-activity'].includes(id)||account.role==='admin').map(([group,label,id])=><React.Fragment key={id}>{group&&<div className="side-label">{group}</div>}<button aria-current={page===id?'page':undefined} className={page===id?'nav-item nav-current':'nav-item'} onClick={()=>navigateSection(id)}>{label}</button>{page===id&&sourceRoles[id]&&(folderConnection==='missing'||folderConnection==='reconnect')&&<div className="nav-files">
@@ -453,6 +472,17 @@ function App({account,onLogout,onPasswordChanged}){
  </div>}</React.Fragment>)}</nav><div className="side-foot">LOCAL PROCESSING<br/><span>Files remain in browser memory.<br/>No financial-data upload service.</span></div></aside>
  <div className="workspace" ref={workspaceRef}><header><span>{unions.find(u=>u.id===activeCU)?.name||cuName||"Credit union"} / {CORE_SYSTEMS[coreSystem].label} / {title}</span>{account.role!=='guest'&&<select aria-label="Active credit union" value={activeCU} onChange={e=>{setActiveCU(e.target.value);setHistoryStatus('');}} disabled={busy}><option value="local-demo">Select credit union</option>{unions.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>}<div className="header-actions"><span className="privacy-dot" title="Files processed locally">{account.username} · Local session</span><div className="header-account-actions"><UserGuide onNavigate={setPage}/>{account.role!=='guest'&&<ChangePassword onDone={onPasswordChanged}/>}{account.role!=='guest'&&<button type="button" className="header-action-with-icon" onClick={onLogout}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg><span>Log out</span></button>}</div><button disabled={!result||busy} onClick={exportEvidence}>Export evidence</button>{page!=='shares-loans'&&page!=='cash'&&<button disabled={!result||busy} onClick={()=>window.print()}>Print / PDF</button>}</div></header>
  <main>{page==='overview'&&startupNotice&&<p className="folder-inline-status" role="status">{startupNotice}</p>}
+ {page==='overview'&&savedPdf?.tenantId===activeCU&&<section className="pdf-saved-notice" role="status" aria-label="Balancing report saved">
+ <div className="pdf-saved-notice-icon" aria-hidden="true">✓</div>
+ <div className="pdf-saved-notice-content"><strong>Consolidated balancing PDF saved</strong>
+  <p><span>Output folder:</span> {savedPdf.folderName}</p>
+  <p className="pdf-saved-filename">{savedPdf.filename}</p>
+  <div className="pdf-saved-actions"><button type="button" className="pdf-saved-link" onClick={openSavedPdf}>Open PDF</button><button type="button" className="pdf-saved-link" onClick={()=>setPage('history')}>Balancing History</button></div>
+ </div>
+</section>}
+{page==='overview'&&consolidatedPdfStatus&&<p className="pdf-save-status" role={consolidatedPdfStatus.includes('NOT saved')||consolidatedPdfStatus.includes('not saved')||consolidatedPdfStatus.includes('Could not')?'alert':'status'}>{consolidatedPdfStatus}</p>}
+{page==='overview'&&pdfPreview?.tenantId===activeCU&&<section className="pdf-report-preview" aria-label="Consolidated balancing PDF preview"><div className="pdf-report-preview-bar"><strong>{pdfPreview.name}</strong><button type="button" onClick={()=>setPdfPreview(null)}>Close PDF</button></div><iframe title={'PDF: '+pdfPreview.name} src={pdfPreview.url}/></section>}
+
  {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
   {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
   {['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'].every(role=>files[role])&&!eftResult&&<EFT creditUnionName={cuName} files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}} autoRun readOnly/>}
@@ -501,7 +531,7 @@ function App({account,onLogout,onPasswordChanged}){
  {sectionWelcome[page].roles.length?<ul>{sectionWelcome[page].roles.map(role=><li key={role}><span>{defs.find(item=>item[0]===role)?.[1]||role}{role==='draftgl'?' (optional)':''}</span><span className={files[role]?'source-loaded':'source-missing'}>{files[role]?'Selected: '+files[role].name:'Not selected'}</span></li>)}</ul>:<p>Source formats and controls pending setup. No ACH balancing results are generated.</p>}
  </section></div></section>}
  {['shares-loans','cash','drafts','eft','ach'].includes(page)&&<ProcessAssistant module={page} report={page==='drafts'?draftResult:page==='eft'?eftResult:page==='ach'?null:visibleRun} enabled={aiEnabled}/>}
- {consolidatedPdfStatus&&['overview','ach','settings'].includes(page)&&<p role="status" className="folder-inline-status">{consolidatedPdfStatus}</p>}
+
  {page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value?{...value,tenantId:activeCU}:null);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
   {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT creditUnionName={cuName} autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
