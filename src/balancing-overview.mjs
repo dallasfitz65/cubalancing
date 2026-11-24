@@ -29,7 +29,7 @@ export function buildBalancingOverview({result=null,draftResult=null,eftResult=n
  const draftCard=card('drafts','Share Drafts','drafts',draftStatus,draftIssues,draftChecks.length,uniqueDates((draftResult?.reports||[]).map(x=>x.date)),'Source date','Share Draft source-report controls');
  const eftControls=eftResult?.controls||[];
  const eftIssues=(eftResult?.issues||[]).length+eftControls.filter(x=>x.status==='exception'||x.ok===false).length;
- const eftCard=card('eft','EFT','eft',!eftResult?'Not Run':eftIssues?'Exceptions':'Partial Verification',eftIssues,eftControls.length,uniqueDates((eftResult?.reports||[]).map(x=>x.date)),'Source date','Selected controls only; settlement and GL not certified');
+ const eftCard=card('eft','EFT','eft',!eftResult?'Not Run':eftIssues?'Exceptions':!eftControls.length?'Not Run':eftControls.length===5&&eftControls.every(x=>x.status==='matched'||x.ok===true)?'Checks Passed':'Partial Verification',eftIssues,eftControls.length,uniqueDates((eftResult?.reports||[]).map(x=>x.date)),'Source date','Core, STAR and teller reconciliation controls');
  const atmChecks=atmResult?.checks||[];
  const atmIssues=atmChecks.filter(x=>x.ok!==true).length;
  const atmCard=card('atm','ATM Balancing','atm',!atmResult||!atmChecks.length?'Not Run':atmIssues?'Exceptions':'Prototype Checks Passed',atmIssues,atmChecks.length,dateValue(atmResult?.date),'Business date','Limited ATM transaction model');
