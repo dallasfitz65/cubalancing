@@ -446,3 +446,59 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .password-change-dialog input{width:100%;padding:10px;border:1px solid #a7bdcb;border-radius:7px;box-sizing:border-box}
 .password-change-dialog p{font-size:13px;line-height:1.5}
 @media(max-width:600px){.password-change-dialog{padding:18px}}
+
+/* CU-Analytics-inspired color accents for balancing controls. */
+.abacus-exec-tile--shares,
+.abacus-exec-tile--atm{
+  position:relative;
+  padding:18px 18px 16px;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(20,45,69,.055);
+  overflow:hidden;
+}
+.abacus-exec-tile--shares::before,
+.abacus-exec-tile--atm::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:5px;
+  background:var(--balancing-accent);
+}
+.abacus-exec-tile--shares{--balancing-accent:#2f63ed;border-color:#d4def5}
+.abacus-exec-tile--atm{--balancing-accent:#f59e0b;border-color:#f5dfb8}
+.abacus-exec-tile--shares span,.abacus-exec-tile--atm span{
+  color:#596f89;
+  font-size:13px;
+  font-weight:600;
+}
+.abacus-exec-tile--shares strong,.abacus-exec-tile--atm strong{
+  color:#122b46;
+  font-size:30px;
+  line-height:1.18;
+  font-variant-numeric:tabular-nums;
+}
+.abacus-exec-tile--shares small,.abacus-exec-tile--atm small{
+  font-size:12px;
+  color:#637893;
+}
+.abacus-exec-tile--balanced strong{color:#00845a}
+.abacus-exec-tile--exception strong{color:#be3434}
+.abacus-exec-tile--pending strong{color:#77879a}
+/* Match the orange ATM dashboard accent within ATM detail stats. */
+.atm-workspace .atm-stat{
+  position:relative;
+  border-radius:11px;
+  background:#fff;
+  border-color:#f2dfbc;
+  padding:17px 14px 14px;
+  overflow:hidden;
+}
+.atm-workspace .atm-stat::before{
+  content:"";
+  position:absolute;
+  height:4px;
+  inset:0 0 auto;
+  background:#f59e0b;
+}
+.atm-workspace .atm-stat strong{color:#142d45;font-variant-numeric:tabular-nums}
