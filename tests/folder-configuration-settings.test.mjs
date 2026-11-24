@@ -17,7 +17,7 @@ test('Input folder remains scan-only and output folder is saved locally for auto
  assert.match(main,/showDirectoryPicker\(\{mode:'readwrite'\}\)/);
  assert.match(main,/saveSetting\(folderScope,'output-folder',handle\)/);
  assert.match(main,/deleteSetting\(folderScope,'output-folder'\)/);
- assert.doesNotMatch(main,/outputFolder\.getFileHandle\(/);
+ assert.match(main,/outputFolder\.getFileHandle\(savedPdf\.filename\)/);\n assert.doesNotMatch(main,/outputFolder\.getFileHandle\([^)]*,\s*\{create:true\}/);
  assert.match(main,/Consolidated balancing PDFs will be saved here when write permission is granted/);
  assert.match(main,/setFolderConnection\('missing'\)/);
 });
