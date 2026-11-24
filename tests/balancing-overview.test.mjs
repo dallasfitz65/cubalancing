@@ -40,12 +40,17 @@ test('Share Drafts report passed source checks without certifying GL balances',(
  assert.equal(find(buildBalancingOverview({draftResult:{...draft,checks:[{ok:false}]}}),'drafts').status,'Exceptions');
  assert.equal(find(buildBalancingOverview({draftResult:{...draft,summary:{G:50}}}),'drafts').status,'Exceptions');
 });
-test('EFT passing subset remains partial, differing dates are explicit',()=>{
+test('EFT requires all five source controls for passing status, differing dates are explicit',()=>{
  const eft={issues:[],controls:[{status:'matched'}],reports:[{date:'2026-11-22'},{date:'2026-11-23'}]};
  const item=find(buildBalancingOverview({eftResult:eft}),'eft');
  assert.equal(item.status,'Partial Verification');
  assert.equal(item.date,'Multiple dates');
  assert.equal(find(buildBalancingOverview({eftResult:{...eft,issues:['Wrong date']}}),'eft').status,'Exceptions');
+ const full={...eft,reports:[{date:'2026-11-20'}],controls:Array.from({length:5},()=>({status:'matched'}))};
+ assert.equal(find(buildBalancingOverview({eftResult:full}),'eft').status,'Checks Passed');
+ assert.equal(find(buildBalancingOverview({eftResult:{...full,controls:[]}}),'eft').status,'Not Run');
+ assert.equal(find(buildBalancingOverview({eftResult:{...full,controls:[...full.controls.slice(0,4),{status:'unverified'}]}}),'eft').status,'Partial Verification');
+ assert.equal(find(buildBalancingOverview({eftResult:{...full,controls:[...full.controls.slice(0,4),{status:'exception'}]}}),'eft').status,'Exceptions');
 });
 test('ATM and ACH passing controls remain explicitly prototypes',()=>{
  const atm={date:'2026-11-24',checks:[{ok:true},{ok:true}]};
