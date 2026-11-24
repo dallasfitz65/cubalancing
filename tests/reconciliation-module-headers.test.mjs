@@ -6,7 +6,7 @@ const main=file('main.jsx'),atm=file('ATM.jsx'),eft=file('EFT.jsx'),drafts=file(
 
 test('all balancing modules share one page-header template',()=>{
  assert.match(main,/\['shares-loans','cash','drafts','eft','atm','ach'\]\.includes\(page\)&&<div className="reconciliation-page-header">/);
- for(const label of ['Shares, Loans and Cash Reconciliation','Cash Reconciliation','Share Draft Reconciliation','EFT Reconciliation','ATM Reconciliation','ACH Reconciliation'])assert.ok(main.includes(label),label);
+ for(const label of ['Shares, Loans and Cash Balancing','Cash Balancing','Share Draft Balancing','EFT Balancing','ATM Balancing','ACH Balancing'])assert.ok(main.includes(label),label);
  assert.match(css,/\.reconciliation-page-header h1/);
  assert.doesNotMatch(atm,/<div className="draft-report-title"><h2>ATM Balancing<\/h2><\/div>/);
 });
@@ -30,10 +30,10 @@ test('ATM folder imports schedule automatic reconciliation and missing source fi
  assert.match(atm,/setError\(e.message\)/);
 });
 
-test('ATM report title spacing is compact and navigation uses reconciliation terminology',()=>{
+test('ATM report title spacing is compact and navigation uses balancing terminology',()=>{
  assert.match(css,/\.reconciliation-page-header \+ \.atm-workspace\{padding-top:12px/);
  assert.match(css,/\.atm-workspace \.draft-report-title\{margin:0 0 14px\}/);
- assert.match(main,/\['RECONCILIATION','Shares, Loans and Cash','shares-loans'\]/);
- assert.match(main,/\['','ATM Reconciliation','atm'\]/);
- assert.match(atm,/ATM Reconciliation · Local rules-based assistant/);
+ assert.match(main,/\['BALANCING','Share Drafts','drafts'\]/);
+ assert.match(main,/\['','ATM Balancing','atm'\]/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
 });
