@@ -53,3 +53,19 @@ test('ATM and ACH passing controls remain explicitly prototypes',()=>{
  assert.equal(find(cards,'ach').date,'2026-11-24');
  assert.equal(find(buildBalancingOverview({achResult:{...ach,issues:2}}),'ach').status,'Exceptions');
 });
+
+test('individual control outcomes distinguish failed, unverified, and additional issues',()=>{
+ const cards=buildBalancingOverview({
+  result:gl,
+  draftResult:{checks:[{label:'Posting totals',ok:true},{label:'Transmission totals',ok:false}],summary:{G:0}},
+  eftResult:{controls:[{label:'Matched',status:'matched'},{label:'Missing source',status:'unverified'},{label:'Mismatch',status:'exception'}],issues:['Source date issue']},
+  atmResult:{checks:[{name:'Physical cash',ok:true}]},
+  achResult:{checks:[{date:'2026-11-24',direction:'DEBIT',ok:false},{date:'2026-11-24',direction:'CREDIT',ok:true}],issues:5}
+ });
+ assert.deepEqual(find(cards,'eft').counts,{Passed:1,Failed:1,Unverified:1});
+ assert.equal(find(cards,'eft').otherIssues,1);
+ assert.equal(find(cards,'drafts').checks[0].label,'Posting totals');
+ assert.equal(find(cards,'ach').otherIssues,4);
+ assert.equal(find(cards,'atm').checks[0].label,'Physical cash');
+ assert(cards.every(c=>c.scope&&c.limitations.length&&c.checks.length===c.checkCount));
+});

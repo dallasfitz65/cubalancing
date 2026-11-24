@@ -36,5 +36,19 @@ export function buildBalancingOverview({result=null,draftResult=null,eftResult=n
  const achChecks=achResult?.checks||[];
  const achIssues=Number.isSafeInteger(achResult?.issues)?achResult.issues:0;
  const achCard=card('ach','ACH','ach',!achResult||!achChecks.length?'Not Run':achIssues?'Exceptions':'Prototype Checks Passed',achIssues,achChecks.length,uniqueDates(achChecks.map(x=>x.date)),'Business date','Normalized CSV prototype; settlement not certified');
- return [glCard,draftCard,eftCard,atmCard,achCard];
+ // Individual control outcomes are independent of other issues (e.g. unmatched ACH items).
+ const outcome=x=>x.ok===true||x.status==='matched'?'Passed':x.ok===false||x.status==='exception'?'Failed':'Unverified';
+ const control=(label,x)=>({label,status:outcome(x)});
+ const enrich=(c,checks,scope,limitations,otherIssues=0)=>{
+  const counts={Passed:0,Failed:0,Unverified:0};
+  for(const check of checks)counts[check.status]++;
+  return {...c,checks,counts,scope,limitations,otherIssues};
+ };
+ return [
+  enrich(glCard,glRows.map((x,i)=>control([x.gl?'GL '+x.gl:'GL control '+(i+1),x.desc].filter(Boolean).join(' — '),x)),'Mapped general ledger balances compared with core balances.', ['Source business date is not independently verified.',...(mappingIssues?[mappingIssues+' unmapped account type(s) excluded.']:[])],Math.max(0,glFailed-rowFailures)+mappingIssues),
+  enrich(draftCard,draftChecks.map((x,i)=>control(x.label||'Share Draft control '+(i+1),x)),'Posting, processing, transmission and returned-item report totals.', ['Share Draft GL clearing-account reconciliation has not been performed.'],Math.max(0,draftIssues-draftFailed)),
+  enrich(eftCard,eftControls.map((x,i)=>control(x.label||'EFT control '+(i+1),x)),'Core debit/credit totals compared with STAR and teller reports; STAR debit/credit equality.', ['Full network settlement and GL reconciliation are not verified.'],(eftResult?.issues||[]).length),
+  enrich(atmCard,atmChecks.map((x,i)=>control(x.name||'ATM control '+(i+1),x)),'Physical cash, cash GL, journal withdrawals, network settlement and GL clearing comparisons.', ['Limited ATM transaction model; full production coverage is not established.']),
+  enrich(achCard,achChecks.map((x,i)=>control([x.date,x.direction].filter(Boolean).join(' — ')||'ACH control '+(i+1),x)),'Operator, core posting, settlement and GL totals by date and debit/credit direction.', ['Normalized CSV prototype; native production settlement coverage is not certified.'],Math.max(0,achIssues-achChecks.filter(x=>x.ok===false).length))
+ ];
 }
