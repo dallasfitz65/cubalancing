@@ -14,8 +14,11 @@ const card=(id,label,accent,status,issueCount,checkCount,date,dateLabel='Source 
 });
 export function buildBalancingOverview({result=null,draftResult=null,eftResult=null,atmResult=null,achResult=null,unmapped=[]}={}){
  const glRows=(result?.sections||[]).flatMap(s=>s.rows||[]).filter(r=>r.executed&&!r.branchOnly);
- const glFailed=glRows.filter(r=>r.ok!==true).length;
- const mappingIssues=(Array.isArray(unmapped)?unmapped:[]).length;
+ const rowFailures=glRows.filter(r=>r.ok!==true).length;
+ const reportedIssues=Number.isSafeInteger(result?.issues)&&result.issues>0?result.issues:0;
+ const mappingIssues=Math.max((Array.isArray(unmapped)?unmapped:[]).length,(Array.isArray(result?.unmapped)?result.unmapped:[]).length);
+ // Do not mark checks passed when the engine reports additional issues beyond visible rows.
+ const glFailed=Math.max(rowFailures,reportedIssues);
  const glStatus=!result||!glRows.length?'Not Run':glFailed?'Exceptions':mappingIssues?'Partial Verification':'Checks Passed';
  const glCard=card('shares-loans','Shares, Loans & Cash','shares',glStatus,glFailed+mappingIssues,glRows.length,dateValue(result?.timestamp),'Processed','Source-cycle date not independently established');
  const draftChecks=draftResult?.checks||[];
