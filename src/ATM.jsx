@@ -79,7 +79,7 @@ export default function ATM({files={},onReview,aiEnabled=false,autoRun=false,ini
     
     {error&&<p className="error" role="alert">{error}</p>}
     {report&&<article className="draft-report">
-      <div className="draft-report-title"><h2>ATM Balancing — {report.terminal}</h2><span className={exceptions?'html-section-error':'html-section-ok'}>{exceptions?exceptions+' exception(s)':'4 checks balanced'}</span></div>
+      <div className="draft-report-title"><h2>ATM Balancing — {report.terminal}</h2></div>
       <p>Business date: {report.date} · {report.approvedCount} approved withdrawals · Cash dispensed: <strong>{money(report.dispensed)}</strong></p>
       <div className="atm-stats">
         {[['Expected ATM cash',report.expected],['Physical cash',report.counted],['GL ATM cash',report.glCash],['Net settlement',report.settled]].map(([label,value])=><div className="atm-stat" key={label}><small>{label}</small><strong>{money(value)}</strong></div>)}
