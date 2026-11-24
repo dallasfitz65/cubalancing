@@ -16,9 +16,9 @@ test('mismatched institution is rejected and never silently accepted',()=>{
 });
 test('EFT no longer hardcodes institution list; all visible and automatic paths receive Settings name',()=>{
  assert.doesNotMatch(eft,/Ridgedale Federal Credit Union\|NOVARTIS FEDERAL CREDIT UNION/);
- assert.match(eft,/verifyEftInstitution\(text,creditUnionName\)/);
- assert.match(eft,/\[autoRun,data,files,creditUnionName\]/);
- assert.equal((main.match(/<EFT creditUnionName=\{cuName\}/g)||[]).length,2);
+ assert.match(eft,/verifyEftInstitution\(text,creditUnionName,\{allowDemoFixtures\}\)/);
+ assert.match(eft,/\[autoRun,data,files,creditUnionName,allowDemoFixtures\]/);
+ assert.equal((main.match(/<EFT creditUnionName=\{cuName\} allowDemoFixtures=/g)||[]).length,2);
 });
 
 test('Demo Credit Union accepts only recognized historical EFT fixture institutions',()=>{
