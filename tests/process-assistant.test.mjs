@@ -12,7 +12,7 @@ test('each balancing module has scoped local investigation prompts',()=>{
  assert.match(main,/enabled=\{aiEnabled\}/);
  assert.match(chat,/answerProcessQuestion\(module,q,report\)/);
  assert.match(chat,/Enterprise AI is not connected/);
- assert.match(atm,/ATM Reconciliation · Local rules-based assistant/);
+ assert.match(atm,/ATM Balancing · Local rules-based assistant/);
 });
 test('do not claim missing reports are balanced',()=>{
  assert.match(answerProcessQuestion('cash','why out of balance',null),/No completed/);
