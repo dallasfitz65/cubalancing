@@ -16,7 +16,21 @@ test('mismatched institution is rejected and never silently accepted',()=>{
 });
 test('EFT no longer hardcodes institution list; all visible and automatic paths receive Settings name',()=>{
  assert.doesNotMatch(eft,/Ridgedale Federal Credit Union\|NOVARTIS FEDERAL CREDIT UNION/);
- assert.match(eft,/verifyEftInstitution\(text,creditUnionName\)/);
- assert.match(eft,/\[autoRun,data,files,creditUnionName\]/);
- assert.equal((main.match(/<EFT creditUnionName=\{cuName\}/g)||[]).length,2);
+ assert.match(eft,/verifyEftInstitution\(text,creditUnionName,\{allowDemoFixtures\}\)/);
+ assert.match(eft,/\[autoRun,data,files,creditUnionName,allowDemoFixtures\]/);
+ assert.equal((main.match(/<EFT creditUnionName=\{cuName\} allowDemoFixtures=/g)||[]).length,2);
+});
+
+test('Demo Credit Union accepts only recognized historical EFT fixture institutions',()=>{
+ assert.equal(verifyEftInstitution('Core day totals for Ridgedale Federal Credit Union','Demo Credit Union',{allowDemoFixtures:true}),'RIDGEDALE FEDERAL CREDIT UNION');
+ assert.equal(verifyEftInstitution('NOVARTIS FEDERAL CREDIT UNION STAR settlement','Demo Credit Union',{allowDemoFixtures:true}),'NOVARTIS FEDERAL CREDIT UNION');
+ assert.throws(()=>verifyEftInstitution('Unknown Real Credit Union','Demo Credit Union',{allowDemoFixtures:true}),/identity mismatch/i);
+ assert.throws(()=>verifyEftInstitution('Ridgedale Federal Credit Union and Novartis Federal Credit Union','Demo Credit Union',{allowDemoFixtures:true}),/multiple institutions/i);
+});
+test('demo fixture opt-in never weakens production institution validation',()=>{
+ assert.throws(()=>verifyEftInstitution('Ridgedale Federal Credit Union','Demo Credit Union'),/identity mismatch/i);
+ assert.throws(()=>verifyEftInstitution('Ridgedale Federal Credit Union','Southern Energy Credit Union',{allowDemoFixtures:true}),/identity mismatch/i);
+ assert.match(eft,/DEMO SAMPLE DATA/);
+ assert.match(eft,/allowDemoFixtures/);
+ assert.equal((main.match(/allowDemoFixtures=\{cuName\.trim\(\)\.toLowerCase\(\)===\x27demo credit union\x27\}/g)||[]).length,2);
 });
