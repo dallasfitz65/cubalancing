@@ -71,8 +71,6 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
   }catch(e){setError('Demo setup incomplete: '+e.message+' Any created tenant is retained; retry this action after correcting the issue.');}
   finally{setDemoBusy(false);}
  }
- <p>Use the one-time setup action to give the existing Demo login a real, centrally saved credit union workspace. This does not overwrite existing Demo settings or affect other credit unions.</p>
- <button type="button" onClick={provisionDemo} disabled={busy||demoBusy}>{demoBusy?'Setting up Demo…':'Set up Demo workspace'}</button>
  return <section className="folder-settings" aria-label="Credit union management">
  <div className="section-title-help">
   <h2>Credit Union Management</h2>
