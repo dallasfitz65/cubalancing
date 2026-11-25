@@ -6,8 +6,9 @@ export default function Support({account,creditUnion}){
  const [description,setDescription]=useState(''),[screenshot,setScreenshot]=useState(null);
  const [confirmed,setConfirmed]=useState(false),[submitting,setSubmitting]=useState(false),[status,setStatus]=useState(null);
  async function submit(event){
-  event.preventDefault();setStatus(null);
+  event.preventDefault();const submittedForm=event.currentTarget;setStatus(null);
   if(!confirmed){setStatus({ok:false,text:'Confirm that the description and screenshot do not contain member information, financial source data, or credentials.'});return;}
+  if(screenshot&&!['image/png','image/jpeg','image/webp'].includes(screenshot.type)){setStatus({ok:false,text:'Choose a PNG, JPEG or WebP screenshot.'});return;}
   if(screenshot&&screenshot.size>MAX_SCREENSHOT_BYTES){setStatus({ok:false,text:'Screenshot exceeds the 8 MB upload limit.'});return;}
   const form=new FormData();
   form.set('form-name','abacus-support');
@@ -26,7 +27,7 @@ export default function Support({account,creditUnion}){
    if(!response.ok)throw Error('Support intake returned HTTP '+response.status);
    setStatus({ok:true,text:'Support request sent to the support intake. Delivery/notification to a support representative is not independently confirmed.'});
    setDescription('');setScreenshot(null);setConfirmed(false);
-   event.currentTarget.reset();
+   submittedForm.reset();
   }catch(e){setStatus({ok:false,text:'Support request was NOT submitted: '+e.message+'. Your description is retained.'});}
   finally{setSubmitting(false);}
  }
