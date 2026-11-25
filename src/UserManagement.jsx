@@ -8,11 +8,13 @@ export default function UserManagement(){
  const [institutionRole,setInstitutionRole]=useState('reconciler'),[creditUnionId,setCreditUnionId]=useState('');
  const [error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[showPassword,setShowPassword]=useState(false);
  const [accessUser,setAccessUser]=useState(null),[accessCU,setAccessCU]=useState(''),[accessRole,setAccessRole]=useState('reconciler');
+ const [currentUserId,setCurrentUserId]=useState(null);
  const [owner,setOwner]=useState(false),[platformUser,setPlatformUser]=useState(null),[platformRole,setPlatformRole]=useState('user'),[ownerPassword,setOwnerPassword]=useState('');
  async function refresh(){
   try{
    const [accounts,tenants,current]=await Promise.all([accountAPI('users'),tenantAPI('tenants'),accountAPI('me')]);
    setOwner(current?.user?.isPlatformOwner===true);
+   setCurrentUserId(current?.user?.id==null?null:String(current.user.id));
    setUsers(accounts.users);setCreditUnions(tenants.tenants.filter(t=>t.active));
    setCreditUnionId(old=>tenants.tenants.some(t=>t.id===old&&t.active)?old:'');
   }catch(e){setError(e.message);}
@@ -30,6 +32,7 @@ export default function UserManagement(){
  }
  function editAccess(user){
   if(!user.active)return;
+  if(currentUserId!=null&&String(user.id)===currentUserId){setError('You cannot change your own institution access. Ask another authorized credit union administrator.');return;}
   setAccessUser(user);setError('');setMessage('');
   const existing=user.credit_unions?.find(c=>creditUnions.some(u=>u.id===c.id));
   const selected=existing?.id||creditUnions[0]?.id||'';
@@ -39,6 +42,7 @@ export default function UserManagement(){
  }
  async function saveAccess(e){
   e.preventDefault();if(busy||!accessUser||!accessCU)return;
+  if(currentUserId!=null&&String(accessUser.id)===currentUserId){setError('Self-assignment is not permitted. Ask another authorized credit union administrator.');return;}
   setBusy(true);setError('');setMessage('');
   try{
    await tenantAPI('assign-user',{body:{tenantId:accessCU,userId:accessUser.id,role:accessRole}});
@@ -88,7 +92,7 @@ export default function UserManagement(){
  <div className="table-scroll"><table><thead><tr><th>USERNAME</th><th>PLATFORM ROLE</th><th>ASSIGNED CREDIT UNIONS</th><th>STATUS</th><th>ACTION</th></tr></thead>
  <tbody>{users.map(u=><tr key={u.id}><td>{u.username}</td><td>{u.role}</td>
  <td>{u.credit_unions?.length?u.credit_unions.map(c=>c.name+' ('+c.role+')').join(', '):<strong>Not assigned — administrator setup required</strong>}</td>
- <td>{u.active?'Active':'Disabled'}</td><td><div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" disabled={busy||!u.active||!creditUnions.length} onClick={()=>editAccess(u)}>Edit institution access</button>{owner&&u.username.toLowerCase()!=='admin99'&&<button type="button" disabled={busy||!u.active} onClick={()=>openPlatformRole(u)}>Platform role</button>}<button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button><button type="button" disabled={busy||u.role==='admin'} title={u.role==='admin'?'Administrators must be deactivated or transferred before removal':'Remove user access without deleting reconciliation history'} onClick={()=>remove(u)} aria-label={'Delete user '+u.username}>Delete user</button></div></td></tr>)}</tbody></table></div>
+ <td>{u.active?'Active':'Disabled'}</td><td><div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" disabled={busy||!u.active||!creditUnions.length||(currentUserId!=null&&String(u.id)===currentUserId)} title={currentUserId!=null&&String(u.id)===currentUserId?'Another authorized institution admin must change your access':'Edit institution access'} onClick={()=>editAccess(u)}>Edit institution access</button>{owner&&u.username.toLowerCase()!=='admin99'&&<button type="button" disabled={busy||!u.active} onClick={()=>openPlatformRole(u)}>Platform role</button>}<button type="button" disabled={busy} onClick={()=>change(u)}>{u.active?'Disable':'Enable'}</button><button type="button" disabled={busy||u.role==='admin'} title={u.role==='admin'?'Administrators must be deactivated or transferred before removal':'Remove user access without deleting reconciliation history'} onClick={()=>remove(u)} aria-label={'Delete user '+u.username}>Delete user</button></div></td></tr>)}</tbody></table></div>
  <dialog ref={addDialog} className="tenant-add-dialog" aria-labelledby="add-user-title" onCancel={e=>{if(busy)e.preventDefault();}}>
   <div className="dialog-head"><h2 id="add-user-title">Add User</h2><button type="button" aria-label="Close add user dialog" disabled={busy} onClick={()=>addDialog.current?.close()}>✕</button></div>
   <form className="tenant-add-form" onSubmit={add}>
