@@ -554,3 +554,34 @@ aside nav .nav-files .file .file-status{font-size:12px}
 .pdf-report-preview-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;overflow-wrap:anywhere}
 .pdf-report-preview iframe{width:100%;height:70vh;min-height:420px;border:1px solid #ccd5de;border-radius:8px}
 @media(max-width:640px){.pdf-saved-notice{padding:12px}.pdf-report-preview iframe{min-height:300px;height:55vh}}
+
+
+/* Module-scoped folder import accessible from the left navigation */
+.module-import-dialog{width:min(92vw,820px);max-width:820px;max-height:88vh;overflow-y:auto;padding:24px;border:1px solid #cbd8e5;border-radius:14px;box-shadow:0 24px 75px #06182d55;color:#10263d}
+.module-import-dialog::backdrop{background:rgba(7,20,38,.62)}
+.module-import-dialog .dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.module-import-dialog h2{margin:0;font-size:22px}
+.module-import-dialog h3{margin:22px 0 10px;font-size:16px}
+.module-import-dialog>p{line-height:1.5}
+.module-import-folder{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid #d6e3ed;border-radius:10px;background:#f5f9fc}
+.module-import-folder p{margin:5px 0 0;overflow-wrap:anywhere}
+.module-import-actions,.module-import-footer{display:flex;gap:10px;flex-wrap:wrap}
+.module-import-candidates{max-height:230px;overflow:auto}
+.module-import-footer{justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid #dae4eb}
+.module-import-dialog button{cursor:pointer}
+@media(max-width:650px){.module-import-dialog{padding:15px}.module-import-folder{align-items:stretch;flex-direction:column}.module-import-actions button{flex:1}}
+
+/* eVoucher-style support intake; no financial source files accepted. */
+.abacus-support{max-width:880px;margin:0 auto 24px}
+.abacus-support h2{font-size:22px}
+.abacus-support-warning{background:#fff8e7;border:1px solid #e9d2a1;border-radius:8px;padding:12px 14px;color:#70501a}
+.abacus-support-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.abacus-support label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#1b344c}
+.abacus-support input:not([type=checkbox]),.abacus-support select,.abacus-support textarea{border:1px solid #c8d5e1;border-radius:8px;padding:10px 12px;font:inherit;background:#fff;color:#152f46;min-width:0}
+.abacus-support input[readonly]{background:#f2f5f9;color:#55677c}
+.abacus-support-block{margin:16px 0}
+.abacus-support textarea{resize:vertical;width:100%}
+.abacus-support-confirm{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:9px!important;margin:18px 0}
+.abacus-support-confirm input{margin-top:3px}
+.abacus-support-success{color:#08764c;font-weight:600}
+@media(max-width:680px){.abacus-support-fields{grid-template-columns:1fr}}
