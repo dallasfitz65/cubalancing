@@ -449,8 +449,11 @@ function App({account,onLogout,onPasswordChanged}){
  const balancing=['shares-loans','cash','exceptions'].includes(page);
  async function openSavedPdf(){
    if(!savedPdf||savedPdf.tenantId!==activeCU||!outputFolder)return;
+   let tab=null;
+   try{tab=window.open('about:blank','_blank');if(tab)tab.opener=null;}catch{tab=null;}
    try{
     if(typeof outputFolder.queryPermission==='function'&&await outputFolder.queryPermission({mode:'read'})!=='granted'){
+     if(tab&&!tab.closed)tab.close();
      setConsolidatedPdfStatus('Output folder access has expired. Reauthorize the folder under Settings, then reopen the report.');
      return;
     }
@@ -459,7 +462,9 @@ function App({account,onLogout,onPasswordChanged}){
     if(!file.name.toLowerCase().endsWith('.pdf'))throw Error('The saved file is not a PDF.');
     const objectUrl=URL.createObjectURL(new Blob([file],{type:'application/pdf'}));
     setPdfPreview({name:savedPdf.filename,url:objectUrl,tenantId:activeCU});
-   }catch(e){setConsolidatedPdfStatus('Could not open the saved report: '+e.message);}
+    if(tab&&!tab.closed){try{tab.location.replace(objectUrl);}catch{tab.close();setConsolidatedPdfStatus('Automatic opening failed. Use the PDF links below.');}}
+    else setConsolidatedPdfStatus('The browser blocked the new tab. Use the PDF links below.');
+   }catch(e){if(tab&&!tab.closed)tab.close();setConsolidatedPdfStatus('Could not open the saved report: '+e.message);}
  }
  useEffect(()=>()=>{if(pdfPreview?.url)URL.revokeObjectURL(pdfPreview.url);},[pdfPreview?.url]);
  const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult||achResult);
@@ -480,7 +485,7 @@ function App({account,onLogout,onPasswordChanged}){
  </div>
 </section>}
 {page==='overview'&&consolidatedPdfStatus&&<p className="pdf-save-status" role={consolidatedPdfStatus.includes('NOT saved')||consolidatedPdfStatus.includes('not saved')||consolidatedPdfStatus.includes('Could not')?'alert':'status'}>{consolidatedPdfStatus}</p>}
-{page==='overview'&&pdfPreview?.tenantId===activeCU&&<section className="pdf-report-preview" aria-label="Consolidated balancing PDF preview"><div className="pdf-report-preview-bar"><strong>{pdfPreview.name}</strong><button type="button" onClick={()=>setPdfPreview(null)}>Close PDF</button></div><iframe title={'PDF: '+pdfPreview.name} src={pdfPreview.url}/></section>}
+{page==='overview'&&pdfPreview?.tenantId===activeCU&&<section className="pdf-report-preview" aria-label="Consolidated balancing PDF preview"><div className="pdf-report-preview-bar"><strong>{pdfPreview.name}</strong><button type="button" onClick={()=>setPdfPreview(null)}>Close PDF</button></div><div style={{display:'flex',gap:16,flexWrap:'wrap'}}><a href={pdfPreview.url} target="_blank" rel="noopener noreferrer">Open PDF in new tab</a><a href={pdfPreview.url} download={pdfPreview.name}>Download PDF</a></div></section>}
 
  {page==='overview'&&startupLoaded&&coreSystem==='xp2'&&<div hidden aria-hidden="true">
   {['sdps','sdre','sdrt'].every(role=>files[role])&&!draftResult&&<ShareDrafts files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}} autoRun readOnly/>}
