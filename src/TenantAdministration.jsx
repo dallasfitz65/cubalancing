@@ -1,6 +1,8 @@
 import React,{useRef,useState} from 'react';
 import {tenantAPI} from './tenant-api.mjs';
+import {accountAPI} from './Login.jsx';
 export default function TenantAdministration({account,activeCU,unions,onReload,onSelect}){
+ const [demoBusy,setDemoBusy]=useState(false);
  const [name,setName]=useState(''),[newCore,setNewCore]=useState('xp2'),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const [lookupQuery,setLookupQuery]=useState(''),[lookupResults,setLookupResults]=useState([]),[lookupBusy,setLookupBusy]=useState(false),[selectedNCUA,setSelectedNCUA]=useState(null),[manualInstitution,setManualInstitution]=useState(false);
  const addDialog=useRef(null);
@@ -44,6 +46,31 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
   }finally{setBusy(false);}
  }
 
+ async function provisionDemo(){
+  if(!authorized||busy||demoBusy)return;
+  setDemoBusy(true);setError('');setMessage('');
+  try{
+   const [accounts,existing]=await Promise.all([accountAPI('users'),tenantAPI('tenants')]);
+   const demo=accounts.users.find(user=>user.username.toLowerCase()==='demo'&&user.active);
+   if(!demo)throw Error('Create or enable the Demo login in User Management before provisioning its workspace.');
+   let tenant=existing.tenants.find(t=>t.name.toLowerCase()==='demo credit union'&&t.active);
+   if(!tenant){
+    const created=await tenantAPI('create-tenant',{body:{name:'Demo Credit Union'}});
+    tenant=created.tenant;
+   }
+   if(!demo.credit_unions?.some(c=>c.id===tenant.id&&c.role==='admin')){
+    await tenantAPI('assign-user',{body:{tenantId:tenant.id,userId:demo.id,role:'admin'}});
+   }
+   // Do not overwrite previously saved Demo configuration.
+   const settings=await tenantAPI('settings',{tenantId:tenant.id});
+   if(!settings.settings.some(s=>s.setting_key==='core-system')){
+    await tenantAPI('set-setting',{tenantId:tenant.id,body:{key:'core-system',value:'xp2',version:0}});
+   }
+   await onReload();onSelect(tenant.id);
+   setMessage('Demo login assigned to its own centrally persisted Demo Credit Union workspace. Sign out and back in as Demo to verify saved settings.');
+  }catch(e){setError('Demo setup incomplete: '+e.message+' Any created tenant is retained; retry this action after correcting the issue.');}
+  finally{setDemoBusy(false);}
+ }
  return <section className="folder-settings" aria-label="Credit union management">
  <div className="section-title-help">
   <h2>Credit Union Management</h2>
@@ -52,6 +79,7 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
   </button>}
  </div>
  {!authorized?<p>Only the platform administrator can manage credit unions.</p>:<>
+ <button type="button" onClick={provisionDemo} disabled={busy||demoBusy}>{demoBusy?'Setting up Demo…':'Set up Demo workspace'}</button>
  <div className="tenant-list-wrapper">
   <table className="tenant-list-table">
    <thead><tr><th>Credit Union</th><th>NCUA Charter</th><th>Status</th><th>Action</th></tr></thead>
