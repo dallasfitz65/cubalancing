@@ -543,7 +543,7 @@ function App({account,onLogout,onPasswordChanged}){
  </section></div></section>}
  {['shares-loans','cash','drafts','eft','ach'].includes(page)&&<ProcessAssistant module={page} report={page==='drafts'?draftResult:page==='eft'?eftResult:page==='ach'?null:visibleRun} enabled={aiEnabled}/>}
 
- {page==='credit-cards'&&<CreditCards key={activeCU} files={files} report={cardResult} onFile={changeFile} onReport={value=>setCardResult(value?{...value,tenantId:activeCU}:null)} aiEnabled={aiEnabled} allowDemo={cuName.trim().toLowerCase()==='demo credit union'}/>}
+ <div hidden={page!=='credit-cards'}><CreditCards key={activeCU+':'+coreSystem} files={files} report={cardResult} onFile={changeFile} onReport={value=>setCardResult(value?{...value,tenantId:activeCU}:null)} aiEnabled={aiEnabled} allowDemo={cuName.trim().toLowerCase()==='demo credit union'}/></div>
  {page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value?{...value,tenantId:activeCU}:null);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
   {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
  {page==='eft'&&coreSystem==='xp2'&&<EFT creditUnionName={cuName} allowDemoFixtures={cuName.trim().toLowerCase()==='demo credit union'} autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
