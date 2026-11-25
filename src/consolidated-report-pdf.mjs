@@ -7,23 +7,23 @@ const roles={
  gl:['gl'],shares:['svst'],loans:['lnst'],cash:['cobd'],
  drafts:['sdps','sdre','sdrt'],eft:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],
  atm:['atm_transactions','atm_cash','atm_settlement','atm_gl'],
- ach:['ach_activity','ach_posting','ach_settlement','ach_gl']
+ ach:['ach_activity','ach_posting','ach_settlement','ach_gl'],cards:['card_balances','card_transactions','card_settlement','card_gl']
 };
 export const expectedModules=files=>({
  gl:Boolean(files.gl&&(files.svst||files.lnst||files.cobd)),
  drafts:roles.drafts.every(k=>Boolean(files[k])),
  eft:roles.eft.every(k=>Boolean(files[k])),
  atm:roles.atm.every(k=>Boolean(files[k])),
- ach:roles.ach.every(k=>Boolean(files[k]))
+ ach:roles.ach.every(k=>Boolean(files[k])),cards:roles.cards.every(k=>Boolean(files[k]))
 });
-export function isConsolidatedReady({files={},result,draftResult,eftResult,atmResult,achResult}){
+export function isConsolidatedReady({files={},result,draftResult,eftResult,atmResult,achResult,cardResult}){
  const expected=expectedModules(files);
  return Object.values(expected).some(Boolean)&&
  (!expected.gl||!!result)&&(!expected.drafts||!!draftResult)&&(!expected.eft||!!eftResult)&&
- (!expected.atm||!!atmResult)&&(!expected.ach||!!achResult);
+ (!expected.atm||!!atmResult)&&(!expected.ach||!!achResult)&&(!expected.cards||!!cardResult&&!cardResult.synthetic);
 }
 export async function buildConsolidatedPdf({
- creditUnion,coreSystem,files={},result,draftResult,eftResult,atmResult,achResult,
+ creditUnion,coreSystem,files={},result,draftResult,eftResult,atmResult,achResult,cardResult,
  generatedAt=new Date()
 }){
  const pdf=await PDFDocument.create(),regular=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -116,6 +116,8 @@ export async function buildConsolidatedPdf({
   }
   for(const e of achResult.unmatched||[])write('UNMATCHED: '+e.source+' | '+e.key+' | Count '+e.count,{indent:9});
  }
+ section('CREDIT CARD BALANCING');
+ if(status('Credit Cards',roles.cards,!!cardResult&&!cardResult.synthetic)){write('Business date: '+cardResult.date+' | '+(cardResult.issues?'FAIL':'PASS'));for(const c of cardResult.checks)write((c.ok?'PASS':'FAIL')+' | '+c.name+' | Expected '+(c.unit==='count'?c.expected:dollars(c.expected))+' | Actual '+(c.unit==='count'?c.actual:dollars(c.actual))+' | Variance '+(c.unit==='count'?c.variance:dollars(c.variance)),{indent:9});write('Normalized controls only; native processor and bank settlement verification pending.');}
  section('CONTROL LIMITATIONS');
  write('No blank or unprocessed section may be interpreted as balanced. ACH and other prototype checks require institution-specific source validation before certification.');
  for(let i=0;i<pdf.getPageCount();i++)pdf.getPage(i).drawText('ABACUS Local Reconciliation | Page '+(i+1)+' of '+pdf.getPageCount(),{x:L,y:30,font:regular,size:8,color:rgb(.43,.47,.5)});
