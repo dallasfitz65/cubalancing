@@ -2,6 +2,7 @@
 // another vendor's parser or to certify a reconciliation result.
 const frozen=Object.freeze;
 const xp2Roles=frozen({
+ 'credit-cards':['card_balances','card_transactions','card_settlement','card_gl'],
  'shares-loans':['gl','svst','lnst','cobd'],
  cash:['gl','cobd'],
  drafts:['gl','sdps','sdre','sdrt','draftgl'],
@@ -10,6 +11,7 @@ const xp2Roles=frozen({
  ach:['ach_activity','ach_posting','ach_settlement','ach_gl']
 });
 const xp2Known={
+ ...Object.fromEntries(['balances','transactions','settlement','gl'].map(k=>['card_'+k,{label:'Normalized card '+k,extensions:['csv'],patterns:[new RegExp('^card_'+k+'(?:[_. -]|$)','i')]}])),
  gl:{label:'GL trial balance',extensions:['pdf','txt'],patterns:[/(?:^|[^a-z])gl[_ -]?(?:trial|balance)/i,/trial[_ -]?balance/i]},
  svst:{label:'Shares (SVST)',extensions:['txt'],patterns:[/svst/i]},
  lnst:{label:'Loans (LNST)',extensions:['txt'],patterns:[/lnst/i]},
