@@ -365,7 +365,7 @@ function App({account,onLogout,onPasswordChanged}){
   if(startupRunPending)setStartupRunPending(false);
   run();
  },[startupRunPending,settingsReady,coreSystem,page,files,sign,activeCU,mode,busy]);
- function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
+ function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setCardResult(null);setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
  function exportEvidence(){if(!result)return;recordAction('evidence_export','completed');if(confirm('This export contains financial balances and notes. Save only in an approved location.'))download('abacus-run-evidence.json',JSON.stringify({build:'ABACUS React 0.3.0',warning:'Unsigned session evidence; not an immutable audit ledger or verified user identity.',run:result,notes},null,2),'application/json');}
 
  function stageFiles(list){
@@ -401,7 +401,7 @@ function App({account,onLogout,onPasswordChanged}){
  async function clearInputFolder(){
   try{
    await forgetFolder(folderScope);
-   setFolder(null);setSessionFolderName('');setFolderConnection('missing');setCandidates([]);setFiles({});setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
+   setFolder(null);setSessionFolderName('');setFolderConnection('missing');setCandidates([]);setFiles({});setCardResult(null);setReview(null);setApproved(false);setResult(null);setDraftResult(null);setEftResult(null);setAtmResult(null);
    setFolderPreferenceStatus('Input folder selection cleared. No files were deleted.');setFolderStatus('');
    if(centralTenant){try{await persistPreference('folder-name','');setBackendFolderName('');}catch(e){setFolderPreferenceStatus('Input folder cleared locally, but the server folder label could not be cleared: '+e.message);}}
   }catch(e){setFolderPreferenceStatus('Could not clear input folder: '+e.message);}
