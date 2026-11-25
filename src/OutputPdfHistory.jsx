@@ -55,12 +55,17 @@ export default function OutputPdfHistory({outputFolder,onConfigure,scope}){
  },[refresh,closePreview]);
  async function openPdf(item){
   closePreview();setError('');
+  // Open synchronously so browsers retain the click's user activation.
+  let tab=null;
+  try{tab=window.open('about:blank','_blank');if(tab)tab.opener=null;}catch{tab=null;}
   try{
    const file=await item.handle.getFile();
    if(!item.name.toLowerCase().endsWith('.pdf'))throw Error('Only PDF files can be viewed.');
    const url=URL.createObjectURL(new Blob([file],{type:'application/pdf'}));
    setPreview({name:item.name,url});
-  }catch(e){setError('Could not open PDF: '+e.message);}
+   if(tab&&!tab.closed){try{tab.location.replace(url);}catch{tab.close();setError('Automatic opening failed. Use Open PDF in new tab or Download PDF below.');}}
+   else setError('The browser blocked the new tab. Use Open PDF in new tab or Download PDF below.');
+  }catch(e){if(tab&&!tab.closed)tab.close();setError('Could not open PDF: '+e.message);}
  }
  async function editNote(item){
   if(savingNote)return;
@@ -102,8 +107,8 @@ export default function OutputPdfHistory({outputFolder,onConfigure,scope}){
    <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}><button type="button" onClick={persistNote} disabled={savingNote||!scope}>{savingNote?'Saving…':'Save Notes'}</button><button type="button" disabled={savingNote} onClick={()=>{setEditing(null);setDraftNote('');setNoteStatus('');}}>Close</button>{noteStatus&&<span role="status">{noteStatus}</span>}</div>
   </section>}
   {preview&&<div style={{marginTop:18}}>
-   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}><strong>{preview.name}</strong><button type="button" onClick={closePreview}>Close preview</button></div>
-   <iframe title={'PDF preview: '+preview.name} src={preview.url} style={{width:'100%',height:'70vh',border:'1px solid #cbd5e1',borderRadius:8}}/>
+   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}><strong>{preview.name}</strong><button type="button" onClick={closePreview}>Close PDF links</button></div>
+   <div role="status" style={{display:'flex',gap:16,flexWrap:'wrap'}}><a href={preview.url} target="_blank" rel="noopener noreferrer">Open PDF in new tab</a><a href={preview.url} download={preview.name}>Download PDF</a></div>
   </div>}
  </section>;
 }
