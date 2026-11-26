@@ -2,6 +2,7 @@
 // another vendor's parser or to certify a reconciliation result.
 const frozen=Object.freeze;
 const xp2Roles=frozen({
+ 'mortgage-servicing':['mortgage_balances','mortgage_activity','mortgage_remittance','mortgage_gl'],
  'loan-participations':['participation_balances','participation_activity','participation_remittance','participation_gl'],
  'credit-cards':['card_balances','card_transactions','card_settlement','card_gl'],
  'shares-loans':['gl','svst','lnst','cobd'],
@@ -12,6 +13,7 @@ const xp2Roles=frozen({
  ach:['ach_activity','ach_posting','ach_settlement','ach_gl']
 });
 const xp2Known={
+ ...Object.fromEntries(['balances','activity','remittance','gl'].map(k=>['mortgage_'+k,{label:'Mortgage '+k,extensions:['csv'],patterns:[new RegExp('^mortgage[_ .-]+'+k+'(?:[_. -]|$)','i')]}])),
  ...Object.fromEntries(['balances','activity','remittance','gl'].map(k=>['participation_'+k,{label:'Participation '+k,extensions:['csv'],patterns:[new RegExp('^participation[_ .-]+'+k+'(?:[_. -]|$)','i')]}])),
  ...Object.fromEntries(['balances','transactions','settlement','gl'].map(k=>['card_'+k,{label:'Normalized card '+k,extensions:['csv'],patterns:[new RegExp('^(?:synthetic[_ .-]+)?card[_ .-]+'+k+'(?:[_. (\\-]|$)','i')]}])),
  gl:{label:'GL trial balance',extensions:['pdf','txt'],patterns:[/(?:^|[^a-z])gl[_ -]?(?:trial|balance)/i,/trial[_ -]?balance/i]},
