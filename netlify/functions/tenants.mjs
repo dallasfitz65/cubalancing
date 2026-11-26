@@ -7,6 +7,7 @@ import {searchNCUA} from '../../src/ncua-lookup.mjs';
 
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isPlatformOwner=user=>user?.role==='admin'&&Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID)&&String(user.id)===String(process.env.ABACUS_PLATFORM_OWNER_USER_ID);
 const sessionCookie='__Host-abacus_session';
 function token(req){const item=(req.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(sessionCookie+'='));return item?.slice(sessionCookie.length+1)||'';}
 function checkOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw Error('Invalid origin');if(req.headers.get('sec-fetch-site')==='cross-site')throw Error('Cross-site request denied');}
@@ -32,15 +33,15 @@ export async function createHandler(req,{database=getDatabase}={}){
   await client.query('BEGIN');inTransaction=true;
   // Transaction-local context prevents setting leakage between pooled connections.
   await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
-  await client.query("SELECT set_config('abacus.platform_admin',$1,true)",[user.role==='admin'?'true':'false']);
+  await client.query("SELECT set_config('abacus.platform_admin',$1,true)",[isPlatformOwner(user)?'true':'false']);
   if(op==='platform-settings'&&req.method==='GET'){
-   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   if(!isPlatformOwner(user))return reply({error:'Platform administrator required'},403);
    const r=await client.query("SELECT setting_value,version FROM abacus_platform_settings WHERE setting_key='ai-integration'");
    await client.query('COMMIT');inTransaction=false;
    return reply(r.rows.length?{setting:r.rows[0].setting_value,version:Number(r.rows[0].version)}:{setting:null,version:0});
   }
   if(op==='save-platform-settings'&&req.method==='POST'){
-   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   if(!isPlatformOwner(user))return reply({error:'Platform administrator required'},403);
    const input=await body(req);
    const value=input?.value,version=input?.version;
    if(!value||typeof value!=='object'||Array.isArray(value)||!['local-rules','united-openai','united-ollama','custom'].includes(value.provider)
@@ -63,7 +64,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    return reply({ok:true,version:Number(r.rows[0].version)});
   }
   if(req.method==='GET'&&op==='ncua-search'){
-   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   if(!isPlatformOwner(user))return reply({error:'Platform administrator required'},403);
    const q=(url.searchParams.get('q')||'').trim();
    if(q.length<2||q.length>100)return reply({error:'Enter a name or charter of 2–100 characters'},400);
    try{
@@ -74,12 +75,12 @@ export async function createHandler(req,{database=getDatabase}={}){
    }catch(e){return reply({error:e.name==='AbortError'?'NCUA search timed out. Retry.':'NCUA search unavailable. Retry.'},502);}
   }
   if(req.method==='GET'&&op==='tenants'){
-   const found=await client.query('SELECT c.id,c.name,c.ncua_charter,c.active,m.role AS membership_role FROM abacus_credit_unions c LEFT JOIN abacus_user_credit_unions m ON m.credit_union_id=c.id AND m.user_id=$1 WHERE m.active=true OR $2::boolean=true ORDER BY c.name',[user.id,user.role==='admin']);
+   const found=await client.query('SELECT c.id,c.name,c.ncua_charter,c.active,m.role AS membership_role FROM abacus_credit_unions c LEFT JOIN abacus_user_credit_unions m ON m.credit_union_id=c.id AND m.user_id=$1 WHERE m.active=true OR $2::boolean=true ORDER BY c.name',[user.id,isPlatformOwner(user)]);
    await client.query('COMMIT');inTransaction=false;
    return reply({tenants:found.rows});
   }
   if(req.method==='POST'&&op==='create-tenant'){
-   if(user.role!=='admin')return reply({error:'Administrator required'},403);
+   if(!isPlatformOwner(user))return reply({error:'Administrator required'},403);
    const input=await body(req);
    let name=typeof input.name==='string'?input.name.trim():'';
    const charter=input.ncuaCharter==null?'':String(input.ncuaCharter).trim();
@@ -96,7 +97,7 @@ export async function createHandler(req,{database=getDatabase}={}){
     if(name.length>150)return reply({error:'NCUA institution name is too long'},400);
     client=await database().pool.connect();
     const again=await session(client,req);
-    if(!again||again.role!=='admin'||String(again.id)!==String(user.id))return reply({error:'Administrator required'},403);
+    if(!again||!isPlatformOwner(again)||String(again.id)!==String(user.id))return reply({error:'Administrator required'},403);
     await client.query('BEGIN');inTransaction=true;
     await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
     await client.query("SELECT set_config('abacus.platform_admin','true',true)");
@@ -112,7 +113,7 @@ export async function createHandler(req,{database=getDatabase}={}){
    return reply({tenant:created.rows[0]},201);
   }
   if(req.method==='POST'&&op==='assign-user'){
-   if(user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   if(!isPlatformOwner(user))return reply({error:'Platform administrator required'},403);
    const input=await body(req);
    if(String(input.userId||'')===String(user.id))return reply({error:'Self-assignment is prohibited. Ask another authorized institution administrator to approve access.'},403);
    if(!uuid.test(String(input.tenantId||''))||!/^[0-9]+$/.test(String(input.userId||''))||!['admin','reconciler','reviewer'].includes(input.role))return reply({error:'Invalid user assignment'},400);
@@ -189,7 +190,7 @@ export async function createHandler(req,{database=getDatabase}={}){
   }
   if(req.method==='POST'&&op==='set-setting'){
    if(member.rows[0].role!=='admin')return reply({error:'Credit union administrator required'},403);
-   if(incoming?.key==='enabled-modules'&&user.role!=='admin')return reply({error:'Platform administrator required'},403);
+   if(incoming?.key==='enabled-modules'&&!isPlatformOwner(user))return reply({error:'Platform administrator required'},403);
    const key=incoming?.key, value=validateSetting(key,incoming?.value);
    const version=incoming?.version;
    if(version!==null&&version!==undefined&&(!Number.isSafeInteger(version)||version<0))return reply({error:'Invalid setting version'},400);
