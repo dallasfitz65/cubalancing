@@ -8,23 +8,23 @@ const roles={
  gl:['gl'],shares:['svst'],loans:['lnst'],cash:['cobd'],
  drafts:['sdps','sdre','sdrt'],eft:['eftday','eftstar','eftatm','eftrejects','eftteller','eftgl'],
  atm:['atm_transactions','atm_cash','atm_settlement','atm_gl'],
- ach:['ach_activity','ach_posting','ach_settlement','ach_gl'],cards:['card_balances','card_transactions','card_settlement','card_gl'],participations:['participation_balances','participation_activity','participation_remittance','participation_gl']
+ ach:['ach_activity','ach_posting','ach_settlement','ach_gl'],cards:['card_balances','card_transactions','card_settlement','card_gl'],participations:['participation_balances','participation_activity','participation_remittance','participation_gl'],mortgages:['mortgage_balances','mortgage_activity','mortgage_remittance','mortgage_gl']
 };
 export const expectedModules=files=>({
  gl:Boolean(files.gl&&(files.svst||files.lnst||files.cobd)),
  drafts:roles.drafts.every(k=>Boolean(files[k])),
  eft:roles.eft.every(k=>Boolean(files[k])),
  atm:roles.atm.every(k=>Boolean(files[k])),
- ach:roles.ach.every(k=>Boolean(files[k])),cards:roles.cards.every(k=>Boolean(files[k])),participations:roles.participations.every(k=>Boolean(files[k]))
+ ach:roles.ach.every(k=>Boolean(files[k])),cards:roles.cards.every(k=>Boolean(files[k])),participations:roles.participations.every(k=>Boolean(files[k])),mortgages:roles.mortgages.every(k=>Boolean(files[k]))
 });
-export function isConsolidatedReady({files={},result,draftResult,eftResult,atmResult,achResult,cardResult,participationResult}){
+export function isConsolidatedReady({files={},result,draftResult,eftResult,atmResult,achResult,cardResult,participationResult,mortgageResult}){
  const expected=expectedModules(files);
  return Object.values(expected).some(Boolean)&&
  (!expected.gl||!!result)&&(!expected.drafts||!!draftResult)&&(!expected.eft||!!eftResult)&&
- (!expected.atm||!!atmResult)&&(!expected.ach||!!achResult)&&(!expected.cards||!!cardResult&&!cardResult.synthetic)&&(!expected.participations||!!participationResult);
+ (!expected.atm||!!atmResult)&&(!expected.ach||!!achResult)&&(!expected.cards||!!cardResult&&!cardResult.synthetic)&&(!expected.participations||!!participationResult)&&(!expected.mortgages||!!mortgageResult);
 }
 export async function buildConsolidatedPdf({
- creditUnion,coreSystem,files={},result,draftResult,eftResult,atmResult,achResult,cardResult,participationResult,
+ creditUnion,coreSystem,files={},result,draftResult,eftResult,atmResult,achResult,cardResult,participationResult,mortgageResult,
  enabledModules=defaultModules(),generatedAt=new Date()
 }){
  const pdf=await PDFDocument.create(),regular=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -134,6 +134,10 @@ export async function buildConsolidatedPdf({
  if(enabledModules.includes('loan-participations')){
  section('LOAN PARTICIPATION BALANCING');
  if(participationResult?.checks?.length){write('DEMONSTRATION DATA | '+participationResult.date+' | '+(participationResult.issues?'FAIL':'PASS'));for(const c of participationResult.checks)write((c.ok?'PASS':'FAIL')+' | '+c.name+' | Expected '+(c.unit==='count'?c.expected:dollars(c.expected))+' | Actual '+(c.unit==='count'?c.actual:dollars(c.actual))+' | Variance '+(c.unit==='count'?c.variance:dollars(c.variance)),{indent:9});}else write('NOT RUN / INCOMPLETE');
+ }
+ if(enabledModules.includes('mortgage-servicing')){
+ section('MORTGAGE SERVICING BALANCING');
+ if(mortgageResult?.checks?.length){write('DEMONSTRATION DATA | '+mortgageResult.date+' | '+(mortgageResult.issues?'FAIL':'PASS'));for(const c of mortgageResult.checks)write((c.ok?'PASS':'FAIL')+' | '+c.name+' | Expected '+(c.unit==='count'?c.expected:dollars(c.expected))+' | Actual '+(c.unit==='count'?c.actual:dollars(c.actual))+' | Variance '+(c.unit==='count'?c.variance:dollars(c.variance)),{indent:9});}else write('NOT RUN / INCOMPLETE');
  }
  section('CONTROL LIMITATIONS');
  write('No blank or unprocessed section may be interpreted as balanced. ACH and other prototype checks require institution-specific source validation before certification.');
