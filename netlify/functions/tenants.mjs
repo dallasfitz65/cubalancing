@@ -1,3 +1,4 @@
+import {validModules,resolveModules,moduleAllowed} from '../../src/module-registry.mjs';
 import {getDatabase} from '@netlify/database';
 import {createHash} from 'node:crypto';
 import {validateMaster} from '../../src/master-mapping.mjs';
@@ -12,6 +13,7 @@ function checkOrigin(req){const origin=req.headers.get('origin');if(origin&&orig
 function validateSetting(key,value){
  if(key==='core-system'&&['xp2','datasafe','portico'].includes(value))return value;
  if(key==='sign-convention'&&['credit-negative','natural','reverse-all'].includes(value))return value;
+ if(key==='enabled-modules'&&validModules(value))return value;
  if(key==='ai-enabled'&&typeof value==='boolean')return value;
  if(key==='folder-name'&&typeof value==='string'&&value.length<=255&&!/[\\/\x00-\x1f\x7f]/.test(value))return value.trim();
  throw Error('Unrecognized setting value');
@@ -168,6 +170,9 @@ export async function createHandler(req,{database=getDatabase}={}){
    if(!['admin','reconciler'].includes(member.rows[0].role))return reply({error:'Reconciliation permission required'},403);
    const run=incoming?.run;
    if(!run||!uuid.test(String(run.id||''))||!['shares-loans','cash','overview','drafts','eft','atm'].includes(run.workspace)||!['real','demo'].includes(run.mode)||!['balanced','exceptions','partial'].includes(run.status)||![run.checkCount,run.issueCount,run.unmappedCount,run.sourceCount].every(n=>Number.isSafeInteger(n)&&n>=0)||run.checkCount>100000||run.issueCount>run.checkCount||run.unmappedCount>100000||run.sourceCount>100)return reply({error:'Invalid reconciliation summary'},400);
+   const config=await client.query("SELECT setting_value FROM abacus_tenant_settings WHERE credit_union_id=$1 AND setting_key='enabled-modules'",[id]);
+   const enabled=resolveModules(config.rows[0]?.setting_value);
+   if(!moduleAllowed(run.workspace,enabled)||(run.workspace==='overview'&&!enabled.includes('shares-loans')))return reply({error:'Module disabled for this credit union'},403);
    const sourceHashes=run.sourceHashes;
    if(!Array.isArray(sourceHashes)||sourceHashes.length>20||sourceHashes.length!==run.sourceCount||!sourceHashes.every(x=>x&&typeof x.role==='string'&&/^[a-z_]{2,30}$/.test(x.role)&&typeof x.sha256==='string'&&/^[a-f0-9]{64}$/.test(x.sha256)))return reply({error:'Invalid source fingerprints'},400);
    if(run.ruleVersion!==null&&run.ruleVersion!==undefined&&(typeof run.ruleVersion!=='string'||run.ruleVersion.length>100))return reply({error:'Invalid rule version'},400);
@@ -184,6 +189,7 @@ export async function createHandler(req,{database=getDatabase}={}){
   }
   if(req.method==='POST'&&op==='set-setting'){
    if(member.rows[0].role!=='admin')return reply({error:'Credit union administrator required'},403);
+   if(incoming?.key==='enabled-modules'&&user.role!=='admin')return reply({error:'Platform administrator required'},403);
    const key=incoming?.key, value=validateSetting(key,incoming?.value);
    const version=incoming?.version;
    if(version!==null&&version!==undefined&&(!Number.isSafeInteger(version)||version<0))return reply({error:'Invalid setting version'},400);
