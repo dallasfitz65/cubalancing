@@ -5,6 +5,7 @@ export const MODULES=Object.freeze([
  ['atm','ATM Balancing',['atm_transactions','atm_cash','atm_settlement','atm_gl']],
  ['ach','ACH',['ach_activity','ach_posting','ach_settlement','ach_gl']],
  ['credit-cards','Credit Card Balancing',['card_balances','card_transactions','card_settlement','card_gl']],
+ ['mortgage-servicing','Mortgage Servicing Balancing',['mortgage_balances','mortgage_activity','mortgage_remittance','mortgage_gl']],
  ['loan-participations','Loan Participation Balancing',['participation_balances','participation_activity','participation_remittance','participation_gl']]
 ].map(([id,label,roles])=>Object.freeze({id,label,roles:Object.freeze(roles)})));
 const legacy=['shares-loans','drafts','eft','atm','ach','credit-cards','loan-participations'];
