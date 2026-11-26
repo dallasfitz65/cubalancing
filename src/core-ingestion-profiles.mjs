@@ -11,7 +11,7 @@ const xp2Roles=frozen({
  ach:['ach_activity','ach_posting','ach_settlement','ach_gl']
 });
 const xp2Known={
- ...Object.fromEntries(['balances','transactions','settlement','gl'].map(k=>['card_'+k,{label:'Normalized card '+k,extensions:['csv'],patterns:[new RegExp('^card_'+k+'(?:[_. -]|$)','i')]}])),
+ ...Object.fromEntries(['balances','transactions','settlement','gl'].map(k=>['card_'+k,{label:'Normalized card '+k,extensions:['csv'],patterns:[new RegExp('^(?:synthetic[_ .-]+)?card[_ .-]+'+k+'(?:[_. (\\-]|$)','i')]}])),
  gl:{label:'GL trial balance',extensions:['pdf','txt'],patterns:[/(?:^|[^a-z])gl[_ -]?(?:trial|balance)/i,/trial[_ -]?balance/i]},
  svst:{label:'Shares (SVST)',extensions:['txt'],patterns:[/svst/i]},
  lnst:{label:'Loans (LNST)',extensions:['txt'],patterns:[/lnst/i]},
