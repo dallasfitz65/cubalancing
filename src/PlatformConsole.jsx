@@ -4,7 +4,7 @@ import {tenantAPI,isServerTenant} from './tenant-api.mjs';
 import {MODULES,resolveModules} from './module-registry.mjs';
 import './platform-console.css';
 const tabs=[['overview','Overview'],['institutions','Credit unions'],['users','Users'],['modules','Modules'],['ai','AI & integrations'],['audit','Audit log']];
-export default function PlatformConsole({tab,onTab,unions,activeCU,onSelect,onWorkspace,aiProvider,refreshKey}){
+export default function PlatformConsole({tab,onTab,unions,activeCU,onSelect,onWorkspace,aiProvider,refreshKey,tenantActions}){
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[data,setData]=useState(null),[error,setError]=useState('');
  const ids=unions.filter(u=>isServerTenant(u.id)).map(u=>u.id).join(',');
  useEffect(()=>{let live=true;setData(null);setError('');
@@ -23,7 +23,7 @@ export default function PlatformConsole({tab,onTab,unions,activeCU,onSelect,onWo
  const incomplete=complete?registered.filter(u=>checks(u.id)?.some(c=>!c[1])):null;
  const exceptionInstitutions=complete?registered.filter(u=>latest(u.id)&&latest(u.id).status!=='balanced'):null;
  const visible=registered.filter(u=>(u.name+' '+(u.ncua_charter||'')).toLowerCase().includes(query.toLowerCase())&&(filter==='all'||filter==='setup'&&checks(u.id)?.some(c=>!c[1])||filter==='exceptions'&&latest(u.id)&&latest(u.id).status!=='balanced'));
- return <div className="pc-console"><div className="pc-heading"><div><small>Admin / Platform</small><h1>Platform console</h1></div><div className="pc-actions"><input type="search" aria-label="Search credit unions" placeholder="Search credit unions, charter" value={query} onChange={e=>{setQuery(e.target.value);onTab('institutions');}}/><button className="primary" type="button" onClick={()=>onTab('institutions')}>Manage credit unions</button></div></div>
+ return <div className="pc-console"><div className="pc-heading"><div><small>Admin / Platform</small><h1>Platform console</h1></div><div className="pc-actions"><input type="search" aria-label="Search credit unions" placeholder="Search credit unions, charter" value={query} onChange={e=>{setQuery(e.target.value);onTab('institutions');}}/>{tenantActions}</div></div>
  <div className="pc-tabs" role="tablist" aria-label="Platform navigation">{tabs.map(([id,label])=><button type="button" role="tab" aria-selected={tab===id} key={id} onClick={()=>onTab(id)}>{label}{id==='institutions'?' '+registered.length:id==='users'&&activeUsers?' '+activeUsers.length:''}</button>)}</div>
  {error&&<p role="alert">{error}</p>}
  {['overview','institutions'].includes(tab)&&<><div className="pc-kpis">{[['Active credit unions',registered.length,incomplete?incomplete.length+' setup incomplete':'Assigned institutions'],['Active users',activeUsers?.length??'—',unassigned?unassigned.length+' without an institution':'User data loading'],['Recorded runs · 7 days',recent?.length??'—','Latest 100 saved runs per institution'],['Latest run exceptions',exceptionInstitutions?exceptionInstitutions.reduce((n,u)=>n+Number(latest(u.id).issue_count||0),0):'—',exceptionInstitutions?exceptionInstitutions.length+' institutions with nonbalanced latest runs':'Not an open-exception queue']].map(([label,value,note])=><article key={label}><small>{label}</small><strong>{value}</strong><small>{note}</small></article>)}</div>
