@@ -6,6 +6,24 @@ import {createRoot} from 'react-dom/client';
 import {extractGL, PARSER_VERSION} from './gl-parser.mjs';
 import {GL_ACCOUNTS,SVST_GL_MAP,LNST_GL_MAP,parseSVST,parseLNST,parseCOBD,buildSections,DEMO_SECTIONS} from './engine.mjs';
 
+// Traverse the selected input directory at every depth. Fail closed on the existing file-count limit.
+async function scanInputTree(root,isCancelled=()=>false){
+ const files=[],pending=[root];
+ while(pending.length){
+  if(isCancelled())return [];
+  const directory=pending.pop();
+  for await(const entry of directory.values()){
+   if(isCancelled())return [];
+   if(entry.kind==='directory')pending.push(entry);
+   else if(entry.kind==='file'){
+    if(files.length>=200)throw Error('More than 200 files found in the selected folder and its subfolders. Choose a smaller export folder; no partial import was staged.');
+    files.push(await entry.getFile());
+   }
+  }
+ }
+ return isCancelled()?[]:files;
+}
+
 function parseReportMoney(v){if(typeof v==='number')return Number.isFinite(v)?v:0;if(typeof v!=='string')return 0;const n=Number(v.replace(/[$,()\s]/g,'').replace(/,/g,''));return Number.isFinite(n)?(v.includes('(')?-n:n):0;}
 function compactReportMoney(value){if(!Number.isFinite(value))return '—';const absolute=Math.abs(value);if(absolute>=1e6)return '$'+(value/1e6).toFixed(1)+'M';if(absolute>=1e3)return '$'+(value/1e3).toFixed(0)+'K';return '$'+value.toLocaleString('en-US',{maximumFractionDigits:0});}
 import './styles.css';
@@ -255,18 +273,7 @@ function App({account,onLogout,onPasswordChanged}){
      if(!cancelled)setStartupNotice('Input folder permission needs renewal. Reconnect it in Settings → Folder Configuration.');
      return;
     }
-    const list=[];let skipped=0;
-    async function sweep(dir,depth){
-     for await(const entry of dir.values()){
-      if(cancelled)return;
-      if(entry.kind==='directory'){if(depth>=3)skipped++;else await sweep(entry,depth+1);}
-      else if(entry.kind==='file'){
-       list.push(await entry.getFile());
-       if(list.length>200)throw Error('More than 200 files found. Select a smaller export folder in Settings.');
-      }
-     }
-    }
-    await sweep(folder,0);
+    const list=await scanInputTree(folder,()=>cancelled);
     if(cancelled)return;
     const found=classifyCoreFiles(list,coreSystem).filter(c=>!c.role||roleAllowed(c.role,enabledModules));
     setCandidates(found);
@@ -277,11 +284,10 @@ function App({account,onLogout,onPasswordChanged}){
     setStartupLoaded(true);
     const count=Object.keys(selected).length;
     const duplicates=duplicateRoles.size?' Duplicated report types skipped: '+[...duplicateRoles].join(', ')+'.':'';
-    const deeper=skipped?' '+skipped+' deep folder(s) skipped.':'';
     const cardMissing=['card_balances','card_transactions','card_settlement','card_gl'].filter(role=>!selected[role]);
     const cardNotice=!allowed('credit-cards')?'':cardMissing.length?' Credit card files missing or duplicated: '+cardMissing.join(', ')+'.':' All four credit card reports loaded.';
     const skippedFixtures=ignored.length?' Optional ATM test variant ignored: '+ignored.join(', ')+'.':'';
-    setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+deeper+cardNotice:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper+cardNotice);
+    setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+cardNotice:'No unambiguous supported source files found in the saved folder.'+duplicates+cardNotice);
     startupScanRef.current={scope:folderScope,folder};
     setStartupRunPending(true);
    }catch(e){
@@ -452,19 +458,8 @@ function App({account,onLogout,onPasswordChanged}){
       }
     }
     setFolderConnection('ready');
-    const list=[];
-    let skippedDeepFolders=0;
-    async function sweep(directory,depth){
-      for await(const entry of directory.values()){
-        if(entry.kind==='file'){list.push(await entry.getFile());if(list.length>200)throw Error('More than 200 files detected within the scan depth. Choose a smaller export folder; no partial import was staged.');}
-        else if(entry.kind==='directory'){
-          if(depth>=3)skippedDeepFolders++;
-          else await sweep(entry,depth+1);
-        }
-      }
-    }
-    await sweep(handle,0);stageFiles(list);
-    if(skippedDeepFolders)setFolderStatus(previous=>previous+' '+skippedDeepFolders+' deeper subfolder(s) were skipped (scan limit: three levels). If a needed report is in one of those folders, choose its parent folder directly.');
+    const list=await scanInputTree(handle);
+    stageFiles(list);
   }catch(e){setCandidates([]);setFolderStatus((e?.name==='NotAllowedError'||e?.name==='SecurityError'?'Browser blocked folder access. Click Choose input folder and select it again. If you use Safari, folder access must be selected again each session. ':'Folder scan stopped: ')+e.message);}
  }
  function moduleImportRoles(id){return (id==='ach'?['ach_activity','ach_posting','ach_settlement','ach_gl']:sourceRoles[id]||[]).filter(role=>roleAllowed(role,enabledModules));}
