@@ -1,4 +1,5 @@
 const guidance={
+ 'mortgage-servicing':'Compare principal and escrow roll-forwards, servicer remittance allocations, fee postings and GL balances. Check business dates and escrow disbursements.',
  'loan-participations':'Compare purchased participation principal roll-forward, servicer allocations, remittance cash and GL; review contractual allocation rules and posting dates.',
  'shares-loans':'Compare failed mapped GL accounts against the corresponding core balances; review account mappings and report dates.',
  drafts:'Compare posting, processing and return totals; review missing or duplicate items and business dates.',
