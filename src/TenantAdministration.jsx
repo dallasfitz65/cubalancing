@@ -71,28 +71,9 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
   }catch(e){setError('Demo setup incomplete: '+e.message+' Any created tenant is retained; retry this action after correcting the issue.');}
   finally{setDemoBusy(false);}
  }
- return <section className="folder-settings" aria-label="Credit union management">
- <div className="section-title-help">
-  <h2>Credit Union Management</h2>
-  {authorized&&<button type="button" className="tenant-add-icon" title="Add credit union" aria-label="Add credit union" onClick={openAdd}>
-   <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </button>}
- </div>
- {!authorized?<p>Only the platform administrator can manage credit unions.</p>:<>
- <button type="button" onClick={provisionDemo} disabled={busy||demoBusy}>{demoBusy?'Setting up Demo…':'Set up Demo workspace'}</button>
- <div className="tenant-list-wrapper">
-  <table className="tenant-list-table">
-   <thead><tr><th>Credit Union</th><th>NCUA Charter</th><th>Status</th><th>Action</th></tr></thead>
-   <tbody>{unions.map(union=><tr key={union.id} className={activeCU===union.id?'tenant-selected-row':''}>
-    <td><strong>{union.name}</strong></td>
-    <td>{union.ncua_charter||'—'}</td>
-    <td>{union.active===false?'Inactive':'Active'}</td>
-    <td><button type="button" aria-label={'Select '+union.name} disabled={busy||union.active===false||activeCU===union.id}
-      onClick={()=>{onSelect(union.id);setMessage('');setError('');}}> {activeCU===union.id?'Selected':'Manage'} </button></td>
-   </tr>)}</tbody>
-  </table>
-  {!unions.length&&<p>No credit unions have been configured. Use + to add the first one.</p>}
- </div>
+ return <div className="pc-tenant-actions">
+ {authorized&&<>
+ <div className="pc-tenant-buttons"><button className="primary" type="button" onClick={openAdd} disabled={busy||demoBusy}>+ Add credit union</button><details className="pc-action-menu"><summary aria-label="Additional credit union actions">⋯</summary><button type="button" onClick={provisionDemo} disabled={busy||demoBusy}>{demoBusy?'Setting up Demo…':'Set up Demo workspace'}</button></details></div>
  <dialog ref={addDialog} className="tenant-add-dialog" aria-labelledby="tenant-add-title" onCancel={e=>{if(busy)e.preventDefault();}}>
   <div className="dialog-head"><h2 id="tenant-add-title">Add Credit Union</h2><button type="button" aria-label="Close add credit union dialog" disabled={busy} onClick={()=>addDialog.current?.close()}>✕</button></div>
   <form onSubmit={lookupNCUA} className="tenant-ncua-search">
@@ -121,5 +102,5 @@ export default function TenantAdministration({account,activeCU,unions,onReload,o
  </dialog>
  </>}
  {error&&<p className="error" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
- </section>;
+ </div>;
 }
