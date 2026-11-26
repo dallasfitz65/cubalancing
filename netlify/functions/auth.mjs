@@ -71,13 +71,23 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    const name=typeof body.username==='string'?body.username.trim():'';
    const password=typeof body.password==='string'?body.password:'';
    if(!usernameValid(name)||password.length>256)return reply({error:'Invalid credentials'},401);
-   const found=await client.query('SELECT id,username,password_hash,role,active,failed_attempts,locked_until FROM abacus_users WHERE lower(username)=lower($1) AND deleted_at IS NULL',[name]);
-   const user=found.rows[0];
-   const valid=await checkPassword(password,user?.password_hash||UNKNOWN_USER_HASH);
-   if(!user||!user.active)return reply({error:'Invalid credentials'},401);
-   if(!valid){await client.query('UPDATE abacus_users SET failed_attempts=failed_attempts+1,locked_until=NULL WHERE id=$1',[user.id]);return reply({error:'Invalid credentials'},401);}
-   await client.query('UPDATE abacus_users SET failed_attempts=0,locked_until=NULL WHERE id=$1',[user.id]);
-   return startSession(client,user);
+   let tx=false;
+   try{
+    await client.query('BEGIN');tx=true;
+    const found=await client.query('SELECT id,username,password_hash,role,active,failed_attempts,locked_until,COALESCE(locked_until>now(),false) AS locked FROM abacus_users WHERE lower(username)=lower($1) AND deleted_at IS NULL FOR UPDATE',[name]);
+    const user=found.rows[0];
+    if(user?.locked){await client.query('COMMIT');tx=false;return reply({error:'Invalid credentials'},401);}
+    const valid=await checkPassword(password,user?.password_hash||UNKNOWN_USER_HASH);
+    if(!user||!user.active){await client.query('COMMIT');tx=false;return reply({error:'Invalid credentials'},401);}
+    if(!valid){
+     await client.query("UPDATE abacus_users SET failed_attempts=CASE WHEN locked_until IS NOT NULL AND locked_until<=now() THEN 1 ELSE COALESCE(failed_attempts,0)+1 END, locked_until=CASE WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until<=now() THEN 1 ELSE COALESCE(failed_attempts,0)+1 END)>=5 THEN now()+interval '15 minutes' ELSE NULL END WHERE id=$1",[user.id]);
+     await client.query('COMMIT');tx=false;return reply({error:'Invalid credentials'},401);
+    }
+    await client.query('UPDATE abacus_users SET failed_attempts=0,locked_until=NULL WHERE id=$1',[user.id]);
+    const response=await startSession(client,user);
+    await client.query('COMMIT');tx=false;return response;
+   }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
+
   }
   const actor=await currentUser(client,req);
   if(!actor)return reply({error:'Not signed in'},401);
@@ -178,7 +188,23 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
   if(op==='set-active'&&actor.role==='admin'){
    const id=String(body.id||'');if(!/^\d+$/.test(id)||typeof body.active!=='boolean'||id===String(actor.id))return reply({error:'Invalid user change'},400);
    if(isOwnerId(id))return reply({error:'The configured platform owner account cannot be disabled'},403);
-   const changed=await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2 AND deleted_at IS NULL RETURNING id',[body.active,id]);if(!changed.rows.length)return reply({error:'User account not found'},404);if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);await insertActivityStandalone(client,actor.id,body.active?'user_enabled':'user_disabled',null,id);return reply({ok:true});
+   let tx=false;
+   try{
+    await client.query('BEGIN');tx=true;
+    await client.query('SELECT pg_advisory_xact_lock(18499174)');
+    await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(actor.id)]);
+    await client.query("SELECT set_config('abacus.platform_admin','true',true)");
+    const target=await client.query('SELECT id,role,active FROM abacus_users WHERE id=$1 AND deleted_at IS NULL FOR UPDATE',[id]);
+    if(!target.rows.length){await client.query('ROLLBACK');tx=false;return reply({error:'User account not found'},404);}
+    if(!body.active&&target.rows[0].active&&target.rows[0].role==='admin'){
+     const admins=await client.query("SELECT count(*)::integer AS total FROM abacus_users WHERE role='admin' AND active=true AND deleted_at IS NULL");
+     if(Number(admins.rows[0].total)<=1){await client.query('ROLLBACK');tx=false;return reply({error:'Cannot disable the last active administrator'},409);}
+    }
+    await client.query('UPDATE abacus_users SET active=$1,updated_at=now() WHERE id=$2',[body.active,id]);
+    if(!body.active)await client.query('DELETE FROM abacus_sessions WHERE user_id=$1',[id]);
+    await insertActivity(client,actor.id,body.active?'user_enabled':'user_disabled',null,id);
+    await client.query('COMMIT');tx=false;return reply({ok:true});
+   }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
   }
   return reply({error:'Forbidden'},403);
  }catch(error){const invalid=error instanceof SyntaxError||['JSON required','Request too large','Invalid origin','Cross-site request denied'].includes(error?.message);return reply({error:invalid?'Invalid request':'Authentication service unavailable'},invalid?400:503);}finally{client?.release();}
