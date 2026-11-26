@@ -246,7 +246,7 @@ function App({account,onLogout,onPasswordChanged}){
     const cardMissing=['card_balances','card_transactions','card_settlement','card_gl'].filter(role=>!selected[role]);
     const cardNotice=cardMissing.length?' Credit card files missing or duplicated: '+cardMissing.join(', ')+'.':' All four credit card reports loaded.';
     const skippedFixtures=ignored.length?' Optional ATM test variant ignored: '+ignored.join(', ')+'.':'';
-    setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+deeper:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper);
+    setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+deeper+cardNotice:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper+cardNotice);
     startupScanRef.current={scope:folderScope,folder};
     setStartupRunPending(true);
    }catch(e){
