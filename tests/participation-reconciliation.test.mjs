@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseParticipationFile,reconcileParticipations} from '../src/participation-reconciliation.mjs';
+import {classifyCoreFiles} from '../src/core-ingestion-profiles.mjs';
+import {selectUniqueSourceFiles} from '../src/source-file-selection.mjs';
+const csv={balances:'date,participation_id,opening_principal_cents,closing_principal_cents\n2026-11-24,P001,10000000,9800000',activity:'date,participation_id,reference,type,amount_cents\n2026-11-24,P001,T1,principal_payment,200000\n2026-11-24,P001,T2,interest_payment,50000\n2026-11-24,P001,T3,servicing_fee,5000',remittance:'date,participation_id,principal_cents,interest_cents,fee_cents,net_cash_cents\n2026-11-24,P001,200000,50000,5000,245000',gl:'date,participation_id,principal_cents,interest_cents,fee_cents,cash_cents\n2026-11-24,P001,9800000,50000,5000,245000'};
+const input=(values=csv)=>Object.fromEntries(Object.entries(values).map(([k,v])=>[k,parseParticipationFile(k,v)]));
+test('ten controls pass',()=>{const r=reconcileParticipations(input());assert.equal(r.checks.length,10);assert.equal(r.issues,0);});
+test('GL variance detected',()=>{const r=reconcileParticipations(input({...csv,gl:csv.gl.replace('9800000','9797500')}));assert.equal(r.issues,1);assert.equal(r.checks[1].variance,-2500);});
+test('source mismatch rejected',()=>assert.throws(()=>reconcileParticipations(input({...csv,gl:csv.gl.replace('P001','P002')})),/Missing summary/));
+test('all four files recognized on startup',()=>{const files=Object.keys(csv).map(k=>({name:'participation_'+k+'.csv',size:100}));assert.equal(Object.keys(selectUniqueSourceFiles(classifyCoreFiles(files,'xp2')).files).length,4);});
