@@ -211,8 +211,7 @@ function App({account,onLogout,onPasswordChanged}){
  // Startup recovery never prompts for folder permissions: browser access must already be granted.
  useEffect(()=>{
   if(!settingsReady||folderConnection!=='ready'||!folder||coreSystem!=='xp2'||!activeCU)return;
-  if(startupScanRef.current===folderScope)return;
-  startupScanRef.current=folderScope;
+  if(startupScanRef.current?.scope===folderScope&&startupScanRef.current?.folder===folder)return;
   let cancelled=false;
   setStartupNotice('Checking saved input folder and available reconciliation reports…');
   (async()=>{
@@ -244,8 +243,11 @@ function App({account,onLogout,onPasswordChanged}){
     const count=Object.keys(selected).length;
     const duplicates=duplicateRoles.size?' Duplicated report types skipped: '+[...duplicateRoles].join(', ')+'.':'';
     const deeper=skipped?' '+skipped+' deep folder(s) skipped.':'';
+    const cardMissing=['card_balances','card_transactions','card_settlement','card_gl'].filter(role=>!selected[role]);
+    const cardNotice=cardMissing.length?' Credit card files missing or duplicated: '+cardMissing.join(', ')+'.':' All four credit card reports loaded.';
     const skippedFixtures=ignored.length?' Optional ATM test variant ignored: '+ignored.join(', ')+'.':'';
     setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+deeper:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper);
+    startupScanRef.current={scope:folderScope,folder};
     setStartupRunPending(true);
    }catch(e){
     if(!cancelled){setStartupNotice('Automatic folder import stopped: '+e.message);setStartupLoaded(false);}
