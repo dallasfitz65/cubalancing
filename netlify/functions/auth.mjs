@@ -19,7 +19,7 @@ async function readBody(req){if(req.headers.get('content-type')?.split(';')[0]!=
 async function currentUser(client,req){const token=tokenFrom(req);if(!/^[a-f0-9]{64}$/.test(token))return null;const {rows}=await client.query(`SELECT u.id,u.username,u.role,u.active FROM abacus_sessions s JOIN abacus_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true AND u.deleted_at IS NULL`,[hash(token)]);return rows[0]||null;}
 const isOwnerId=id=>Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID)&&String(id)===String(process.env.ABACUS_PLATFORM_OWNER_USER_ID);
 function publicUser(user){return {id:String(user.id),username:user.username,role:user.role,isPlatformOwner:Boolean(process.env.ABACUS_PLATFORM_OWNER_USER_ID&&String(user.id)===process.env.ABACUS_PLATFORM_OWNER_USER_ID&&user.role==='admin')};}
-async function startSession(client,user){const token=randomBytes(32).toString('hex');await client.query('INSERT INTO abacus_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'12 hours\')',[hash(token),user.id]);await insertActivityStandalone(client,user.id,'login');return reply({user:publicUser(user)},200,{'Set-Cookie':cookie(token,HOURS*3600)});}
+async function startSession(client,user,inTransaction=false){const token=randomBytes(32).toString('hex');await client.query('INSERT INTO abacus_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'12 hours\')',[hash(token),user.id]);if(inTransaction){await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);await insertActivity(client,user.id,'login');}else await insertActivityStandalone(client,user.id,'login');return reply({user:publicUser(user)},200,{'Set-Cookie':cookie(token,HOURS*3600)});}
 export async function createHandler(req,{database=getDatabase,setupToken=process.env.ABACUS_SETUP_TOKEN}={}){
  let client;
  try{
@@ -32,7 +32,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
    const user=await currentUser(client,req);
    if(!user)return reply({error:'Not signed in'},401);
    if(op==='me')return reply({user:publicUser(user)});
-   if(op==='users'&&user.role==='admin'){
+   if(op==='users'&&user.role==='admin'&&isOwnerId(user.id)){
     await client.query('BEGIN');
     try{
      await client.query("SELECT set_config('abacus.user_id',$1,true)",[String(user.id)]);
@@ -44,7 +44,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
      LEFT JOIN abacus_credit_unions c ON c.id=m.credit_union_id
      WHERE u.deleted_at IS NULL
      GROUP BY u.id ORDER BY u.id`);
-    await client.query('COMMIT');return reply({users:rows.rows.map(u=>({...u,id:String(u.id)}))});
+    await client.query('COMMIT');return reply({users:rows.rows.map(u=>({...u,id:String(u.id),isPlatformOwner:isOwnerId(u.id)&&u.role==='admin'}))});
     }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
    }
    return reply({error:'Forbidden'},403);
@@ -84,7 +84,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
      await client.query('COMMIT');tx=false;return reply({error:'Invalid credentials'},401);
     }
     await client.query('UPDATE abacus_users SET failed_attempts=0,locked_until=NULL WHERE id=$1',[user.id]);
-    const response=await startSession(client,user);
+    const response=await startSession(client,user,true);
     await client.query('COMMIT');tx=false;return response;
    }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
 
@@ -109,7 +109,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     return reply({ok:true,reauthenticationRequired:true},200,{'Set-Cookie':cookie('',0)});
    }catch(error){if(tx)await client.query('ROLLBACK').catch(()=>{});throw error;}
   }
-  if(op==='create-user'&&actor.role==='admin'){
+  if(op==='create-user'&&actor.role==='admin'&&isOwnerId(actor.id)){
    if(!usernameValid(body.username)||!passwordValid(body.password)||body.role!=='user'||!['admin','reconciler','reviewer'].includes(body.institutionRole)||typeof body.creditUnionId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.creditUnionId))
     return reply({error:'A valid credit union, institution role, username and password (12+ characters) are required'},400);
    const pw=await encodePassword(body.password);
@@ -161,7 +161,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     await client.query('COMMIT');tx=false;return reply({ok:true});
    }catch(e){if(tx)await client.query('ROLLBACK').catch(()=>{});throw e;}
   }
-  if(op==='delete-user'&&actor.role==='admin'){
+  if(op==='delete-user'&&actor.role==='admin'&&isOwnerId(actor.id)){
    const id=String(body.id||'');
    if(!/^[0-9]{1,20}$/.test(id)||id===String(actor.id))return reply({error:'Cannot delete your own administrator account'},400);
    if(isOwnerId(id))return reply({error:'The configured platform owner account cannot be deleted'},403);
@@ -185,7 +185,7 @@ export async function createHandler(req,{database=getDatabase,setupToken=process
     return reply({ok:true});
    }catch(e){if(inTransaction)await client.query('ROLLBACK').catch(()=>{});throw e;}
   }
-  if(op==='set-active'&&actor.role==='admin'){
+  if(op==='set-active'&&actor.role==='admin'&&isOwnerId(actor.id)){
    const id=String(body.id||'');if(!/^\d+$/.test(id)||typeof body.active!=='boolean'||id===String(actor.id))return reply({error:'Invalid user change'},400);
    if(isOwnerId(id))return reply({error:'The configured platform owner account cannot be disabled'},403);
    let tx=false;
