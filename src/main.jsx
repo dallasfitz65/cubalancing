@@ -272,7 +272,7 @@ function App({account,onLogout,onPasswordChanged}){
     const duplicates=duplicateRoles.size?' Duplicated report types skipped: '+[...duplicateRoles].join(', ')+'.':'';
     const deeper=skipped?' '+skipped+' deep folder(s) skipped.':'';
     const cardMissing=['card_balances','card_transactions','card_settlement','card_gl'].filter(role=>!selected[role]);
-    const cardNotice=cardMissing.length?' Credit card files missing or duplicated: '+cardMissing.join(', ')+'.':' All four credit card reports loaded.';
+    const cardNotice=!allowed('credit-cards')?'':cardMissing.length?' Credit card files missing or duplicated: '+cardMissing.join(', ')+'.':' All four credit card reports loaded.';
     const skippedFixtures=ignored.length?' Optional ATM test variant ignored: '+ignored.join(', ')+'.':'';
     setStartupNotice(count?count+' report(s) loaded from the saved folder. Balancing runs automatically for modules with complete source sets.'+duplicates+skippedFixtures+deeper+cardNotice:'No unambiguous supported source files found in the saved folder.'+duplicates+deeper+cardNotice);
     startupScanRef.current={scope:folderScope,folder};
@@ -282,7 +282,7 @@ function App({account,onLogout,onPasswordChanged}){
    }
   })();
   return()=>{cancelled=true;};
- },[activeCU,folderScope,settingsReady,folderConnection,folder,coreSystem]);
+ },[activeCU,folderScope,settingsReady,folderConnection,folder,coreSystem,moduleKey,modulesReady]);
  useEffect(()=>{let active=true;setOutputFolder(null);setOutputFolderStatus('');getSetting(folderScope,'output-folder').then(async handle=>{if(!active||!handle||handle.kind!=='directory')return;setOutputFolder(handle);const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'prompt';if(active&&permission!=='granted')setOutputFolderStatus('Output folder saved; browser write permission may need renewal.');}).catch(e=>{if(active)setOutputFolderStatus('Output folder settings unavailable: '+e.message);});return()=>{active=false;};},[folderScope]);
  useEffect(()=>{
   let active=true;
@@ -398,7 +398,7 @@ function App({account,onLogout,onPasswordChanged}){
  function clear(){if(lock.current||!confirm('Clear all session files, results, notes and activity? Downloaded copies remain on your device.'))return;setFiles({});setCardResult(null);setParticipationResult(null);setDraftResult(null);setReview(null);setApproved(false);setResult(null);setNotes({});setActivity([]);setError('');setMappingOK(false);setModal(null);setFolder(null);setFolderConnection('missing');setCandidates([]);setFolderStatus('');setDatesConfirmed(false);}
  function exportEvidence(){if(!result)return;recordAction('evidence_export','completed');if(confirm('This export contains financial balances and notes. Save only in an approved location.'))download('abacus-run-evidence.json',JSON.stringify({build:'ABACUS React 0.3.0',warning:'Unsigned session evidence; not an immutable audit ledger or verified user identity.',run:result,notes},null,2),'application/json');}
 
- function stageFiles(list){
+ function stageFiles(list){if(!modulesReady)return;
   if(list.length>200){setFolderStatus('More than 200 files detected. Narrow the export folder before scanning; no partial import was staged.');setCandidates([]);return;}
   const found=classifyCoreFiles(list,coreSystem).filter(c=>!c.role||roleAllowed(c.role,enabledModules));
   setCandidates(found);setDatesConfirmed(false);
@@ -460,7 +460,7 @@ function App({account,onLogout,onPasswordChanged}){
     if(skippedDeepFolders)setFolderStatus(previous=>previous+' '+skippedDeepFolders+' deeper subfolder(s) were skipped (scan limit: three levels). If a needed report is in one of those folders, choose its parent folder directly.');
   }catch(e){setCandidates([]);setFolderStatus((e?.name==='NotAllowedError'||e?.name==='SecurityError'?'Browser blocked folder access. Click Choose input folder and select it again. If you use Safari, folder access must be selected again each session. ':'Folder scan stopped: ')+e.message);}
  }
- function moduleImportRoles(id){return id==='ach'?['ach_activity','ach_posting','ach_settlement','ach_gl']:sourceRoles[id]||[];}
+ function moduleImportRoles(id){return (id==='ach'?['ach_activity','ach_posting','ach_settlement','ach_gl']:sourceRoles[id]||[]).filter(role=>roleAllowed(role,enabledModules));}
  function importCandidates(moduleId=null){if(coreSystem!=='xp2'){setFolderStatus(CORE_SYSTEMS[coreSystem].label+' report adapters are not validated. Import is disabled until source specifications and parsers are approved.');return;}const allowed=moduleId?moduleImportRoles(moduleId):null;const chosen=candidates.filter(c=>c.role&&roleAllowed(c.role,enabledModules)&&(!allowed||allowed.includes(c.role)));if(!allowed&&candidates.some(c=>c.status==='ambiguous'&&!c.role)){setFolderStatus('Some file names match multiple roles. Review them before importing.');return;}if(!chosen.length){setFolderStatus('No recognized report files selected.');return;}const roles=chosen.map(c=>c.role);if(new Set(roles).size!==roles.length){setFolderStatus('Choose only one file per role. Duplicate roles must be resolved.');return;}if(chosen.some(c=>!c.file.size||c.file.size>10*1024*1024||!(c.role==='gl'?/\.(pdf|txt)$/i:c.role==='account'||c.role.startsWith('atm_')||c.role.startsWith('ach_')||c.role.startsWith('card_')||c.role.startsWith('participation_')?/\.csv$/i:['draftgl','eftgl'].includes(c.role)?/\.pdf$/i:/\.txt$/i).test(c.file.name))){setFolderStatus('Unsupported file type or size. Files must be nonempty and under 10 MB.');return;}for(const c of chosen)changeFile(c.role,c.file);setFolderStatus('Selected files loaded. Review the shared GL and run the selected workspace.');return true;}
  async function viewGL(){
   if(!files.gl)return;
@@ -482,7 +482,7 @@ function App({account,onLogout,onPasswordChanged}){
  const displaySections=coreSystem==='xp2'?buildMappedSections(master.entries,{}, {}, {}, {branches:[],total:0},'overview').map(s=>({...s,rows:s.id==='cash'&&visibleRun?.sections.some(x=>x.id==='cash')?visibleRun.sections.find(x=>x.id==='cash').rows:s.rows.map(r=>visibleRun?.sections.find(x=>x.id===s.id)?.rows.find(x=>x.gl===r.gl&&x.desc===r.desc)||r)})):[];
  const sections=selectSections(displaySections,page).map(s=>({...s,rows:page==='overview'?s.rows.filter(r=>r.executed):s.rows})).filter(s=>s.rows.length);
  const title=navigation.find(n=>n[2]===page)?.[1]||'ABACUS Balancing';
- const balancing=['shares-loans','cash','exceptions'].includes(page);
+ const balancing=allowed('shares-loans')&&['shares-loans','cash','exceptions'].includes(page);
  async function openSavedPdf(){
    if(!savedPdf||savedPdf.tenantId!==activeCU||!outputFolder)return;
    let tab=null;
@@ -503,7 +503,7 @@ function App({account,onLogout,onPasswordChanged}){
    }catch(e){if(tab&&!tab.closed)tab.close();setConsolidatedPdfStatus('Could not open the saved report: '+e.message);}
  }
  useEffect(()=>()=>{if(pdfPreview?.url)URL.revokeObjectURL(pdfPreview.url);},[pdfPreview?.url]);
- const hasReconciliationResults=Boolean(result||draftResult||eftResult||atmResult||achResult||cardResult||participationResult);
+ const hasReconciliationResults=Boolean((allowed('shares-loans')&&result)||(allowed('drafts')&&draftResult)||(allowed('eft')&&eftResult)||(allowed('atm')&&atmResult)||(allowed('ach')&&achResult)||(allowed('credit-cards')&&cardResult)||(allowed('loan-participations')&&participationResult));
  const rows=sections.flatMap(s=>s.rows).filter(r=>!r.branchOnly&&r.executed);
  return <div className="app"><aside><a className="brand" href="#overview" onClick={e=>{e.preventDefault();navigateSection('overview');}}><img src="/cu-abacus-logo.png" alt="CU | ABACUS" className="abacus-brand-logo" /></a><div className="abacus-sidebar-subtitle">BALANCING</div><nav aria-label="Main navigation">{sidebarNavigation.filter(([, ,id])=>allowed(id)&&(!['platform','platform-activity'].includes(id)||account.role==='admin')).map(([group,label,id])=><React.Fragment key={id}>{group&&<div className="side-label">{group}</div>}<button aria-current={page===id?'page':undefined} className={page===id?'nav-item nav-current':'nav-item'} onClick={()=>navigateSection(id)}>{label}</button>{page===id&&sourceRoles[id]&&(folderConnection==='missing'||folderConnection==='reconnect')&&<div className="nav-files">
  <p>{folderConnection==='reconnect'?'Saved input folder needs permission. Reconnect it in Settings.':coreIngestion(coreSystem).adapter?'No input folder configured for this credit union.':'Source adapter pending for '+CORE_SYSTEMS[coreSystem].label+'.'}</p>
@@ -575,11 +575,11 @@ function App({account,onLogout,onPasswordChanged}){
 
  {allowed('loan-participations')&&<div hidden={page!=='loan-participations'}><LoanParticipations key={activeCU+':'+coreSystem} files={files} report={participationResult} onReport={value=>setParticipationResult(value?{...value,tenantId:activeCU}:null)} aiEnabled={aiEnabled}/></div>}
  {allowed('credit-cards')&&<div hidden={page!=='credit-cards'}><CreditCards key={activeCU+':'+coreSystem} files={files} report={cardResult} onReport={value=>setCardResult(value?{...value,tenantId:activeCU}:null)} aiEnabled={aiEnabled}/></div>}
- {page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value?{...value,tenantId:activeCU}:null);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
-  {page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
- {page==='eft'&&coreSystem==='xp2'&&<EFT creditUnionName={cuName} allowDemoFixtures={cuName.trim().toLowerCase()==='demo credit union'} autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
+ {allowed('ach')&&page==='ach'&&<ACH files={{activity:files.ach_activity,posting:files.ach_posting,settlement:files.ach_settlement,gl:files.ach_gl}} report={achResult} onReport={value=>{setAchResult(value?{...value,tenantId:activeCU}:null);if(value)recordAction('ach_review',value.issues?'exception':'completed');}} autoRun/>}
+  {allowed('atm')&&page==='atm'&&coreSystem==='xp2'&&<ATM autoRun aiEnabled={aiEnabled} files={files} initialReport={atmResult} onReview={value=>{setAtmResult(value);if(value)recordAction('atm_review',value.checks.some(c=>!c.ok)?'exception':'completed');}}/>}
+ {allowed('eft')&&page==='eft'&&coreSystem==='xp2'&&<EFT creditUnionName={cuName} allowDemoFixtures={cuName.trim().toLowerCase()==='demo credit union'} autoRun files={files} data={eftResult} setData={value=>{setEftResult(value);if(value)recordAction('eft_review',value.issues.length?'exception':'completed');}}/>}
  
- {page==='drafts'&&coreSystem==='xp2'&&<ShareDrafts autoRun files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}}/>}
+ {allowed('drafts')&&page==='drafts'&&coreSystem==='xp2'&&<ShareDrafts autoRun files={files} busy={busy} data={draftResult} setData={value=>{setDraftResult(value);if(value)recordAction('draft_checks',value.checks.some(c=>c.ok===false)?'exception':'completed');}}/>}
  {page==='settings'&&<section id="folder-import" aria-label="Folder import &amp; file coverage" className="folder-settings" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)stageFiles(e.dataTransfer.files);}}>
  <div className="section-title-help"><h2>Folder Configuration</h2><SectionHelp title="Folder Configuration"><p>Input folder: Abacus scans reports from the selected folder on this browser/device. Choose a folder or use Scan to refresh file discovery.</p><p>Output folder: one consolidated PDF covering all completed ABACUS balancing sections is automatically saved after processing finishes, provided browser write permission is granted. Unavailable sections are explicitly marked Not Run / Incomplete.</p><p>The browser stores folder access for this user and credit union when permitted. The server stores the input folder's display name only. Folder paths, raw files and output credentials are not uploaded.</p><p>The clear icons remove stored folder selections; they never delete the underlying folders or documents.</p></SectionHelp></div>
  <div className="folder-config-grid">
