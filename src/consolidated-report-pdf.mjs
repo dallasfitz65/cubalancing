@@ -1,3 +1,4 @@
+import {defaultModules} from './module-registry.mjs';
 // Single local PDF covering every ABACUS reconciliation module; no network upload.
 import {PDFDocument,StandardFonts,rgb} from 'pdf-lib';
 
@@ -24,7 +25,7 @@ export function isConsolidatedReady({files={},result,draftResult,eftResult,atmRe
 }
 export async function buildConsolidatedPdf({
  creditUnion,coreSystem,files={},result,draftResult,eftResult,atmResult,achResult,cardResult,participationResult,
- generatedAt=new Date()
+ enabledModules=defaultModules(),generatedAt=new Date()
 }){
  const pdf=await PDFDocument.create(),regular=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
  const W=612,H=792,L=40,R=572;
@@ -69,17 +70,19 @@ export async function buildConsolidatedPdf({
   ['Cash',cash,files.cobd&&files.gl]
  ];
  for(const [name,items,available] of definitions){
+  if(!enabledModules.includes('shares-loans'))continue;
   const rows=items.flatMap(s=>s.rows||[]).filter(r=>r.executed&&!r.branchOnly);
   write(name+': '+(!available?'NOT RUN - source file missing':!rows.length?'INCOMPLETE - no computed rows':rows.some(r=>!r.ok)?'EXCEPTIONS':'BALANCED')+' ('+rows.length+' checks)');
  }
  const draftChecks=draftResult?.checks||[];
- write('Share Drafts: '+(!draftResult?'NOT RUN / INCOMPLETE':draftChecks.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
- write('EFT: '+(!eftResult?'NOT RUN / INCOMPLETE':eftResult.issues?.length||eftResult.controls?.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
- write('ATM: '+(!atmResult?'NOT RUN / INCOMPLETE':atmResult.checks?.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
- write('ACH: '+(!achResult?'NOT RUN / INCOMPLETE':achResult.issues?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
+ if(enabledModules.includes('drafts'))write('Share Drafts: '+(!draftResult?'NOT RUN / INCOMPLETE':draftChecks.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
+ if(enabledModules.includes('eft'))write('EFT: '+(!eftResult?'NOT RUN / INCOMPLETE':eftResult.issues?.length||eftResult.controls?.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
+ if(enabledModules.includes('atm'))write('ATM: '+(!atmResult?'NOT RUN / INCOMPLETE':atmResult.checks?.some(c=>c.ok===false)?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
+ if(enabledModules.includes('ach'))write('ACH: '+(!achResult?'NOT RUN / INCOMPLETE':achResult.issues?'EXCEPTIONS':'PROTOTYPE COMPLETE'));
  for(const [title,items,required] of [
   ['SHARES AND CERTIFICATES',shares,roles.shares],['LOANS',loans,roles.loans],['CASH',cash,roles.cash]
  ]){
+  if(!enabledModules.includes('shares-loans'))continue;
   section(title);
   if(!status(title,[...roles.gl,...required],!!items.length,'no matching computed section'))continue;
   for(const item of items){
@@ -88,24 +91,31 @@ export async function buildConsolidatedPdf({
    for(const r of rows)write((r.ok?'OK':'EXCEPTION')+' | GL '+r.gl+' | '+r.desc+' | Core '+String(r.svst??'N/A')+' | GL '+String(r.tb??'N/A')+' | Variance '+String(r.var??r.varRaw??'N/A'),{indent:9});
   }
  }
+ if(enabledModules.includes('drafts')){
  section('SHARE DRAFTS');
  if(status('Share Drafts',roles.drafts,!!draftResult)){
   for(const [k,v] of Object.entries(draftResult.summary||{}))write(k+': '+dollars(v),{indent:9});
   for(const c of draftChecks)write((c.ok===false?'EXCEPTION':'CHECK')+' | '+clean(c.name??c.description??JSON.stringify(c)),{indent:9});
   write('Share Draft GL postings have not been independently verified.');
  }
+ }
+ if(enabledModules.includes('eft')){
  section('EFT');
  if(status('EFT',roles.eft,!!eftResult)){
   for(const [label,amount] of eftResult.rows||[])write(label+': '+dollars(amount),{indent:9});
   for(const entry of eftResult.issues||[])write('ISSUE: '+entry,{indent:9});
   for(const c of eftResult.controls||[])write((c.ok===false?'EXCEPTION':'CHECK')+' | '+clean(c.name??c.label??JSON.stringify(c)),{indent:9});
  }
+ }
+ if(enabledModules.includes('atm')){
  section('ATM');
  if(status('ATM',roles.atm,!!atmResult)){
   write('Terminal: '+(atmResult.terminal||'N/A')+' | Business date: '+(atmResult.date||'N/A'));
   for(const c of atmResult.checks||[])write((c.ok?'OK':'EXCEPTION')+' | '+c.name+' | Expected '+dollars(c.source)+' | Actual '+dollars(c.actual)+' | Variance '+dollars(c.variance),{indent:9});
   write('ATM controls use a limited demo transaction model.');
  }
+ }
+ if(enabledModules.includes('ach')){
  section('ACH');
  if(status('ACH',roles.ach,!!achResult)){
   write('Normalized CSV prototype - not validated native XP2 or DNA exports.');
@@ -116,10 +126,15 @@ export async function buildConsolidatedPdf({
   }
   for(const e of achResult.unmatched||[])write('UNMATCHED: '+e.source+' | '+e.key+' | Count '+e.count,{indent:9});
  }
+ }
+ if(enabledModules.includes('credit-cards')){
  section('CREDIT CARD BALANCING');
  if(status('Credit Cards',roles.cards,!!cardResult&&!cardResult.synthetic)){write('Business date: '+cardResult.date+' | '+(cardResult.issues?'FAIL':'PASS'));for(const c of cardResult.checks)write((c.ok?'PASS':'FAIL')+' | '+c.name+' | Expected '+(c.unit==='count'?c.expected:dollars(c.expected))+' | Actual '+(c.unit==='count'?c.actual:dollars(c.actual))+' | Variance '+(c.unit==='count'?c.variance:dollars(c.variance)),{indent:9});write('Normalized controls only; native processor and bank settlement verification pending.');}
+ }
+ if(enabledModules.includes('loan-participations')){
  section('LOAN PARTICIPATION BALANCING');
  if(participationResult?.checks?.length){write('DEMONSTRATION DATA | '+participationResult.date+' | '+(participationResult.issues?'FAIL':'PASS'));for(const c of participationResult.checks)write((c.ok?'PASS':'FAIL')+' | '+c.name+' | Expected '+(c.unit==='count'?c.expected:dollars(c.expected))+' | Actual '+(c.unit==='count'?c.actual:dollars(c.actual))+' | Variance '+(c.unit==='count'?c.variance:dollars(c.variance)),{indent:9});}else write('NOT RUN / INCOMPLETE');
+ }
  section('CONTROL LIMITATIONS');
  write('No blank or unprocessed section may be interpreted as balanced. ACH and other prototype checks require institution-specific source validation before certification.');
  for(let i=0;i<pdf.getPageCount();i++)pdf.getPage(i).drawText('ABACUS Local Reconciliation | Page '+(i+1)+' of '+pdf.getPageCount(),{x:L,y:30,font:regular,size:8,color:rgb(.43,.47,.5)});
