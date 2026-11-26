@@ -51,13 +51,13 @@ export function buildBalancingOverview({result=null,draftResult=null,eftResult=n
  const mc=mortgageResult?.checks||[];
  const mortgageCard=card('mortgage-servicing','Mortgage Servicing Balancing','shares',!mc.length?'NOT RUN':mc.some(c=>!c.ok)?'FAIL':'PASS',mc.filter(c=>!c.ok).length,mc.length,dateValue(mortgageResult?.date),'Business date','Demonstration controls');
  return [
-  enrich(glCard,glRows.map((x,i)=>control([x.gl?'GL '+x.gl:'GL control '+(i+1),x.desc].filter(Boolean).join(' — '),x)),'Mapped general ledger balances compared with core balances.', ['Source business date is not independently verified.',...(mappingIssues?[mappingIssues+' unmapped account type(s) excluded.']:[])],Math.max(0,glFailed-rowFailures)+mappingIssues),
   enrich(draftCard,draftChecks.map((x,i)=>control(x.label||'Share Draft control '+(i+1),x)),'Posting, processing, transmission and returned-item report totals.', ['Verification scope: source-report totals only; does not certify General Ledger balances.'],Math.max(0,draftIssues-draftFailed)),
   enrich(eftCard,eftControls.map((x,i)=>control(x.label||'EFT control '+(i+1),x)),'Core debit/credit totals compared with STAR and teller reports; STAR debit/credit equality.', ['Full network settlement and GL reconciliation are not verified.'],(eftResult?.issues||[]).length),
   enrich(atmCard,atmChecks.map((x,i)=>control(x.name||'ATM control '+(i+1),x)),'Physical cash, cash GL, journal withdrawals, network settlement and GL clearing comparisons.', ['Limited ATM transaction model; full production coverage is not established.']),
   enrich(achCard,achChecks.map((x,i)=>control([x.date,x.direction].filter(Boolean).join(' — ')||'ACH control '+(i+1),x)),'Operator, core posting, settlement and GL totals by date and debit/credit direction.', ['Normalized CSV prototype; native production settlement coverage is not certified.'],Math.max(0,achIssues-achChecks.filter(x=>x.ok===false).length)),
   enrich(cardCard,cc.map(c=>control(c.name,c)),cardResult?.synthetic?'Synthetic test only':'Normalized receivables and settlement controls',['Native processor formats and bank settlement not independently verified.']),
   enrich(participationCard,pc.map(c=>control(c.name,c)),'Purchased participation principal and remittance controls',['Demonstration data; contractual allocations and servicer formats require validation.']),
-  enrich(mortgageCard,mc.map(c=>control(c.name,c)),'Mortgage principal, escrow and remittance controls',['Demonstration data; native servicer and independent cash verification pending.'])
+  enrich(mortgageCard,mc.map(c=>control(c.name,c)),'Mortgage principal, escrow and remittance controls',['Demonstration data; native servicer and independent cash verification pending.']),
+  enrich(glCard,glRows.map((x,i)=>control([x.gl?'GL '+x.gl:'GL control '+(i+1),x.desc].filter(Boolean).join(' — '),x)),'Mapped general ledger balances compared with core balances.', ['Source business date is not independently verified.',...(mappingIssues?[mappingIssues+' unmapped account type(s) excluded.']:[])],Math.max(0,glFailed-rowFailures)+mappingIssues)
  ];
 }
