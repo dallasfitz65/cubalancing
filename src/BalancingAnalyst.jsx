@@ -4,10 +4,10 @@ export default function BalancingAnalyst({cards,onNavigate}){
  const a=analyzeBalancing(cards);
  return <section className="folder-settings" aria-label="AI Balancing Analyst" style={{marginTop:16}}>
  <div className="section-title-help"><h2>AI Balancing Analyst</h2><small>Current session · Local rules-based assessment</small></div>
- <div className="html-stat-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))'}}>
- <div className="html-stat-card"><small>SECTIONS PASSED</small><strong className="green">{a.passed} / {a.total}</strong></div>
- <div className="html-stat-card"><small>REQUIRE INVESTIGATION</small><strong>{a.failed}</strong></div>
- <div className="html-stat-card"><small>NOT RUN</small><strong>{a.pending}</strong></div>
+ <div className="abacus-exec-grid" style={{marginBottom:20}}>
+ <div className="abacus-exec-tile" style={{'--balancing-accent':'#16a66a',cursor:'default'}}><span className="abacus-exec-tile-label">Sections Passed</span><strong className="abacus-exec-status abacus-status-passed">{a.passed} / {a.total}</strong><small>Sections with all configured controls passed</small></div>
+ <div className="abacus-exec-tile" style={{'--balancing-accent':'#b82e2e',cursor:'default'}}><span className="abacus-exec-tile-label">Require Investigation</span><strong className={'abacus-exec-status '+(a.failed?'abacus-status-exception':'abacus-status-passed')}>{a.failed}</strong><small>Sections requiring review or resolution</small></div>
+ <div className="abacus-exec-tile" style={{'--balancing-accent':'#f59e0b',cursor:'default'}}><span className="abacus-exec-tile-label">Not Run</span><strong className="abacus-exec-status abacus-status-pending">{a.pending}</strong><small>Sections without completed results</small></div>
  </div>
  <h3>Executive assessment</h3><p>{a.summary}</p>
  {a.mixedDates&&<p role="status"><strong>Source date review:</strong> Completed sections report different business dates ({a.dates.join(', ')}). Confirm the reporting cycle before comparing sections.</p>}
