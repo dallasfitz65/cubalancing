@@ -38,6 +38,6 @@ Successful deployment and migration do not by themselves establish that authenti
 
 ## Production access (November 2026)
 
-The default URL is `https://cuabacus2.netlify.app/`. All routes now require server-authenticated ABACUS user sessions. Legacy `?portal=1` links continue to work but the parameter is not required. The SQL tenant and history endpoints have always required authentication.
+The default URL is `https://cu-abacus.netlify.app/`. All routes now require server-authenticated ABACUS user sessions. Legacy `?portal=1` links continue to work but the parameter is not required. The SQL tenant and history endpoints have always required authentication.
 
 New credit unions are set up under Settings after signing in. Only hashed source-file fingerprints, balancing summary metadata, and validated mappings are saved centrally; no raw source files or account-level member data are transferred. See `docs/MULTI_TENANT_SETUP.md`.
