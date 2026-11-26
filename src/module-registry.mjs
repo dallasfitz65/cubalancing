@@ -8,7 +8,7 @@ export const MODULES=Object.freeze([
  ['mortgage-servicing','Mortgage Servicing Balancing',['mortgage_balances','mortgage_activity','mortgage_remittance','mortgage_gl']],
  ['loan-participations','Loan Participation Balancing',['participation_balances','participation_activity','participation_remittance','participation_gl']]
 ].map(([id,label,roles])=>Object.freeze({id,label,roles:Object.freeze(roles)})));
-const legacy=['shares-loans','drafts','eft','atm','ach','credit-cards','loan-participations'];
+const legacy=['shares-loans','drafts','eft','atm','ach'];
 export const defaultModules=()=>legacy.filter(id=>MODULES.some(m=>m.id===id));
 export const validModules=value=>Array.isArray(value)&&value.length<=MODULES.length&&new Set(value).size===value.length&&value.every(id=>MODULES.some(m=>m.id===id));
 export const resolveModules=value=>value===undefined||value===null?defaultModules():validModules(value)?[...value]:[];
